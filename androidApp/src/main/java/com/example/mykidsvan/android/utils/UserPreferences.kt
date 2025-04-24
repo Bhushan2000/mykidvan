@@ -1,0 +1,52 @@
+package com.example.mykidsvan.android.utils
+
+import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class UserPreferences(context: Context) {
+    // Extension function to create DataStore instance at the top-level
+    private val Context.dataStore by preferencesDataStore(name = "user_prefs")
+    private val dataStore = context.dataStore  // Use the new way to initialize DataStore
+
+    companion object {
+        private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        private val USER_ID = stringPreferencesKey("user_id")
+        private val USER_NAME = stringPreferencesKey("user_name")
+        private val USER_ROLE = stringPreferencesKey("user_role")
+    }
+
+    // Save login state (suspend function)
+    suspend fun saveLoginState(isLoggedIn: Boolean) {
+        dataStore.edit { prefs -> prefs[IS_LOGGED_IN] = isLoggedIn }
+    }
+
+    suspend fun saveLoginUserDetails(id: String, name: String,role:String) {
+        dataStore.edit { prefs ->
+            prefs[IS_LOGGED_IN] = true
+            prefs[USER_ID] = id
+            prefs[USER_NAME] = name
+            prefs[USER_ROLE] = role
+        }
+    }
+
+    suspend fun clearUserData() {
+        dataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
+
+    // Flow to observe login state
+    val isLoggedInFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[IS_LOGGED_IN] ?: false  // Return false if key is absent
+    }
+
+    val userIdFlow: Flow<String?> = dataStore.data.map { it[USER_ID] }
+
+    val userRole:Flow<String?> = dataStore.data.map { it[USER_ROLE] }
+
+}
