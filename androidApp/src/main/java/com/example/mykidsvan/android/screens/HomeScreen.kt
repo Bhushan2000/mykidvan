@@ -77,17 +77,15 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Check location permission status and request if necessary
             if (locationPermissionState.status.isGranted) {
-//                GoogleMapWithControls(
-//                    viewModel,
-//                    schoolId,
-//                    userId
-//                ) // Show the map if permission is granted
+                GoogleMapWithControls(
 
-                RealTimeTrackingScreen(
-                    viewModel,
-                    userId,
-                    schoolId
-                )
+                ) // Show the map if permission is granted
+
+//                RealTimeTrackingScreen(
+//                    viewModel,
+//                    userId,
+//                    schoolId
+//                )
 
             } else {
                 Column(
@@ -221,172 +219,202 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
 //}
 
 
-@SuppressLint("MissingPermission")
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun GoogleMapWithControls(
-    viewModel: AuthViewModel,
-    schoolId: String,
-    userId: String
-) {
+fun GoogleMapWithControls() {
     val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
-
-    val pathLatLngList = remember { mutableStateListOf<LatLng>() }
     val cameraPositionState = rememberCameraPositionState()
-    val mapZoom by remember { mutableStateOf(17f) }
-    val markerIcon = rememberAsyncMarkerIcon(R.drawable.busyellow, 32, 48)
+    var isTracking by remember { mutableStateOf(false) }
+    var shouldFollow by remember { mutableStateOf(true) }
 
-    var isTracking by remember { mutableStateOf(false) } // Track whether we are in "tracking" mode
+    val forwardPath = listOf(
+        LatLng(21.0956675, 79.1349206), // Start: Nagpur
 
-    var currentLocation = LatLng(21.1458, 79.0882) // Starting LatLng (could be current location)
-    val random = Random()
+        // Right turn
+        LatLng(21.0960, 79.1360),
+        LatLng(21.0965, 79.1375),
 
-    // Simulate movement direction with randomness (Left, Right, Up, Down, U-Turn, Side Turn)
-    fun getRandomMovement(): LatLng {
-        val direction = random.nextInt(4) // Left, Right, Up, Down
+        // Left turn
+        LatLng(21.0968, 79.1365),
+        LatLng(21.0972, 79.1350),
 
-        val offset = 0.0001 // How much we increment the lat/long (adjust as needed)
-        return when (direction) {
-            0 -> LatLng(currentLocation.latitude + offset, currentLocation.longitude) // Up
-            1 -> LatLng(currentLocation.latitude - offset, currentLocation.longitude) // Down
-            2 -> LatLng(currentLocation.latitude, currentLocation.longitude + offset) // Right
-            3 -> LatLng(currentLocation.latitude, currentLocation.longitude - offset) // Left
-            else -> currentLocation
-        }
-    }
+        // U-turn
+        LatLng(21.0965, 79.1340),
+        LatLng(21.0958, 79.1335),
+        LatLng(21.0950, 79.1340),
 
-    // U-turn logic (move opposite direction)
-    fun makeUTurn(): LatLng {
-        return LatLng(currentLocation.latitude * -1, currentLocation.longitude * -1)
-    }
+        // Zig-zag
+        LatLng(21.0955, 79.1345),
+        LatLng(21.0960, 79.1340),
+        LatLng(21.0965, 79.1345),
+        LatLng(21.0970, 79.1340),
 
-    // Side turn (adjust latitude/longitude slightly)
-    fun makeSideTurn(): LatLng {
-        return if (random.nextBoolean()) {
-            LatLng(currentLocation.latitude + 0.00005, currentLocation.longitude)
-        } else {
-            LatLng(currentLocation.latitude, currentLocation.longitude + 0.00005)
-        }
-    }
+        // Blind turn (sudden direction change)
+        LatLng(21.0975, 79.1342),
+        LatLng(21.0979, 79.1349),
 
-    // Request location permission on start
+        // Traffic road (short pause and slow movement)
+        LatLng(21.0985, 79.1351),
+        LatLng(21.0990, 79.1353),
+        LatLng(21.0995, 79.1355),
+
+        // Crowded road (dense small changes)
+        LatLng(21.1000, 79.1356),
+        LatLng(21.1002, 79.1357),
+        LatLng(21.1004, 79.1358),
+        LatLng(21.1006, 79.1359),
+
+        // Work-in-progress road (detour and loop)
+        LatLng(21.1010, 79.1360),
+        LatLng(21.1015, 79.1355),
+        LatLng(21.1020, 79.1350),
+        LatLng(21.1015, 79.1345),
+        LatLng(21.1010, 79.1340),
+
+        // Move North (Top)
+        LatLng(21.1030, 79.1340),
+        LatLng(21.1045, 79.1340),
+
+        // Move South (Down)
+        LatLng(21.1030, 79.1340),
+        LatLng(21.1015, 79.1340),
+
+        // Side turn (East/West)
+        LatLng(21.1015, 79.1350),
+        LatLng(21.1015, 79.1360),
+
+        // Reverse
+        LatLng(21.1000, 79.1355),
+        LatLng(21.0990, 79.1350),
+
+        // Final point (end of route)
+        LatLng(21.0980, 79.1345)
+    )
+
+
+    val returnPath = forwardPath.reversed()
+
+    // Combined forward and return path
+    val simulatedPath = forwardPath + returnPath
+
+    var pathPoints by remember { mutableStateOf(listOf<LatLng>()) }
+    var currentIndex by remember { mutableStateOf(0) }
+    var currentLocation by remember { mutableStateOf(simulatedPath.first()) }
+    var bearing by remember { mutableStateOf(0f) }
+    var totalDistance by remember { mutableStateOf(0f) }
+    var speed by remember { mutableStateOf(0f) }
+
+    var animationJob by remember { mutableStateOf<Job?>(null) }
+
+    // Default camera focus on the start
     LaunchedEffect(Unit) {
-        if (!locationPermissionState.status.isGranted) {
-            locationPermissionState.launchPermissionRequest()
-        } else {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                location?.let {
-                    currentLocation =
-                        LatLng(it.latitude, it.longitude) // Start from current location
-                    pathLatLngList.add(currentLocation)
-                }
-            }
-        }
+        cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
     }
 
-    // Simulate path update from dynamic movement
     LaunchedEffect(isTracking) {
         if (isTracking) {
-            while (isTracking) {
-                delay(2000L)
-                // Randomly decide the next step
-                currentLocation = getRandomMovement()
+            animationJob = launch {
+                while (isTracking && currentIndex < simulatedPath.size - 1) {
+                    val start = simulatedPath[currentIndex]
+                    val end = simulatedPath[currentIndex + 1]
 
-                // Add the new position to the path
-                pathLatLngList.add(currentLocation)
+                    for (i in 0..100) {
+                        val fraction = i / 100f
+                        val interpolated = interpolate(start, end, fraction)
+                        val distance = calculateDistanceInMeters(currentLocation, interpolated)
 
-                // Make a U-turn or side turn occasionally
-                if (random.nextInt(10) < 2) { // 20% chance to make a U-turn or side turn
-                    currentLocation = if (random.nextBoolean()) makeUTurn() else makeSideTurn()
-                    pathLatLngList.add(currentLocation)
+                        bearing = calculateBearing(start, end)
+                        currentLocation = interpolated
+                        pathPoints = pathPoints + interpolated
+                        totalDistance += distance
+                        speed = distance / 0.03f
+
+                        if (shouldFollow) {
+                            cameraPositionState.move(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    interpolated,
+                                    17f
+                                )
+                            )
+                        }
+
+                        delay(30L)
+                    }
+                    currentIndex++
                 }
             }
+        } else {
+            animationJob?.cancel()
         }
     }
 
-    // Animate camera to follow marker
-    LaunchedEffect(pathLatLngList.size) {
-        pathLatLngList.lastOrNull()?.let { last ->
-            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(last, mapZoom))
-        }
-    }
-
-    // UI elements for Start/Stop buttons
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Bottom
-    ) {
-        // GoogleMap UI
+    Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false)
+            onMapClick = { shouldFollow = false }
         ) {
-            // Draw complete path
-            if (pathLatLngList.size > 1) {
+            if (pathPoints.isNotEmpty()) {
                 Polyline(
-                    points = pathLatLngList,
+                    points = pathPoints,
                     color = Color.Blue,
-                    width = 10f
+                    width = 20f
+                )
+
+                Marker(
+                    state = MarkerState(position = currentLocation),
+                    icon = bitmapDescriptorFromVector(context, R.drawable.busyellow, 50, 80),
+                    rotation = bearing,
+                    anchor = Offset(0.5f, 0.5f),
+                    flat = true
                 )
             }
-
-            // Draw marker
-            pathLatLngList.lastOrNull()?.let { current ->
-                val previous = pathLatLngList.getOrNull(pathLatLngList.lastIndex - 1)
-                val rotation = previous?.let { getBearingHome(it, current) } ?: 0f
-
-                markerIcon.value?.let { icon ->
-                    Marker(
-                        state = MarkerState(position = current),
-                        icon = icon,
-                        rotation = rotation,
-                        anchor = Offset(0.5f, 0.5f),
-                        flat = true,
-                        title = "Bus"
-                    )
-                }
-            }
         }
 
-        // Show Start/Stop button based on isTracking state
-        Box(
+        FloatingActionButton(
+            onClick = {
+                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
+            },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
         ) {
-            Button(
-                onClick = {
-                    // Toggle tracking state
-                    isTracking = !isTracking
-                    if (!isTracking) {
-                        // Optionally, save the path here if needed
-                        // For example, save to Room or SharedPreferences
-                        // savePathToRoom(pathLatLngList)
-                    }
+            Image(
+                painter = painterResource(id = R.drawable.baseline_my_location_24), // Replace with your drawable resource
+                contentDescription = "Current Location",
+                modifier = Modifier.size(24.dp) // You can adjust the size as needed
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(onClick = {
+                isTracking = !isTracking
+                shouldFollow = true
+                if (!isTracking) {
+                    currentIndex = 0
+                    animationJob?.cancel()
                 }
-            ) {
+            }) {
                 Text(if (isTracking) "Stop Tracking" else "Start Tracking")
             }
-        }
-    }
 
-    // Fallback UI when permission not granted
-    if (!locationPermissionState.status.isGranted) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Text("Location permission is required to display the map.")
-                Button(onClick = { locationPermissionState.launchPermissionRequest() }) {
-                    Text("Grant Permission")
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        text = "Distance: ${"%.2f".format(totalDistance)} m",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Speed: ${"%.2f".format(speed)} m/s",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
@@ -584,12 +612,22 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
                 Text(if (isTracking) "Stop Tracking" else "Start Tracking")
             }
 
-            Surface(color = Color.White.copy(alpha = 0.8f), shape = MaterialTheme.shapes.medium) {
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Column(modifier = Modifier.padding(8.dp)) {
-                    Text("Distance: ${"%.2f".format(totalDistance)} m")
-                    Text("Speed: ${"%.2f".format(speed)} m/s")
+                    Text(
+                        text = "Distance: ${"%.2f".format(totalDistance)} m",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Speed: ${"%.2f".format(speed)} m/s",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
+
         }
     }
 }

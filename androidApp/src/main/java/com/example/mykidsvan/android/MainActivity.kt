@@ -83,7 +83,9 @@ class MainActivity : ComponentActivity(), PaymentResultListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyApp(onPaymentSuccessCallback,onPaymentFailureCallback)
+            MyApplicationTheme {
+                MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
+            }
         }
     }
 

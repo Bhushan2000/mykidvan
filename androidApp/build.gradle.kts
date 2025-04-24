@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
- }
+}
 
 android {
     namespace = "com.example.mykidsvan.android"
@@ -68,10 +68,9 @@ dependencies {
     implementation("com.google.accompanist:accompanist-navigation-animation:0.30.1")
     // lottie
     implementation("com.airbnb.android:lottie-compose:6.0.0")
-
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     // razorpay
     implementation("com.razorpay:checkout:1.6.33")
-
-
+    // Jetpack Datastore for login state persistence
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

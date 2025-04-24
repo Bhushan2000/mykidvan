@@ -53,14 +53,6 @@ import com.example.mykidsvan.android.data.dto.response.Parent
 @Composable
 fun FindStudentScreen(viewModel: AuthViewModel) {
 
-
-    // State variables for dropdowns and list handling
-
-    val state by remember { mutableStateOf("") }
-    val district by remember { mutableStateOf("") }
-    var taluka by remember { mutableStateOf("") }
-    val school by remember { mutableStateOf("") }
-
     // Observe the list of states from the ViewModel
     val stateOptions by viewModel.stateOptions.collectAsState()
     val districtOptions by viewModel.districtOptions.collectAsState()
