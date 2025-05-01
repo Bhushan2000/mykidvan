@@ -218,7 +218,6 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
 //    }
 //}
 
-
 @Composable
 fun GoogleMapWithControls() {
     val context = LocalContext.current
@@ -421,7 +420,6 @@ fun GoogleMapWithControls() {
     }
 }
 
-
 // Function to calculate bearing (angle) between two LatLng points
 fun getBearingHome(start: LatLng, end: LatLng): Float {
     val lat1 = Math.toRadians(start.latitude)
@@ -435,7 +433,6 @@ fun getBearingHome(start: LatLng, end: LatLng): Float {
 
     return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
 }
-
 
 // Function to asynchronously load and scale marker icon
 @Composable
@@ -631,7 +628,6 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
         }
     }
 }
-
 
 fun interpolate(start: LatLng, end: LatLng, fraction: Float): LatLng {
     val lat = (end.latitude - start.latitude) * fraction + start.latitude

@@ -73,4 +73,6 @@ dependencies {
     implementation("com.razorpay:checkout:1.6.33")
     // Jetpack Datastore for login state persistence
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    // coil
+    implementation("io.coil-kt:coil-compose:2.4.0") // for AsyncImage
 }

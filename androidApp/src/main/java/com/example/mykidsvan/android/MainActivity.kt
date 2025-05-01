@@ -2,7 +2,6 @@ package com.example.mykidsvan.android
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -52,7 +51,6 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.screens.AssignedStudentScreen
 import com.example.mykidsvan.android.screens.AssignedVehicleScreen
 import com.example.mykidsvan.android.screens.DriverSignupScreen
-import com.example.mykidsvan.android.screens.FindDriverByMob
 import com.example.mykidsvan.android.screens.FindStudentScreen
 import com.example.mykidsvan.android.screens.FindVehicleScreen
 import com.example.mykidsvan.android.screens.HomeScreen
@@ -110,8 +108,8 @@ class MainActivity : ComponentActivity(), PaymentResultListener {
         checkout.setKeyID("rzp_test_BVJygtmA6ljXBB") // Replace with actual key
 
         val options = JSONObject().apply {
-            put("name", "Assign Driver")
-            put("description", "Driver Request Fee")
+            put("name", "Assign Vehicle Owner")
+            put("description", "Vehicle Owner Request Fee")
             put("currency", "INR")
             put("amount", amountInPaise.toString())
 
@@ -179,8 +177,7 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindVehicle,
-                            DrawerItem.FindVehicleByMob,
-                            DrawerItem.RegisterSchool,
+                             DrawerItem.RegisterSchool,
                             DrawerItem.Message,
                             DrawerItem.SupportHelp
                         )
@@ -317,12 +314,6 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                 }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
-                composable(DrawerItem.FindVehicleByMob.route) {
-                    FindDriverByMob(
-                        loginViewModel,
-                        userId
-                    )
-                }
             }
 
             // Logout Confirmation Dialog

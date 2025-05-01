@@ -96,7 +96,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
         )
 
         DropdownField(
-            label = "State",
+            label = "* State",
             selectedValue = selectedState?.state_name ?: "",
             options = stateOptions.map { it.state_name },
             onValueChange = { selectedName ->
@@ -106,7 +106,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
         )
 
         DropdownField(
-            label = "District",
+            label = "* District",
             selectedValue = selectedDistrict?.district_name ?: "",
             options = districtOptions.map { it.district_name },
             onValueChange = { selectedName ->
@@ -116,7 +116,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
         )
 
         DropdownField(
-            label = "Taluka",
+            label = "* Taluka",
             selectedValue = selectedTaluka?.taluka_name ?: "",
             options = talukaOptions.map { it.taluka_name },
             onValueChange = { selectedName ->
@@ -129,7 +129,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
         OutlinedTextField(
             value = city.value,
             onValueChange = { city.value = it },
-            label = { Text("City") },
+            label = { Text("* City") },
             shape = RoundedCornerShape(14.dp),
             colors = textFieldColors,
             modifier = Modifier

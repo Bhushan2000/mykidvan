@@ -2,6 +2,7 @@ package com.example.mykidsvan.android.screens
 
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +21,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -44,146 +52,182 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mykidsvan.android.R
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageScreen() {
+    var selectedFilter by remember { mutableStateOf("All Parents") }
+    val filterOptions = listOf("All Parents", "By Driver", "By Name", "Individual Parent")
+    var specificSelection by remember { mutableStateOf("") }
     var messageText by remember { mutableStateOf("") }
-    val messagesList = remember { mutableStateListOf("Hello!", "How are you?", "I'm doing great!") }
 
-    Scaffold(
-        bottomBar = {
-            MessageInput(
-                messageText = messageText,
-                onMessageChange = { messageText = it },
-                onSendClick = {
-                    if (messageText.isNotBlank()) {
-                        messagesList.add(messageText)  // Add message to list
-                        messageText = ""  // Clear input after sending
-                    }
-                }
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF0F4F8))
+            .padding(16.dp)
+    ) {
+        // Filter Type Dropdown
+        DropdownSelector(
+            label = "Select Filter",
+            options = filterOptions,
+            selectedOption = selectedFilter,
+            onOptionSelected = {
+                selectedFilter = it
+                specificSelection = ""
+            }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Conditional field based on filter type
+        when (selectedFilter) {
+            "By Driver", "By Name" -> {
+                DropdownSelector(
+                    label = "Select ${selectedFilter.removePrefix("By ")}",
+                    options = listOf("Option 1", "Option 2", "Option 3"), // Replace with real data
+                    selectedOption = specificSelection,
+                    onOptionSelected = { specificSelection = it }
+                )
+            }
+
+            "Individual Parent" -> {
+                OutlinedTextField(
+                    value = specificSelection,
+                    onValueChange = { specificSelection = it },
+                    label = { Text("Enter Parent Mobile or ID") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFF1E88E5),
+                        unfocusedBorderColor = Color.Gray,
+                        containerColor = Color.White
+                    )
+                )
+            }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(Color(0xFFE3F2FD))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Message Box
+        RoundedMessageTextField(
+            value = messageText,
+            onValueChange = { messageText = it },
+            label = "Type your message"
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Send Button
+        Button(
+            onClick = {
+                if (messageText.isNotBlank()) {
+                    println("Sending message to $selectedFilter -> $specificSelection: $messageText")
+                    messageText = ""
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text(
-                text = "Chat",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1565C0),
+            Text(text = "Send Message", color = Color.White)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropdownSelector(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Text(text = label, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box {
+            OutlinedTextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                textAlign = TextAlign.Center
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { expanded = true },
+                trailingIcon = {
+                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFF1E88E5),
+                    unfocusedBorderColor = Color.Gray,
+                    containerColor = Color.White
+                )
             )
 
-            // Display Messages
-            LazyColumn(
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                reverseLayout = true,  // Display latest messages at the bottom
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
             ) {
-                items(messagesList.size) { index ->
-                    val message = messagesList[index]
-                    val isSender = index % 2 == 0  // Alternate sender for demo purposes
-                    MessageBubble(message = message, isSender = isSender)
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onOptionSelected(option)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
                 }
             }
         }
     }
 }
 
-@Composable
-fun MessageBubble(message: String, isSender: Boolean) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth(),
-        contentAlignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    ) {
-        Text(
-            text = message,
-            style = TextStyle(color = Color.White, fontSize = 16.sp),
-            modifier = Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 12.dp,
-                        topEnd = 12.dp,
-                        bottomStart = if (isSender) 12.dp else 0.dp,
-                        bottomEnd = if (isSender) 0.dp else 12.dp
-                    )
-                )
-                .background(if (isSender) Color(0xFF1E88E5) else Color(0xFF64B5F6))
-                .padding(12.dp)
-                .widthIn(max = 250.dp)
-        )
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageInput(
-    messageText: String,
-    onMessageChange: (String) -> Unit,
-    onSendClick: () -> Unit
+fun RoundedMessageTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    height: Dp = 150.dp
 ) {
-    Row(
-        modifier = Modifier
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier
             .fillMaxWidth()
-            .background(Color.White)
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = messageText,
-            onValueChange = onMessageChange,
-            placeholder = { Text("Type a message...") },
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color(0xFFF0F0F0),
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Send
-            ),
-            keyboardActions = KeyboardActions(onSend = { onSendClick() }),
-            modifier = Modifier
-                .weight(1f)
-                .height(56.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF0F0F0)),
-            textStyle = TextStyle(fontSize = 16.sp)
+            .height(height)
+            .clip(RoundedCornerShape(16.dp)),
+        maxLines = 5,
+        shape = RoundedCornerShape(16.dp),
+        textStyle = TextStyle(fontSize = 16.sp),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            focusedBorderColor = Color(0xFF1E88E5),
+            unfocusedBorderColor = Color.Gray,
+            containerColor = Color.White
         )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        FloatingActionButton(
-            onClick = onSendClick,
-            containerColor = Color(0xFF1E88E5),
-            contentColor = Color.White,
-            shape = CircleShape,
-            modifier = Modifier.size(56.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_send), // Replace with actual send icon
-                contentDescription = "Send Message"
-            )
-        }
-    }
+    )
 }
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewMessageScreen() {
+fun PreviewParentMessageScreen() {
     MessageScreen()
 }

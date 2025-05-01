@@ -13,19 +13,23 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-         android:theme="@style/AppTheme">
-        <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAFDOC21jOwNmm4xASd_mL7AoA1xXOWdyY"/>
+        android:label="My Kid Van"
+        android:theme="@style/AppTheme">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAFDOC21jOwNmm4xASd_mL7AoA1xXOWdyY" />
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <meta-data android:name="com.razorpay.ApiKey" android:value="rzp_test_BVJygtmA6ljXBB"/>
+        <meta-data
+            android:name="com.razorpay.ApiKey"
+            android:value="rzp_test_BVJygtmA6ljXBB" />
 
     </application>
 </manifest>
