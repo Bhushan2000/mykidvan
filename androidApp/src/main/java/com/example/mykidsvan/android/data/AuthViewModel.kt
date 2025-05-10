@@ -36,6 +36,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mykidsvan.android.data.AuthRepository
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
+import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.District
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -53,6 +54,7 @@ import com.example.mykidsvan.android.utils.OtpState
 import com.example.mykidsvan.android.utils.UpdatePasswordState
 import com.example.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -164,7 +166,7 @@ class AuthViewModel(
 
         loadStateOptions()
         loadAllSchools()
-        userId.value?.let { loadAllRequests(it, parent_id = "14") }
+        userId.value?.let { loadAllRequests(it, parent_id = userId.value!!) }
     }
 
 
@@ -518,6 +520,10 @@ class AuthViewModel(
         }
     }
 
+    fun clearParentList() {
+        _parentsOptions.value = emptyList()
+    }
+
     fun registerDriver(
         ownerName: String,
         contactNumber: String,
@@ -821,44 +827,54 @@ class AuthViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Send LatLong
     fun sendLatLong(lat: String, long: String, schoolId: String, id: String) {
         viewModelScope.launch {
             isLoading = true
             try {
                 val response = repository.sendLatLong(lat, long, schoolId, id)
                 _sendLatLongResponse.value = response
+
+                // ✅ Log the successful request for debugging
+                Log.d(
+                    "SendLatLong",
+                    "Sent location -> lat: $lat, long: $long for schoolId: $schoolId, userId: $id"
+                )
             } catch (e: Exception) {
                 _errorMessage.value = e.message
+
+                // ❌ Log the error
+                Log.e("SendLatLongError", "Failed to send location: ${e.message}", e)
             } finally {
                 isLoading = false
             }
         }
     }
 
+
     // Get LatLong
     private val _currentLatLng = MutableStateFlow<LatLng?>(null)
     val currentLatLng: StateFlow<LatLng?> get() = _currentLatLng
 
-    fun getLatLong(schoolId: String, driverId: String): List<LatLng> {
-        val latLngList = mutableListOf<LatLng>()
+    suspend fun getLatLong(schoolId: String, driverId: String): List<LatLng> {
+        return try {
+            val response = repository.getLatLong(schoolId, driverId)
 
-        viewModelScope.launch {
-            try {
-                val response = repository.getLatLong(schoolId, driverId)
-
-                // Assuming the response is a JSON object with a "data" field containing the list of LatLngs
-                response.data.forEach { item ->
-                    val latitude = item.latitude?.toDoubleOrNull() ?: return@forEach
-                    val longitude = item.longitude?.toDoubleOrNull() ?: return@forEach
-                    latLngList.add(LatLng(latitude, longitude))
-                }
-                println("${latLngList}")
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
+            val latLngList = response.data.mapNotNull { item ->
+                val latitude = item.latitude?.toDoubleOrNull()
+                val longitude = item.longitude?.toDoubleOrNull()
+                if (latitude != null && longitude != null) {
+                    LatLng(latitude, longitude)
+                } else null
             }
+
+            Log.d("TrackingLog", "Fetched LatLngs from server: $latLngList")
+
+            latLngList
+        } catch (e: Exception) {
+            _errorMessage.value = e.message
+            Log.e("TrackingError", "Error fetching lat-longs: ${e.message}", e)
+            emptyList()
         }
-        return latLngList
     }
 
 
@@ -947,6 +963,50 @@ class AuthViewModel(
 
     fun clearToastMessage() {
         toastMessage = null
+    }
+
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading
+
+    private val _uploadMessage = MutableStateFlow<String?>(null)
+    val uploadMessage: StateFlow<String?> = _uploadMessage
+
+    fun uploadVehiclePhotos(
+        userId: Int,
+        frontBase64: String,
+        backBase64: String,
+        insideBase64: String,
+        outsideBase64: String
+    ) {
+        viewModelScope.launch {
+            _isUploading.value = true
+
+            try {
+                val imageList = arrayListOf(frontBase64, backBase64, insideBase64, outsideBase64)
+
+                val request = UpdateVehicleImageRequest(
+                    id = userId,
+                    photoOfVehicle = imageList
+                )
+
+                val response = repository.updateVehiclePhotos(request)
+
+                if (response.status == true) {
+                    _uploadMessage.value = response.message ?: "Upload successful"
+                } else {
+                    _uploadMessage.value = response.message ?: "Upload failed"
+                }
+
+            } catch (e: Exception) {
+                _uploadMessage.value = "Exception occurred: ${e.localizedMessage}"
+                Log.e("Upload", "Error uploading vehicle photos", e)
+            }
+
+            _isUploading.value = false
+        }
+    }
+    fun clearUploadMessage() {
+        _uploadMessage.value = null
     }
 }
 

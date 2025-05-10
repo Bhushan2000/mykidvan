@@ -10,9 +10,11 @@ import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.example.mykidsvan.android.data.dto.request.UpdatePasswordRequest
+import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
+import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
@@ -20,7 +22,9 @@ import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
+import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -121,7 +125,24 @@ interface AuthApi {
     suspend fun sendAssignRequest(@Body request: SendAssignRequest): SendRequestToDriverResponse
 
     @GET("index.php/api/AccountsController/get_vehicle_message/{driver_id}/{parent_id}")
-    suspend fun getDriverRequests(@Path("driver_id") driver_id: String,
-                                  @Path("parent_id") parent_id: String): DriverRequestResponse
+    suspend fun getDriverRequests(
+        @Path("driver_id") driver_id: String,
+        @Path("parent_id") parent_id: String
+    ): DriverRequestResponse
+
+    @PUT("index.php/api/AccountsController/update_parentdetail")
+    suspend fun updateProfileParent(
+        @Body request: Parent
+    ): ProfileUpdateResponse
+
+    @PUT("index.php/api/AccountsController/update_driverdetail")
+    suspend fun updateProfileDriver(
+        @Body request: Driver
+    ): ProfileUpdateResponse
+
+    @PUT("index.php/api/AccountsController/update_vehicle_photo")
+    suspend fun updateVehiclePhotos(
+        @Body request: UpdateVehicleImageRequest
+    ):ProfileUpdateResponse
 
 }

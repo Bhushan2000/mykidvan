@@ -10,9 +10,11 @@ import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.example.mykidsvan.android.data.dto.request.UpdatePasswordRequest
+import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
+import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
@@ -20,7 +22,9 @@ import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
+import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -212,8 +216,11 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getAllSchools()
     }
 
-    override suspend fun getDriverRequests(driver_id: String,parent_id: String): DriverRequestResponse {
-        return api.getDriverRequests(driver_id,parent_id)
+    override suspend fun getDriverRequests(
+        driver_id: String,
+        parent_id: String
+    ): DriverRequestResponse {
+        return api.getDriverRequests(driver_id, parent_id)
     }
 
     override suspend fun sendLatLong(
@@ -226,15 +233,15 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.sendLatLong(request)
     }
 
-    override suspend fun getLatLong(school_id: String,driver_id: String): GetLatLongResponse {
-        return api.getLatLong(school_id,driver_id)
+    override suspend fun getLatLong(school_id: String, driver_id: String): GetLatLongResponse {
+        return api.getLatLong(school_id, driver_id)
     }
 
     override suspend fun sendAssignRequest(
         vehicle_id: String,
-        parent_id:String
-     ): SendRequestToDriverResponse {
-        val request = SendAssignRequest(vehicle_id,parent_id)
+        parent_id: String
+    ): SendRequestToDriverResponse {
+        val request = SendAssignRequest(vehicle_id, parent_id)
         return api.sendAssignRequest(request)
     }
 
@@ -242,7 +249,132 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         vehicle_id: String,
         status: String
     ): SendLatLongResponse {
-        val request = UpdateAssignRequest(vehicle_id,status)
+        val request = UpdateAssignRequest(vehicle_id, status)
         return api.updateAssignRequest(request)
+    }
+
+    override suspend fun updateProfileParent(
+        id: String,
+        parentName: String,
+        contactNumber: String,
+        password: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        parentAddress: String,
+        childName: String,
+        childSchoolName: String,
+        childClass: String,
+        childDob: String,
+        pickUp: String,
+        dropOff: String,
+        numberOfChlid: String,
+        emergencyContact: String,
+        termsCondition: String,
+        role: String,
+        schoolId: String
+    ): ProfileUpdateResponse {
+        val request = Parent(
+            id = id,
+            parentName = parentName,
+            contactNumber = contactNumber,
+            password = password,
+            state = state,
+            district = district,
+            taluka = taluka,
+            city = city,
+            parentAddress = parentAddress,
+            childName = childName,
+            childSchoolName = childSchoolName,
+            childClass = childClass,
+            childDob = childDob,
+            pickUp = pickUp,
+            dropOff = dropOff,
+            numberOfChlid = numberOfChlid,
+            emergencyContact = emergencyContact,
+            termsCondition = termsCondition,
+            role = role,
+            schoolId = schoolId
+        )
+        return api.updateProfileParent(request)
+    }
+
+
+    override suspend fun updateProfileDriver(
+        id: String,
+        driver_name: String,
+        driver_type: String?,
+        number: String,
+        vehicle_number: String?,
+        state: String,
+        district: String,
+        taluka: String?,
+        city: String?,
+        address: String?,
+        adhar_number: String?,
+        driver_license: String?,
+        vehicle_registration: String?,
+        vehicle_model: String?,
+        seating_capacity: String?,
+        insurance_details: String?,
+        fintness_certificate: String?,
+        photo_of_vehicle: String?,
+        areas_covered: String?,
+        school_serviced: String?,
+        profile_picture: String?,
+        about_me: String?,
+        veritication_status: String?,
+        availability_status: String?,
+        terms_and_condition: String?,
+        latitude: String?,
+        longitude: String?,
+        timer: String?,
+        role: String?,
+        username: String?,
+        password: String,
+        status: String,
+        school_id: String
+    ): ProfileUpdateResponse {
+        val request = Driver(
+            id = id,
+            driver_name = driver_name,
+            driver_type = driver_type,
+            number = number,
+            vehicle_number = vehicle_number,
+            state = state,
+            district = district,
+            taluka = taluka,
+            city = city,
+            address = address,
+            adhar_number = adhar_number,
+            driver_license = driver_license,
+            vehicle_registration = vehicle_registration,
+            vehicle_model = vehicle_model,
+            seating_capacity = seating_capacity,
+            insurance_details = insurance_details,
+            fintness_certificate = fintness_certificate,
+            photo_of_vehicle = photo_of_vehicle,
+            areas_covered = areas_covered,
+            school_serviced = school_serviced,
+            profile_picture = profile_picture,
+            about_me = about_me,
+            veritication_status = veritication_status,
+            availability_status = availability_status,
+            terms_and_condition = terms_and_condition,
+            latitude = latitude,
+            longitude = longitude,
+            timer = timer,
+            role = role,
+            username = username,
+            password = password,
+            status = status,
+            school_id = school_id
+        )
+        return api.updateProfileDriver(request)
+    }
+
+    override suspend fun updateVehiclePhotos(request: UpdateVehicleImageRequest): ProfileUpdateResponse {
+        return api.updateVehiclePhotos(request)
     }
 }

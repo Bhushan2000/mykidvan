@@ -217,11 +217,11 @@ fun LoginScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
             elevation = ButtonDefaults.buttonElevation(8.dp)
-        ) {
+         ) {
             if (loginState.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold,color = Color.White)
             }
         }
 

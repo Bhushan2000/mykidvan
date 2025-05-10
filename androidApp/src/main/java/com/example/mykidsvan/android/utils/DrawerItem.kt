@@ -19,6 +19,8 @@ sealed class DrawerItem(val title: String, val route: String, @DrawableRes val i
         DrawerItem("Assigned Student", "assigned_student", R.drawable.ic_assigned_student)
 
     object RegisterSchool : DrawerItem("Register School", "register_school", R.drawable.ic_school)
+    object VehiclePhoto :
+        DrawerItem("Add Photos", "add_vehicle_photos", R.drawable.ic_find_vehicle)
     object ReferApp : DrawerItem("Refer App", "refer_app", R.drawable.ic_share)
 
     object FindVehicle : DrawerItem("Find Vehicle", "find_vehicle", R.drawable.ic_find_vehicle)

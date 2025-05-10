@@ -136,7 +136,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                             strokeWidth = 2.dp
                                         )
                                     } else {
-                                        Text("Accept")
+                                        Text("Accept", color = Color.White)
                                     }
                                 }
 
@@ -155,7 +155,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                             strokeWidth = 2.dp
                                         )
                                     } else {
-                                        Text("Reject")
+                                        Text("Reject", color = Color.White)
                                     }
                                 }
                             }

@@ -16,7 +16,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 val appModule = module {
     single<AuthApi> {
         Retrofit.Builder()
-            .baseUrl("https://mykidvan.com/")
+            .baseUrl("https://avschoolerp.com/")
             .client(OkHttpClient.Builder().build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()

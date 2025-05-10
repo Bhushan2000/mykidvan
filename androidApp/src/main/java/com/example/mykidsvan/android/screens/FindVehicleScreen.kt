@@ -161,7 +161,7 @@ fun FindByMobileSection(
             shape = RoundedCornerShape(12.dp),
             elevation = ButtonDefaults.buttonElevation(8.dp)
         ) {
-            Text("Search")
+            Text("Search", color = Color.White)
         }
 
         Spacer(modifier = Modifier.height(24.dp))

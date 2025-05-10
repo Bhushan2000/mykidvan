@@ -30,6 +30,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -67,8 +68,7 @@ fun MessageScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F4F8))
-            .padding(16.dp)
+             .padding(16.dp)
     ) {
         // Filter Type Dropdown
         DropdownSelector(
@@ -149,6 +149,7 @@ fun DropdownSelector(
     onOptionSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
 
     Column {
         Text(text = label, fontWeight = FontWeight.SemiBold)
@@ -168,10 +169,14 @@ fun DropdownSelector(
                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
                 },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFF1E88E5),
-                    unfocusedBorderColor = Color.Gray,
-                    containerColor = Color.White
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedBorderColor = colorScheme.outline,
+                    containerColor = colorScheme.surface,
+                    focusedTextColor = colorScheme.onSurface,
+                    unfocusedTextColor = colorScheme.onSurface,
+                    cursorColor = colorScheme.primary
                 )
+
             )
 
             DropdownMenu(
@@ -179,18 +184,16 @@ fun DropdownSelector(
                 onDismissRequest = { expanded = false },
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
+                    .background(colorScheme.surface)
             ) {
                 options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option) },
+                        text = { Text(option, color = colorScheme.onSurface) },
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -207,22 +210,28 @@ fun RoundedMessageTextField(
     modifier: Modifier = Modifier,
     height: Dp = 150.dp
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { Text(label, color = colorScheme.onSurfaceVariant) },
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(16.dp)),
         maxLines = 5,
         shape = RoundedCornerShape(16.dp),
-        textStyle = TextStyle(fontSize = 16.sp),
+        textStyle = TextStyle(fontSize = 16.sp, color = colorScheme.onSurface),
         colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color(0xFF1E88E5),
-            unfocusedBorderColor = Color.Gray,
-            containerColor = Color.White
+            focusedBorderColor = colorScheme.primary,
+            unfocusedBorderColor = colorScheme.outline,
+            containerColor = colorScheme.surface,
+            focusedTextColor = colorScheme.onSurface,
+            unfocusedTextColor = colorScheme.onSurface,
+            cursorColor = colorScheme.primary
         )
+
     )
 }
 

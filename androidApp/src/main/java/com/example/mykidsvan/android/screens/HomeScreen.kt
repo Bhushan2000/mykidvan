@@ -7,10 +7,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.location.Location
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -35,9 +39,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
-import com.example.mykidsvan.android.utils.SharedPrefUtil
 import com.google.accompanist.permissions.*
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptor
@@ -77,15 +83,15 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Check location permission status and request if necessary
             if (locationPermissionState.status.isGranted) {
-                GoogleMapWithControls(
+//                GoogleMapWithControls(
+//
+//                ) // Show the map if permission is granted
 
-                ) // Show the map if permission is granted
-
-//                RealTimeTrackingScreen(
-//                    viewModel,
-//                    userId,
-//                    schoolId
-//                )
+                RealTimeTrackingScreen(
+                    viewModel,
+                    userId,
+                    schoolId
+                )
 
             } else {
                 Column(
@@ -373,6 +379,8 @@ fun GoogleMapWithControls() {
             onClick = {
                 cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
             },
+            containerColor = MaterialTheme.colorScheme.primary, // Sky Blue color
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -398,7 +406,7 @@ fun GoogleMapWithControls() {
                     animationJob?.cancel()
                 }
             }) {
-                Text(if (isTracking) "Stop Tracking" else "Start Tracking")
+                Text(if (isTracking) "Stop Tracking" else "Start Tracking", color = Color.White)
             }
 
             Surface(
@@ -474,56 +482,128 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
     var speed by remember { mutableStateOf(0f) }
     var animationJob by remember { mutableStateOf<Job?>(null) }
 
-    // Request permission and get current location
+    // Request location permission
     LaunchedEffect(Unit) {
-        if (locationPermissionState.status.isGranted) {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                location?.let {
-                    currentLatLng.value = LatLng(it.latitude, it.longitude)
-                    currentLocation = currentLatLng.value!!
-                }
-            }
-        } else {
+        if (!locationPermissionState.status.isGranted) {
             locationPermissionState.launchPermissionRequest()
         }
     }
 
-    // Periodic sending of location to server
-    LaunchedEffect(currentLatLng.value, userId) {
-        while (true) {
-            currentLatLng.value?.let { latLng ->
-                viewModel.sendLatLong(
-                    lat = latLng.latitude.toString(),
-                    long = latLng.longitude.toString(),
-                    schoolId = "1",
-                    id = userId
-                )
+    // LocationCallback for continuous updates
+    val locationCallback = rememberUpdatedState(newValue = object : LocationCallback() {
+        override fun onLocationResult(result: LocationResult) {
+            result.lastLocation?.let {
+                val latLng = LatLng(it.latitude, it.longitude)
+                currentLatLng.value = latLng
             }
-            delay(10_000)
         }
-    }
+    })
 
-    // Periodic fetching of location list from server
-    LaunchedEffect(userId) {
-        while (true) {
-            val listFromServer = viewModel.getLatLong(schoolId, userId)
-            if (listFromServer.isNotEmpty()) {
-                serverLatLngList.clear()
-                serverLatLngList.addAll(listFromServer)
-                if (currentLocation.latitude == 0.0 && currentLocation.longitude == 0.0) {
-                    currentLocation = serverLatLngList.first()
-                    cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
+    // Start or stop location updates based on tracking state
+    LaunchedEffect(isTracking) {
+        if (locationPermissionState.status.isGranted) {
+            if (isTracking) {
+                val locationRequest = LocationRequest.create().apply {
+                    interval = 2000
+                    fastestInterval = 1000
+                    priority = LocationRequest.PRIORITY_HIGH_ACCURACY
                 }
+                fusedLocationClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback.value,
+                    Looper.getMainLooper()
+                )
+            } else {
+                fusedLocationClient.removeLocationUpdates(locationCallback.value)
             }
-            delay(10_000)
         }
     }
 
-    // Animate movement
+    // Send location to server every 10 sec if changed
+    var lastSentLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            while (isActive) {
+                currentLatLng.value?.let { latLng ->
+                    if (latLng != lastSentLatLng) {
+                        Log.d("LocationTracking", "📤 Sending new location: $latLng")
+                        viewModel.sendLatLong(
+                            lat = latLng.latitude.toString(),
+                            long = latLng.longitude.toString(),
+                            schoolId = schoolId,
+                            id = userId
+                        )
+                        lastSentLatLng = latLng
+                    } else {
+                        Log.d("LocationTracking", "⏭️ Skipping send, location unchanged: $latLng")
+                    }
+                }
+                delay(15_000)
+            }
+        }
+    }
+
+    // Fetch updated lat-long list every 10 sec and add only new points
+    var lastFetchedLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            while (isActive) {
+                val listFromServer = viewModel.getLatLong(schoolId, userId)
+                if (listFromServer.isNotEmpty()) {
+                    val newLast = listFromServer.last()
+                    if (newLast != lastFetchedLatLng) {
+                        Log.d(
+                            "LocationTracking",
+                            "📥 Fetched new data from server. Last point: $newLast"
+                        )
+
+                        val lastKnown = serverLatLngList.lastOrNull()
+                        val newPoints = if (lastKnown != null) {
+                            listFromServer.dropWhile { it == lastKnown }
+                        } else {
+                            listFromServer
+                        }
+
+                        serverLatLngList.addAll(newPoints)
+                        lastFetchedLatLng = newLast
+
+                        if (serverLatLngList.size == 1) {
+                            serverLatLngList.add(serverLatLngList[0])
+                        }
+
+                        if (currentLocation.latitude == 0.0 && currentLocation.longitude == 0.0) {
+                            currentLocation = serverLatLngList.first()
+                            cameraPositionState.move(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    currentLocation,
+                                    17f
+                                )
+                            )
+                        }
+                    } else {
+                        Log.d(
+                            "LocationTracking",
+                            "⏭️ Skipping fetch, server data unchanged: $newLast"
+                        )
+                    }
+                }
+                delay(15_000)
+            }
+        }
+    }
+
+    // Animate marker and polyline continuously as new points arrive
     LaunchedEffect(isTracking) {
         if (isTracking) {
             animationJob = CoroutineScope(Dispatchers.Main).launch {
-                while (isActive && currentIndex < serverLatLngList.size - 1) {
+                while (isActive) {
+                    if (currentIndex >= serverLatLngList.size - 1) {
+                        delay(500)
+                        continue
+                    }
+
                     val start = serverLatLngList[currentIndex]
                     val end = serverLatLngList[currentIndex + 1]
 
@@ -539,12 +619,13 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
                         speed = distance / 0.03f
 
                         if (shouldFollow) {
-                            cameraPositionState.move(
-                                CameraUpdateFactory.newLatLngZoom(interpolated, 17f)
+                            cameraPositionState.animate(
+                                update = CameraUpdateFactory.newLatLngZoom(interpolated, 17f),
+                                durationMs = 1000
                             )
                         }
 
-                        delay(30L)
+                        delay(5L)
                     }
 
                     currentIndex++
@@ -555,12 +636,26 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
         }
     }
 
+    // ------------------- UI -------------------
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             onMapClick = { shouldFollow = false }
         ) {
+            currentLatLng.value?.let { latLng ->
+                Marker(
+                    state = MarkerState(position = latLng),
+                    icon = bitmapDescriptorFromVector(
+                        context,
+                        R.drawable.baseline_my_location_24,
+                        50,
+                        50
+                    ),
+                    anchor = Offset(0.5f, 0.5f)
+                )
+            }
+
             if (pathPoints.isNotEmpty()) {
                 Polyline(points = pathPoints, color = Color.Blue, width = 20f)
 
@@ -574,22 +669,36 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
             }
         }
 
-        FloatingActionButton(
-            onClick = {
-                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
-            },
+        val coroutineScope = rememberCoroutineScope()
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = 12.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_my_location_24), // Replace with your drawable resource
-                contentDescription = "Current Location",
-                modifier = Modifier.size(24.dp) // You can adjust the size as needed
-            )
+            FloatingActionButton(
+                onClick = {
+                    coroutineScope.launch {
+                        cameraPositionState.animate(
+                            update = CameraUpdateFactory.newLatLngZoom(currentLocation, 17f),
+                            durationMs = 1000
+                        )
+                    }
+                },
+                shape = CircleShape, // makes it circular
+                containerColor = MaterialTheme.colorScheme.primary, // optional: set background color
+                contentColor = Color.White, // optional: set icon color
+                modifier = Modifier.size(56.dp) // standard FAB size
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.baseline_my_location_24),
+                    contentDescription = "Current Location",
+                    modifier = Modifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(Color.White) // 👈 makes the icon white
+
+                )
+            }
         }
-
-
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -599,11 +708,17 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
             Button(onClick = {
                 isTracking = !isTracking
                 shouldFollow = true
+
                 if (!isTracking) {
+                    animationJob?.cancel()
                     currentIndex = 0
                     pathPoints = emptyList()
                     totalDistance = 0f
                     speed = 0f
+                    serverLatLngList.clear()
+                    lastSentLatLng = null
+                    lastFetchedLatLng = null
+
                 }
             }) {
                 Text(if (isTracking) "Stop Tracking" else "Start Tracking")
@@ -622,9 +737,12 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
                         text = "Speed: ${"%.2f".format(speed)} m/s",
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Text(
+                        text = "Last Point: ${serverLatLngList.lastOrNull() ?: "No data"}",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
-
         }
     }
 }
@@ -635,22 +753,26 @@ fun interpolate(start: LatLng, end: LatLng, fraction: Float): LatLng {
     return LatLng(lat, lng)
 }
 
-fun calculateBearing(start: LatLng, end: LatLng): Float {
-    val lat1 = Math.toRadians(start.latitude)
-    val lon1 = Math.toRadians(start.longitude)
-    val lat2 = Math.toRadians(end.latitude)
-    val lon2 = Math.toRadians(end.longitude)
-
-    val dLon = lon2 - lon1
-    val y = sin(dLon) * cos(lat2)
-    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-    return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
-}
-
 fun calculateDistanceInMeters(start: LatLng, end: LatLng): Float {
     val result = FloatArray(1)
-    Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, result)
+    Location.distanceBetween(
+        start.latitude, start.longitude,
+        end.latitude, end.longitude,
+        result
+    )
     return result[0]
+}
+
+fun calculateBearing(start: LatLng, end: LatLng): Float {
+    val startLocation = Location("").apply {
+        latitude = start.latitude
+        longitude = start.longitude
+    }
+    val endLocation = Location("").apply {
+        latitude = end.latitude
+        longitude = end.longitude
+    }
+    return startLocation.bearingTo(endLocation)
 }
 
 fun bitmapDescriptorFromVector(

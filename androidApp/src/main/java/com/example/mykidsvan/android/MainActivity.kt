@@ -65,6 +65,7 @@ import com.example.mykidsvan.android.screens.SchoolRegistrationScreen
 import com.example.mykidsvan.android.screens.SplashScreen
 import com.example.mykidsvan.android.screens.SupportHelpScreen
 import com.example.mykidsvan.android.screens.UpdatePasswordScreen
+import com.example.mykidsvan.android.screens.VehiclePhotoScreen
 import com.example.mykidsvan.android.utils.DrawerItem
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
@@ -92,7 +93,7 @@ class MainActivity : ComponentActivity(), PaymentResultListener {
     }
 
     override fun onPaymentError(code: Int, response: String?) {
-         onPaymentFailureCallback?.invoke()
+        onPaymentFailureCallback?.invoke()
     }
 
 
@@ -177,16 +178,18 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindVehicle,
-                             DrawerItem.RegisterSchool,
+                            DrawerItem.RegisterSchool,
                             DrawerItem.Message,
                             DrawerItem.SupportHelp
                         )
 
-                        "driver" -> listOf(
+                        "vehicle owner" -> listOf(
                             DrawerItem.Home,
+                            DrawerItem.Profile,
                             DrawerItem.FindStudent,
                             DrawerItem.AssignedStudent,
                             DrawerItem.RegisterSchool,
+                            DrawerItem.VehiclePhoto,
                             DrawerItem.Message,
                             DrawerItem.ReferApp,
                             DrawerItem.SupportHelp
@@ -262,7 +265,8 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                     userId?.let { it1 ->
                         userRole?.let { it2 ->
                             HomeScreen(
-                                loginViewModel, "11",
+                                loginViewModel,
+                                "2",
                                 it1
                             )
                         }
@@ -273,6 +277,7 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                     userId?.let { id ->
                         userRole?.let { role ->
                             ProfileScreen(loginViewModel, id, role)
+
                         }
                     }
                 }
@@ -291,12 +296,6 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                 }
                 composable(DrawerItem.ReferApp.route) { ReferAppScreen() }
                 composable(DrawerItem.FindVehicle.route) {
-//                    userId?.let { it1 ->
-//                        FindVehicleScreen(
-//                            loginViewModel,
-//                            it1
-//                        )
-//                    }
                     userId?.let { it1 ->
                         FindVehicleScreen(
                             viewModel = loginViewModel,
@@ -312,6 +311,11 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                         userId
                     )
                 }
+                composable(DrawerItem.VehiclePhoto.route) { userId?.let { it1 ->
+                    VehiclePhotoScreen(loginViewModel,
+                        it1
+                    )
+                } }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }

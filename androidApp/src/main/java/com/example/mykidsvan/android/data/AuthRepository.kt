@@ -2,6 +2,7 @@ package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
+import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
@@ -13,6 +14,7 @@ import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
+import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -20,6 +22,7 @@ import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
+import com.google.gson.annotations.SerializedName
 
 // Domain Layer: AuthRepository.kt
 interface AuthRepository {
@@ -167,4 +170,65 @@ interface AuthRepository {
         vehicle_id: String,
         status: String
     ): SendLatLongResponse
+
+    suspend fun updateProfileParent(
+        id: String,
+        parentName: String,
+        contactNumber: String,
+        password: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        parentAddress: String,
+        childName: String,
+        childSchoolName: String,
+        childClass: String,
+        childDob: String,
+        pickUp: String,
+        dropOff: String,
+        numberOfChlid: String,
+        emergencyContact: String,
+        termsCondition: String,
+        role: String,
+        schoolId: String
+    ): ProfileUpdateResponse
+
+    suspend fun updateProfileDriver(
+        id: String,
+        driver_name: String,
+        driver_type: String?,
+        number: String,
+        vehicle_number: String?,
+        state: String,
+        district: String,
+        taluka: String?,
+        city: String?,
+        address: String?,
+        adhar_number: String?,
+        driver_license: String?,
+        vehicle_registration: String?,
+        vehicle_model: String?,
+        seating_capacity: String?,
+        insurance_details: String?,
+        fintness_certificate: String?,
+        photo_of_vehicle: String?,
+        areas_covered: String?,
+        school_serviced: String?,
+        profile_picture: String?,
+        about_me: String?,
+        veritication_status: String?,
+        availability_status: String?,
+        terms_and_condition: String?,
+        latitude: String?,
+        longitude: String?,
+        timer: String?,
+        role: String?,
+        username: String?,
+        password: String,
+        status: String,
+        school_id: String
+    ): ProfileUpdateResponse
+
+    suspend fun updateVehiclePhotos(request: UpdateVehicleImageRequest): ProfileUpdateResponse
 }

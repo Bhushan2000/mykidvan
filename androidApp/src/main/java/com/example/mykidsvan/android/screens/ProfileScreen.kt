@@ -1,6 +1,7 @@
 package com.example.mykidsvan.android.screens
 
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -60,18 +61,50 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
 import kotlinx.coroutines.CoroutineStart
 import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.Parent
 import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
+    val context = LocalContext.current
     val profileData by viewModel.profileData.collectAsState()
     var visible by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+
+    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Editable fields
+    var name by remember { mutableStateOf("") }
+    var contact by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var childName by remember { mutableStateOf("") }
+    var schoolName by remember { mutableStateOf("") }
+
+    var mobileNumber by remember { mutableStateOf("") }
+    var vehicleNumber by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
+    var district by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+
+    // Gallery launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            profileImageUri = uri
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile(userId, userType)
@@ -80,6 +113,27 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     LaunchedEffect(profileData) {
         delay(300)
         visible = true
+
+        profileData?.let { data ->
+            when (data) {
+                is Parent -> {
+                    name = data.parentName.orEmpty()
+                    contact = data.contactNumber.orEmpty()
+                    address = data.parentAddress.orEmpty()
+                    childName = data.childName.orEmpty()
+                    schoolName = data.childSchoolName.orEmpty()
+                }
+
+                is Driver -> {
+                    name = data.driver_name.orEmpty()
+                    mobileNumber = data.number.orEmpty()
+                    vehicleNumber = data.vehicle_number.orEmpty()
+                    state = data.state.orEmpty()
+                    district = data.district.orEmpty()
+                    city = data.city.orEmpty()
+                }
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -96,25 +150,46 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     item {
                         AnimatedVisibility(
                             visible = visible,
-                            enter = fadeIn(animationSpec = tween(700)) + scaleIn(initialScale = 0.8f),
+                            enter = fadeIn(tween(700)) + scaleIn(initialScale = 0.8f),
                             exit = fadeOut()
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                val profileImage =
-                                    "https://mykidvan.com/${(data as? Driver)?.profile_picture}"
-                                ProfileImage(imageUrl = profileImage)
+                                Box(contentAlignment = Alignment.TopEnd) {
+                                    ProfileImage(
+                                        imageUrl = profileImageUri?.toString()
+                                            ?: "https://mykidvan.com/${(data as? Driver)?.profile_picture}"
+                                    )
+
+                                    if (isEditing) {
+                                        IconButton(
+                                            onClick = {
+                                                imagePickerLauncher.launch("image/*")
+                                            },
+                                            modifier = Modifier
+                                                .padding(8.dp)
+                                                .size(32.dp)
+                                                .background(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    shape = CircleShape
+                                                )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit Image",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 Text(
-                                    text = when (data) {
-                                        is Parent -> data.parentName?.capitalize() ?: "Unknown"
-                                        is Driver -> data.driver_name?.capitalize() ?: "Unknown"
-                                        else -> "Unknown"
-                                    },
+                                    text = name.capitalize(),
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground
@@ -129,6 +204,34 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                     fontWeight = FontWeight.Medium
                                 )
 
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (isEditing) {
+                                            // Save logic - you can pass all fields and imageUri to ViewModel
+//                                            viewModel.updateProfile(
+//                                                userId = userId,
+//                                                userType = userType,
+//                                                name = name,
+//                                                contact = contact,
+//                                                address = address,
+//                                                childName = childName,
+//                                                schoolName = schoolName,
+//                                                mobile = mobileNumber,
+//                                                vehicle = vehicleNumber,
+//                                                state = state,
+//                                                district = district,
+//                                                city = city,
+//                                                imageUri = profileImageUri
+//                                            )
+                                        }
+                                        isEditing = !isEditing
+                                    }
+                                ) {
+                                    Text(if (isEditing) "Save" else "Edit")
+                                }
+
                                 Spacer(modifier = Modifier.height(24.dp))
                             }
                         }
@@ -137,12 +240,12 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     item {
                         AnimatedVisibility(
                             visible = visible,
-                            enter = fadeIn(animationSpec = tween(1000)),
+                            enter = fadeIn(tween(1000)),
                         ) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                elevation = CardDefaults.cardElevation(8.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Column(
@@ -151,35 +254,37 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                 ) {
                                     when (data) {
                                         is Parent -> {
-                                            ProfileDetailRow("Contact Number", data.contactNumber)
-                                            ProfileDetailRow(
-                                                "Parent Address",
-                                                data.parentAddress?.capitalize()
-                                            )
-                                            ProfileDetailRow(
-                                                "Child Name",
-                                                data.childName?.capitalize()
-                                            )
-                                            ProfileDetailRow(
-                                                "School Name",
-                                                data.childSchoolName?.capitalize()
-                                            )
-                                            ProfileDetailRow("School ID", data.schoolId)
+                                            if (isEditing) {
+                                                EditableField("Parent Name", name) { name = it }
+                                                EditableField("Contact Number", contact) { contact = it }
+                                                EditableField("Address", address) { address = it }
+                                                EditableField("Child Name", childName) { childName = it }
+                                                EditableField("School Name", schoolName) { schoolName = it }
+                                            } else {
+                                                ProfileDetailRow("Parent Name", name)
+                                                ProfileDetailRow("Contact Number", contact)
+                                                ProfileDetailRow("Address", address)
+                                                ProfileDetailRow("Child Name", childName)
+                                                ProfileDetailRow("School Name", schoolName)
+                                            }
                                         }
 
-
                                         is Driver -> {
-                                            ProfileDetailRow("Mobile Number", data.number)
-                                            ProfileDetailRow(
-                                                "Vehicle Number",
-                                                data.vehicle_number?.capitalize()
-                                            )
-                                            ProfileDetailRow("State", data.state?.capitalize())
-                                            ProfileDetailRow(
-                                                "District",
-                                                data.district?.capitalize()
-                                            )
-                                            ProfileDetailRow("City", data.city?.capitalize())
+                                            if (isEditing) {
+                                                EditableField("Driver Name", name) { name = it }
+                                                EditableField("Mobile Number", mobileNumber) { mobileNumber = it }
+                                                EditableField("Vehicle Number", vehicleNumber) { vehicleNumber = it }
+                                                EditableField("State", state) { state = it }
+                                                EditableField("District", district) { district = it }
+                                                EditableField("City", city) { city = it }
+                                            } else {
+                                                ProfileDetailRow("Driver Name", name)
+                                                ProfileDetailRow("Mobile Number", mobileNumber)
+                                                ProfileDetailRow("Vehicle Number", vehicleNumber)
+                                                ProfileDetailRow("State", state)
+                                                ProfileDetailRow("District", district)
+                                                ProfileDetailRow("City", city)
+                                            }
                                         }
                                     }
                                 }
@@ -199,6 +304,17 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
             )
         }
     }
+}
+
+
+@Composable
+fun EditableField(label: String, value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable

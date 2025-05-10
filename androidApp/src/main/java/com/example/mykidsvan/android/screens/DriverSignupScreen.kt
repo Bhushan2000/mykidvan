@@ -46,18 +46,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Base64
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.navigation.NavController
@@ -106,6 +110,11 @@ fun DriverSignupScreen(
     val selectedState by viewModel.selectedState.collectAsState()
     val selectedDistrict by viewModel.selectedDistrict.collectAsState()
     val selectedTaluka by viewModel.selectedTaluka.collectAsState()
+
+    // Referral Code States
+    val referralCode = remember { mutableStateOf(generateReferralCodeDriver()) }
+    val enteredReferralCode = remember { mutableStateOf("") }
+    val isReferralCodeApplied = remember { mutableStateOf(false) }
 
     val vehicleTypes = listOf("Van", "Auto Rickshaw", "Car", "Tempo", "Mini Bus")
     val verificationOptions = listOf("Pending", "Approved", "Rejected")
@@ -323,6 +332,56 @@ fun DriverSignupScreen(
             DropdownField("Verification Status", verificationState, verificationOptions) { verificationState = it }
             DropdownField("Availability Status", availabilityStatus, availabilityOptions) { availabilityStatus = it }
 
+            // Referral Code UI
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Your Referral Code: ${referralCode.value}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Row for Referral Code input and Apply button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Referral Code Text Field
+                OutlinedTextField(
+                    value = enteredReferralCode.value,
+                    onValueChange = { enteredReferralCode.value = it },
+                    label = { Text("Referral Code (Optional)") },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = textFieldColors,
+                    modifier = Modifier
+                        .weight(1f) // Makes the text field take the available space
+                        .height(64.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Apply Button
+                Button(
+                    onClick = {
+                        if (enteredReferralCode.value.isNotBlank()) {
+                            // Apply the entered referral code (you can integrate this with your ViewModel or API)
+                            isReferralCodeApplied.value = true
+                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .height(50.dp)
+                        .padding(start = 8.dp) // Optional, to add some spacing between elements
+                ) {
+                    Text(text = "Apply")
+                }
+            }
+
+
+
+
+
             Row(
                 modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
             ) {
@@ -379,7 +438,13 @@ fun DriverSignupScreen(
             }
         }
     }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetSchoolRegistrationDropDowns()
+        }
+    }
 }
+
 
 @Composable
 fun SectionTitle(title: String) {
@@ -522,3 +587,8 @@ fun uriToBase64(context: Context, uri: Uri): String {
 }
 
 
+// Function to generate a random referral code
+fun generateReferralCodeDriver(): String {
+    val randomDigits = (100000..999999).random()
+    return "D$randomDigits"
+}

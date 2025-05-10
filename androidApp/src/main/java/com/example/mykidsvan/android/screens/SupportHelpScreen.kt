@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 fun SupportHelpScreen() {
     val faqExpanded = remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme // To access current theme colors
 
     Scaffold(
         floatingActionButton = {
@@ -58,7 +59,7 @@ fun SupportHelpScreen() {
                 onClick = {
                     Toast.makeText(context, "Opening chat...", Toast.LENGTH_SHORT).show()
                 },
-                containerColor = Color(0xFF1E88E5),
+                containerColor = colors.primary, // Adapt to primary color based on theme
                 shape = CircleShape,
                 contentColor = Color.White
             ) {
@@ -80,24 +81,25 @@ fun SupportHelpScreen() {
             Text(
                 text = "How can we help you?",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
+                color = colors.onBackground // Ensure text color adapts to the theme
             )
 
             // Search Bar
-             OutlinedTextField(
+            OutlinedTextField(
                 value = "",
                 onValueChange = {},
                 placeholder = { Text("Search for help...") },
                 modifier = Modifier
                     .fillMaxWidth(),
                 leadingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = colors.onSurface) // Adjust icon color
                 },
-                shape = RoundedCornerShape(16.dp), // Use shape here instead of clip
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF1E88E5),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color.Black
+                    focusedBorderColor = colors.primary, // Primary color for focused state
+                    unfocusedBorderColor = colors.onSurface.copy(alpha = 0.5f), // Subtle border color for unfocused state
+                    cursorColor = colors.onSurface
                 )
             )
 
@@ -121,7 +123,6 @@ fun SupportHelpScreen() {
     }
 }
 
-
 @Composable
 fun ExpandableSupportCard(
     title: String,
@@ -129,12 +130,13 @@ fun ExpandableSupportCard(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+        colors = CardDefaults.cardColors(containerColor = colors.surface), // Surface color for dark mode
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -145,12 +147,14 @@ fun ExpandableSupportCard(
                 Text(
                     text = title,
                     fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface // Text color adapts to the theme
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = colors.onSurface // Icon color adapts to the theme
                 )
             }
 
@@ -162,26 +166,39 @@ fun ExpandableSupportCard(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = colors.onSurface // Text color adapts to the theme
                 )
             }
         }
     }
 }
+
 @Composable
 fun SupportCategoryCard(title: String, description: String) {
+    val colors = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = colors.surface), // Surface color for dark mode
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface // Text color adapts to the theme
+            )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface.copy(alpha = 0.7f) // Subtle text color for description
+            )
         }
     }
 }
+
 

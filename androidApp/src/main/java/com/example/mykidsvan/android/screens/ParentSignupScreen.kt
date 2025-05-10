@@ -1,6 +1,7 @@
 package com.example.mykidsvan.android.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,10 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
@@ -80,6 +85,11 @@ fun ParentSignupScreen(
     val selectedState by viewModel.selectedState.collectAsState()
     val selectedDistrict by viewModel.selectedDistrict.collectAsState()
     val selectedTaluka by viewModel.selectedTaluka.collectAsState()
+
+    // Referral Code States
+    val referralCode = remember { mutableStateOf(generateReferralCode()) }
+    val enteredReferralCode = remember { mutableStateOf("") }
+    val isReferralCodeApplied = remember { mutableStateOf(false) }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -276,6 +286,52 @@ fun ParentSignupScreen(
                     .height(64.dp),
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
             )
+            // Referral Code UI
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Your Referral Code: ${referralCode.value}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Row for Referral Code input and Apply button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Referral Code Text Field
+                OutlinedTextField(
+                    value = enteredReferralCode.value,
+                    onValueChange = { enteredReferralCode.value = it },
+                    label = { Text("Referral Code (Optional)") },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = textFieldColors,
+                    modifier = Modifier
+                        .weight(1f) // Makes the text field take the available space
+                        .height(64.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Apply Button
+                Button(
+                    onClick = {
+                        if (enteredReferralCode.value.isNotBlank()) {
+                            // Apply the entered referral code (you can integrate this with your ViewModel or API)
+                            isReferralCodeApplied.value = true
+                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .height(50.dp)
+                        .padding(start = 8.dp) // Optional, to add some spacing between elements
+                ) {
+                    Text(text = "Apply")
+                }
+            }
+
 
             Row(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -373,6 +429,15 @@ fun ParentSignupScreen(
 
         }
     }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetSchoolRegistrationDropDowns()
+        }
+    }
 }
 
-
+// Function to generate a random referral code
+fun generateReferralCode(): String {
+    val randomDigits = (100000..999999).random()
+    return "P$randomDigits"
+}
