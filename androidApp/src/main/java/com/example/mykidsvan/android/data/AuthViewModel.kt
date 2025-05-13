@@ -1009,6 +1009,9 @@ class AuthViewModel(
         _uploadMessage.value = null
     }
 
+    fun updateProfile(){
+
+    }
 }
 
 
