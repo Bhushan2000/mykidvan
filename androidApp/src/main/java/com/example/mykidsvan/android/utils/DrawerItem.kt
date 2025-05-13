@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.mykidsvan.android.R
 
 sealed class DrawerItem(val title: String, val route: String, @DrawableRes val iconRes: Int) {
+
     object Home : DrawerItem("Home", "home", R.drawable.ic_home)
     object Profile : DrawerItem("Profile", "profile", R.drawable.ic_profile)
     object FindStudent : DrawerItem("Find Student", "find_student", R.drawable.ic_find_student)
@@ -21,6 +22,7 @@ sealed class DrawerItem(val title: String, val route: String, @DrawableRes val i
     object RegisterSchool : DrawerItem("Register School", "register_school", R.drawable.ic_school)
     object VehiclePhoto :
         DrawerItem("Add Photos", "add_vehicle_photos", R.drawable.ic_find_vehicle)
+
     object ReferApp : DrawerItem("Refer App", "refer_app", R.drawable.ic_share)
 
     object FindVehicle : DrawerItem("Find Vehicle", "find_vehicle", R.drawable.ic_find_vehicle)

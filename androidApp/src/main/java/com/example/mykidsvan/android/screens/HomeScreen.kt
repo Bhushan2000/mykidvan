@@ -71,7 +71,7 @@ import kotlin.math.sin
 //
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
+fun HomeScreen(viewModel: AuthViewModel, userId: String) {
     // Request permission for location
     val locationPermissionState = rememberPermissionState(
         Manifest.permission.ACCESS_FINE_LOCATION
@@ -82,17 +82,12 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Check location permission status and request if necessary
+            Log.e("TAG", "HomeScreen: userId - $userId")
             if (locationPermissionState.status.isGranted) {
-//                GoogleMapWithControls(
-//
-//                ) // Show the map if permission is granted
-
                 RealTimeTrackingScreen(
                     viewModel,
                     userId,
-                    schoolId
                 )
-
             } else {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
@@ -108,361 +103,9 @@ fun HomeScreen(viewModel: AuthViewModel, schoolId: String, userId: String) {
     }
 }
 
-//@SuppressLint("MissingPermission")
-//@OptIn(ExperimentalPermissionsApi::class)
-//@Composable
-//fun GoogleMapWithControls(
-//    viewModel: AuthViewModel,
-//    schoolId: String,
-//    userId: String
-//) {
-//    val context = LocalContext.current
-//    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-//    val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
-//
-//    val mapZoom by remember { mutableStateOf(17f) }
-//    val currentLatLng = remember { mutableStateOf<LatLng?>(null) }
-//    val serverLatLngList = remember { mutableStateListOf<LatLng>() }
-//    val cameraPositionState = rememberCameraPositionState()
-//    val icon = rememberAsyncMarkerIcon(R.drawable.busyellow, 32, 48)
-//
-//    // Get current location once
-//    LaunchedEffect(locationPermissionState.status.isGranted) {
-//        if (locationPermissionState.status.isGranted) {
-//            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-//                location?.let {
-//                    currentLatLng.value = LatLng(it.latitude, it.longitude)
-//                }
-//            }
-//        } else {
-//            locationPermissionState.launchPermissionRequest()
-//        }
-//    }
-//
-//    // Send current location to server every 10 seconds
-//    LaunchedEffect(userId) {
-//        while (true) {
-//            currentLatLng.value?.let { latLng ->
-//                viewModel.sendLatLong(
-//                    lat = latLng.latitude.toString(),
-//                    long = latLng.longitude.toString(),
-//                    schoolId = schoolId,
-//                    id = userId
-//                )
-//            }
-//            delay(10_000)
-//        }
-//    }
-//
-//    // Fetch path from server every 10 seconds
-//    LaunchedEffect(userId) {
-//        while (true) {
-//            val listFromServer = viewModel.getLatLong(schoolId, userId)
-//            if (listFromServer.isNotEmpty()) {
-//                serverLatLngList.clear()
-//                serverLatLngList.addAll(listFromServer)
-//            }
-//            delay(10_000)
-//        }
-//    }
-//
-//    // Animate camera on latest position
-//    LaunchedEffect(serverLatLngList.size) {
-//        serverLatLngList.lastOrNull()?.let { last ->
-//            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(last, mapZoom))
-//        }
-//    }
-//
-//    GoogleMap(
-//        modifier = Modifier.fillMaxSize(),
-//        cameraPositionState = cameraPositionState,
-//        properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted),
-//        uiSettings = MapUiSettings(zoomControlsEnabled = false)
-//    ) {
-//        // Draw polyline
-//        if (serverLatLngList.size > 1) {
-//            Polyline(
-//                points = serverLatLngList,
-//                color = Color.Blue,
-//                width = 6f
-//            )
-//        }
-//
-//        // Draw marker
-//        serverLatLngList.lastOrNull()?.let { current ->
-//            val previous = serverLatLngList.getOrNull(serverLatLngList.lastIndex - 1)
-//            val rotation = if (previous != null) getBearingHome(previous, current) else 0f
-//
-//            icon.value?.let { iconBitmap ->
-//                Marker(
-//                    state = MarkerState(position = current),
-//                    title = "Bus",
-//                    icon = iconBitmap,
-//                    rotation = rotation,
-//                    anchor = Offset(0.5f, 0.5f),
-//                    flat = true
-//                )
-//            }
-//        }
-//    }
-//
-//    if (!locationPermissionState.status.isGranted) {
-//        Box(modifier = Modifier.fillMaxSize()) {
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .wrapContentSize(Alignment.Center),
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                Text("Location permission is required to display the map.")
-//                Button(onClick = { locationPermissionState.launchPermissionRequest() }) {
-//                    Text("Grant Permission")
-//                }
-//            }
-//        }
-//
-//    }
-//}
-
-@Composable
-fun GoogleMapWithControls() {
-    val context = LocalContext.current
-    val cameraPositionState = rememberCameraPositionState()
-    var isTracking by remember { mutableStateOf(false) }
-    var shouldFollow by remember { mutableStateOf(true) }
-
-    val forwardPath = listOf(
-        LatLng(21.0956675, 79.1349206), // Start: Nagpur
-
-        // Right turn
-        LatLng(21.0960, 79.1360),
-        LatLng(21.0965, 79.1375),
-
-        // Left turn
-        LatLng(21.0968, 79.1365),
-        LatLng(21.0972, 79.1350),
-
-        // U-turn
-        LatLng(21.0965, 79.1340),
-        LatLng(21.0958, 79.1335),
-        LatLng(21.0950, 79.1340),
-
-        // Zig-zag
-        LatLng(21.0955, 79.1345),
-        LatLng(21.0960, 79.1340),
-        LatLng(21.0965, 79.1345),
-        LatLng(21.0970, 79.1340),
-
-        // Blind turn (sudden direction change)
-        LatLng(21.0975, 79.1342),
-        LatLng(21.0979, 79.1349),
-
-        // Traffic road (short pause and slow movement)
-        LatLng(21.0985, 79.1351),
-        LatLng(21.0990, 79.1353),
-        LatLng(21.0995, 79.1355),
-
-        // Crowded road (dense small changes)
-        LatLng(21.1000, 79.1356),
-        LatLng(21.1002, 79.1357),
-        LatLng(21.1004, 79.1358),
-        LatLng(21.1006, 79.1359),
-
-        // Work-in-progress road (detour and loop)
-        LatLng(21.1010, 79.1360),
-        LatLng(21.1015, 79.1355),
-        LatLng(21.1020, 79.1350),
-        LatLng(21.1015, 79.1345),
-        LatLng(21.1010, 79.1340),
-
-        // Move North (Top)
-        LatLng(21.1030, 79.1340),
-        LatLng(21.1045, 79.1340),
-
-        // Move South (Down)
-        LatLng(21.1030, 79.1340),
-        LatLng(21.1015, 79.1340),
-
-        // Side turn (East/West)
-        LatLng(21.1015, 79.1350),
-        LatLng(21.1015, 79.1360),
-
-        // Reverse
-        LatLng(21.1000, 79.1355),
-        LatLng(21.0990, 79.1350),
-
-        // Final point (end of route)
-        LatLng(21.0980, 79.1345)
-    )
-
-
-    val returnPath = forwardPath.reversed()
-
-    // Combined forward and return path
-    val simulatedPath = forwardPath + returnPath
-
-    var pathPoints by remember { mutableStateOf(listOf<LatLng>()) }
-    var currentIndex by remember { mutableStateOf(0) }
-    var currentLocation by remember { mutableStateOf(simulatedPath.first()) }
-    var bearing by remember { mutableStateOf(0f) }
-    var totalDistance by remember { mutableStateOf(0f) }
-    var speed by remember { mutableStateOf(0f) }
-
-    var animationJob by remember { mutableStateOf<Job?>(null) }
-
-    // Default camera focus on the start
-    LaunchedEffect(Unit) {
-        cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
-    }
-
-    LaunchedEffect(isTracking) {
-        if (isTracking) {
-            animationJob = launch {
-                while (isTracking && currentIndex < simulatedPath.size - 1) {
-                    val start = simulatedPath[currentIndex]
-                    val end = simulatedPath[currentIndex + 1]
-
-                    for (i in 0..100) {
-                        val fraction = i / 100f
-                        val interpolated = interpolate(start, end, fraction)
-                        val distance = calculateDistanceInMeters(currentLocation, interpolated)
-
-                        bearing = calculateBearing(start, end)
-                        currentLocation = interpolated
-                        pathPoints = pathPoints + interpolated
-                        totalDistance += distance
-                        speed = distance / 0.03f
-
-                        if (shouldFollow) {
-                            cameraPositionState.move(
-                                CameraUpdateFactory.newLatLngZoom(
-                                    interpolated,
-                                    17f
-                                )
-                            )
-                        }
-
-                        delay(30L)
-                    }
-                    currentIndex++
-                }
-            }
-        } else {
-            animationJob?.cancel()
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            onMapClick = { shouldFollow = false }
-        ) {
-            if (pathPoints.isNotEmpty()) {
-                Polyline(
-                    points = pathPoints,
-                    color = Color.Blue,
-                    width = 20f
-                )
-
-                Marker(
-                    state = MarkerState(position = currentLocation),
-                    icon = bitmapDescriptorFromVector(context, R.drawable.busyellow, 50, 80),
-                    rotation = bearing,
-                    anchor = Offset(0.5f, 0.5f),
-                    flat = true
-                )
-            }
-        }
-
-        FloatingActionButton(
-            onClick = {
-                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(currentLocation, 17f))
-            },
-            containerColor = MaterialTheme.colorScheme.primary, // Sky Blue color
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_my_location_24), // Replace with your drawable resource
-                contentDescription = "Current Location",
-                modifier = Modifier.size(24.dp) // You can adjust the size as needed
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(onClick = {
-                isTracking = !isTracking
-                shouldFollow = true
-                if (!isTracking) {
-                    currentIndex = 0
-                    animationJob?.cancel()
-                }
-            }) {
-                Text(if (isTracking) "Stop Tracking" else "Start Tracking", color = Color.White)
-            }
-
-            Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Text(
-                        text = "Distance: ${"%.2f".format(totalDistance)} m",
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Speed: ${"%.2f".format(speed)} m/s",
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
-}
-
-// Function to calculate bearing (angle) between two LatLng points
-fun getBearingHome(start: LatLng, end: LatLng): Float {
-    val lat1 = Math.toRadians(start.latitude)
-    val lon1 = Math.toRadians(start.longitude)
-    val lat2 = Math.toRadians(end.latitude)
-    val lon2 = Math.toRadians(end.longitude)
-
-    val dLon = lon2 - lon1
-    val y = sin(dLon) * cos(lat2)
-    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-
-    return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
-}
-
-// Function to asynchronously load and scale marker icon
-@Composable
-fun rememberAsyncMarkerIcon(
-    @DrawableRes resId: Int,
-    width: Int,
-    height: Int
-): State<BitmapDescriptor?> {
-    val context = LocalContext.current
-    val bitmapDescriptorState = remember { mutableStateOf<BitmapDescriptor?>(null) }
-
-    LaunchedEffect(resId, width, height) {
-        val bitmap = BitmapFactory.decodeResource(context.resources, resId)
-        val resized = Bitmap.createScaledBitmap(bitmap, width, height, false)
-        bitmapDescriptorState.value = BitmapDescriptorFactory.fromBitmap(resized)
-    }
-    return bitmapDescriptorState
-}
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: String) {
+fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String) {
     val context = LocalContext.current
     val cameraPositionState = rememberCameraPositionState()
     var isTracking by remember { mutableStateOf(false) }
@@ -531,7 +174,6 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
                         viewModel.sendLatLong(
                             lat = latLng.latitude.toString(),
                             long = latLng.longitude.toString(),
-                            schoolId = schoolId,
                             id = userId
                         )
                         lastSentLatLng = latLng
@@ -550,7 +192,7 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, schoolId: S
     LaunchedEffect(isTracking) {
         if (isTracking) {
             while (isActive) {
-                val listFromServer = viewModel.getLatLong(schoolId, userId)
+                val listFromServer = viewModel.getLatLong(userId)
                 if (listFromServer.isNotEmpty()) {
                     val newLast = listFromServer.last()
                     if (newLast != lastFetchedLatLng) {

@@ -266,7 +266,6 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                         userRole?.let { it2 ->
                             HomeScreen(
                                 loginViewModel,
-                                "2",
                                 it1
                             )
                         }
@@ -311,11 +310,14 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                         userId
                     )
                 }
-                composable(DrawerItem.VehiclePhoto.route) { userId?.let { it1 ->
-                    VehiclePhotoScreen(loginViewModel,
-                        it1
-                    )
-                } }
+                composable(DrawerItem.VehiclePhoto.route) {
+                    userId?.let { it1 ->
+                        VehiclePhotoScreen(
+                            loginViewModel,
+                            it1
+                        )
+                    }
+                }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }

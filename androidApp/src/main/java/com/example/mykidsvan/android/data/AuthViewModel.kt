@@ -264,7 +264,6 @@ class AuthViewModel(
         }
     }
 
-
     fun resetLoginState() {
         _loginState.value = LoginState()  // Reset state to default
     }
@@ -827,17 +826,17 @@ class AuthViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    fun sendLatLong(lat: String, long: String, schoolId: String, id: String) {
+    fun sendLatLong(lat: String, long: String, id: String) {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = repository.sendLatLong(lat, long, schoolId, id)
+                val response = repository.sendLatLong(lat, long, id)
                 _sendLatLongResponse.value = response
 
                 // ✅ Log the successful request for debugging
                 Log.d(
                     "SendLatLong",
-                    "Sent location -> lat: $lat, long: $long for schoolId: $schoolId, userId: $id"
+                    "Sent location -> lat: $lat, long: $long, userId: $id"
                 )
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -855,9 +854,9 @@ class AuthViewModel(
     private val _currentLatLng = MutableStateFlow<LatLng?>(null)
     val currentLatLng: StateFlow<LatLng?> get() = _currentLatLng
 
-    suspend fun getLatLong(schoolId: String, driverId: String): List<LatLng> {
+    suspend fun getLatLong(driverId: String): List<LatLng> {
         return try {
-            val response = repository.getLatLong(schoolId, driverId)
+            val response = repository.getLatLong(driverId)
 
             val latLngList = response.data.mapNotNull { item ->
                 val latitude = item.latitude?.toDoubleOrNull()
@@ -1005,9 +1004,11 @@ class AuthViewModel(
             _isUploading.value = false
         }
     }
+
     fun clearUploadMessage() {
         _uploadMessage.value = null
     }
+
 }
 
 

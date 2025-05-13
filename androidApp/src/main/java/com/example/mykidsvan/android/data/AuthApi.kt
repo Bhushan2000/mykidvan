@@ -112,10 +112,9 @@ interface AuthApi {
     @PUT("index.php/api/AccountsController/update_vehicles")
     suspend fun sendLatLong(@Body request: SendLatLongRequest): SendLatLongResponse
 
-    @GET("index.php/api/AccountsController/get_vehicles/{school_id}/{driver_id}")
+    @GET("index.php/api/AccountsController/get_vehicles/{driver_id}")
     suspend fun getLatLong(
-        @Path("school_id") school_id: String,
-        @Path("driver_id") driver_id: String
+         @Path("driver_id") driver_id: String
     ): GetLatLongResponse
 
     @PUT("index.php/api/AccountsController/vehicle_message")
@@ -145,4 +144,8 @@ interface AuthApi {
         @Body request: UpdateVehicleImageRequest
     ):ProfileUpdateResponse
 
+//    @PUT("index.php/api/AccountsController/update_payment")
+//    suspend fun updatePayment(
+//        @Body request:
+//    ):
 }

@@ -155,11 +155,10 @@ interface AuthRepository {
     suspend fun sendLatLong(
         lat: String,
         long: String,
-        school_id: String,
-        id: String
+         id: String
     ): SendLatLongResponse
 
-    suspend fun getLatLong(school_id: String, driver_id: String): GetLatLongResponse
+    suspend fun getLatLong(driver_id: String): GetLatLongResponse
 
     suspend fun sendAssignRequest(
         vehicle_id: String,

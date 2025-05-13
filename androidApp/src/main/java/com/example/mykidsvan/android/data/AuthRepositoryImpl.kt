@@ -226,15 +226,14 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun sendLatLong(
         lat: String,
         long: String,
-        school_id: String,
         id: String
     ): SendLatLongResponse {
-        val request = SendLatLongRequest(school_id, id, lat, long)
+        val request = SendLatLongRequest(id, lat, long)
         return api.sendLatLong(request)
     }
 
-    override suspend fun getLatLong(school_id: String, driver_id: String): GetLatLongResponse {
-        return api.getLatLong(school_id, driver_id)
+    override suspend fun getLatLong(driver_id: String): GetLatLongResponse {
+        return api.getLatLong(driver_id)
     }
 
     override suspend fun sendAssignRequest(

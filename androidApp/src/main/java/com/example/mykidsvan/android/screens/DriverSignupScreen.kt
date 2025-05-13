@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Base64
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -459,7 +460,6 @@ fun SectionTitle(title: String) {
 }
 
 
-
 @Composable
 fun DropdownField(
     label: String,
@@ -468,47 +468,58 @@ fun DropdownField(
     onValueChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val textFieldWidth = remember { mutableStateOf(0) }
+
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
         unfocusedBorderColor = Color.Gray,
         disabledBorderColor = Color.LightGray,
         cursorColor = MaterialTheme.colorScheme.primary,
         focusedLabelColor = MaterialTheme.colorScheme.primary,
-        unfocusedLabelColor = Color.Gray
+        unfocusedLabelColor = Color.Gray,
+        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface
     )
 
-    // Used to match DropdownMenu width to TextField
-    val textFieldWidth = remember { mutableStateOf(0) }
-
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .onGloballyPositioned { coordinates ->
-            textFieldWidth.value = coordinates.size.width
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                textFieldWidth.value = coordinates.size.width
+            }
     ) {
-        OutlinedTextField(
-            value = selectedValue,
-            onValueChange = {},
-            label = { Text(label) },
-            readOnly = true,
-            shape = RoundedCornerShape(14.dp),
-            colors = textFieldColors,
+        // Wrap with clickable to open dropdown
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp),
-            trailingIcon = {
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                }
-            }
-        )
+                .height(64.dp)
+                .clickable { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedValue,
+                onValueChange = {},
+                label = { Text(label) },
+                readOnly = true,
+                enabled = false, // Make field non-interactive, so Box handles clicks
+                shape = RoundedCornerShape(14.dp),
+                colors = textFieldColors,
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+            )
+        }
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier
-                .width(with(LocalDensity.current) { textFieldWidth.value.toDp() }) // Full width
+                .width(with(LocalDensity.current) { textFieldWidth.value.toDp() })
                 .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(10.dp))
                 .shadow(4.dp, shape = RoundedCornerShape(10.dp))
         ) {
@@ -525,11 +536,7 @@ fun DropdownField(
                         onClick = {
                             onValueChange(it)
                             expanded = false
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(horizontal = 8.dp)
+                        }
                     )
                 }
             }

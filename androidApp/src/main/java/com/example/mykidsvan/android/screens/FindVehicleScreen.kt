@@ -56,7 +56,10 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.data.dto.response.Driver
 
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
+import coil.compose.AsyncImage
 import com.example.mykidsvan.android.MainActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -426,7 +429,7 @@ fun DriverCard(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.padding(16.dp)
         ) {
             Icon(
@@ -443,35 +446,63 @@ fun DriverCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = driver.driver_name, fontWeight = FontWeight.Bold)
                 Text(text = driver.number, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            IconButton(onClick = {
-                val intent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse("tel:${driver.number}")
+                driver.vehicle_number?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodyMedium)
                 }
-                context.startActivity(intent)
-            }) {
-                Icon(Icons.Default.Call, contentDescription = "Call Driver")
+
+                // ✅ Vehicle Photo Preview (Max 3)
+                if (!driver.photo_of_vehicle.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Vehicle Photos:", style = MaterialTheme.typography.labelSmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        driver.photo_of_vehicle.take(3).forEach { photoUrl ->
+                            AsyncImage(
+                                model = photoUrl,
+                                contentDescription = "Vehicle Photo",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
             }
 
-            IconButton(
-                onClick = {
-                    if (!isLoading) {
-                        startPayment(
-                            { viewModel.sendAssignRequest(driver.id, userId) },
-                            { /* You can show a Toast here if needed */ }
-                        )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${driver.number}")
                     }
-                },
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Default.Send, contentDescription = "Send Request")
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.Call, contentDescription = "Call Driver")
+                }
+
+                IconButton(
+                    onClick = {
+                        if (!isLoading) {
+                            startPayment(
+                                { viewModel.sendAssignRequest(driver.id, userId) },
+                                { /* optional toast */ }
+                            )
+                        }
+                    },
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Send, contentDescription = "Send Request")
+                    }
                 }
             }
         }
