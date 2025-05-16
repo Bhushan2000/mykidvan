@@ -54,7 +54,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
 
     // Load data on launch
     LaunchedEffect(Unit) {
-        userId?.let { viewModel.loadDriverRequests(it, "14") }
+        userId?.let { viewModel.loadDriverRequests(it) }
     }
 
     Column(
@@ -118,12 +118,20 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                 modifier = Modifier.padding(top = 4.dp)
                             )
 
+                            Text(
+                                text = "* ${request.assignStatus ?: "N/A"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Button(
                                     onClick = {
-                                        request.id?.let { viewModel.updateRequestStatus(it, "ok") }
+                                        Log.e("TAG", "AssignedStudentScreen: ${request.parentId}" )
+                                        request.parentId?.let { viewModel.updateRequestStatus(it, "ok") }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                                     enabled = updatingId != request.id,
@@ -142,7 +150,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
 
                                 Button(
                                     onClick = {
-                                        request.id?.let { viewModel.updateRequestStatus(it, "cancel") }
+                                        request.parentId?.let { viewModel.updateRequestStatus(it, "cancel") }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
                                     enabled = updatingId != request.id,

@@ -2,6 +2,7 @@ package com.example.mykidsvan.android.utils
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -18,6 +19,9 @@ class UserPreferences(context: Context) {
         private val USER_ID = stringPreferencesKey("user_id")
         private val USER_NAME = stringPreferencesKey("user_name")
         private val USER_ROLE = stringPreferencesKey("user_role")
+        private val ASSIGNED_VEHICLE_ID = stringPreferencesKey("assign_vehicle_id")
+        private val STATUS = stringPreferencesKey("status")
+
     }
 
     // Save login state (suspend function)
@@ -34,9 +38,26 @@ class UserPreferences(context: Context) {
         }
     }
 
+    suspend fun updateVehicleDetails(vehicleId: String, status: String) {
+        dataStore.edit { prefs ->
+            prefs[ASSIGNED_VEHICLE_ID] = vehicleId
+            prefs[STATUS] = status
+        }
+    }
+
+    val assignVehicleIdFlow: Flow<String?> = dataStore.data.map { it[ASSIGNED_VEHICLE_ID] }
+    val statusFlow: Flow<String?> = dataStore.data.map { it[STATUS] }
+
+
     suspend fun clearUserData() {
         dataStore.edit { prefs ->
             prefs.clear()
+        }
+    }
+
+    suspend fun saveDriverId(driverId: String) {
+        dataStore.edit { preferences ->
+            preferences[ASSIGNED_VEHICLE_ID] = driverId
         }
     }
 

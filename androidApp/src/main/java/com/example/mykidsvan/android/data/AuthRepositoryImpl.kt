@@ -31,6 +31,7 @@ import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
+import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 
 
 class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
@@ -217,10 +218,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun getDriverRequests(
-        driver_id: String,
-        parent_id: String
+        driver_id: String
     ): DriverRequestResponse {
-        return api.getDriverRequests(driver_id, parent_id)
+        return api.getDriverRequests(driver_id)
     }
 
     override suspend fun sendLatLong(
@@ -375,5 +375,28 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun updateVehiclePhotos(request: UpdateVehicleImageRequest): ProfileUpdateResponse {
         return api.updateVehiclePhotos(request)
+    }
+
+    override suspend fun updatePaymentStatus(
+        id: Int,
+        transactionId: String,
+        amount: String,
+        paymentStatus: String,
+        expireDate: String,
+        paymentDate: String,
+        assignStatus: String,
+        assignDate: String
+    ): UpdatePaymentResponse {
+        val requestBody = mapOf(
+            "id" to id,
+            "transaction_id" to transactionId,
+            "amount" to amount,
+            "payment_status" to paymentStatus,
+            "expire_date" to expireDate,
+            "payment_date" to paymentDate,
+            "assign_status" to assignStatus,
+            "assign_date" to assignDate
+        )
+        return api.updatePayment(requestBody)
     }
 }

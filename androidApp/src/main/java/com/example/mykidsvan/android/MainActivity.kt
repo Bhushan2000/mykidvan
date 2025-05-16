@@ -1,9 +1,12 @@
 package com.example.mykidsvan.android
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -66,67 +69,47 @@ import com.example.mykidsvan.android.screens.SplashScreen
 import com.example.mykidsvan.android.screens.SupportHelpScreen
 import com.example.mykidsvan.android.screens.UpdatePasswordScreen
 import com.example.mykidsvan.android.screens.VehiclePhotoScreen
+import com.example.mykidsvan.android.screens.tracking.MapScreen
 import com.example.mykidsvan.android.utils.DrawerItem
+import com.example.mykidsvan.android.utils.RazorpayHandler
+import com.example.mykidsvan.android.utils.RazorpayHandler.Companion.triggerPaymentSuccess
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
 import com.razorpay.PaymentResultListener
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity(), PaymentResultListener {
 
-    // razorpay integration
-    private var onPaymentSuccessCallback: (() -> Unit)? = null
-    private var onPaymentFailureCallback: (() -> Unit)? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MyApplicationTheme {
-                MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
+                MyApp()
             }
         }
     }
 
+    // Razorpay success callback
     override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        onPaymentSuccessCallback?.invoke()
+        Log.d("Razorpay", "Payment Success: $razorpayPaymentID")
+        RazorpayHandler.triggerPaymentSuccess(razorpayPaymentID)
     }
 
+    // Razorpay failure callback
     override fun onPaymentError(code: Int, response: String?) {
-        onPaymentFailureCallback?.invoke()
-    }
-
-
-    fun initiateDriverAssignPayment(
-        amountInPaise: Int,
-        onSuccess: () -> Unit,
-        onFailure: () -> Unit
-    ) {
-        onPaymentSuccessCallback = onSuccess
-        onPaymentFailureCallback = onFailure
-
-        val checkout = Checkout()
-        checkout.setKeyID("rzp_test_BVJygtmA6ljXBB") // Replace with actual key
-
-        val options = JSONObject().apply {
-            put("name", "Assign Vehicle Owner")
-            put("description", "Vehicle Owner Request Fee")
-            put("currency", "INR")
-            put("amount", amountInPaise.toString())
-
-            val prefill = JSONObject().apply {
-                put("email", "user@example.com")
-                put("contact", "9999999999")
-            }
-            put("prefill", prefill)
-        }
-        checkout.open(this, options)
+        Log.e("Razorpay", "Payment Failed: $response")
+        RazorpayHandler.triggerPaymentError(code, response)
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (() -> Unit)?) {
+fun MyApp() {
     val navController = rememberAnimatedNavController() // Use Animated NavController
 
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
@@ -138,12 +121,14 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
 
     // user id from prefrences
     val userId by loginViewModel.userId.collectAsState()
+    val assignVehicleId by loginViewModel.assignedVehicleId.collectAsState()
+    val requestAssignedStatus by loginViewModel.vehicleStatus.collectAsState()
     val userRole by loginViewModel.userRole.collectAsState()
 
 
     LaunchedEffect(userId) {
         if (userId != null) {
-            Log.d("UserID", "Logged-in user ID: $userId")
+            Log.d("UserID", "Logged-in user ID: $userId & user role - $userRole assigned vehicle id - $assignVehicleId  assign status - $requestAssignedStatus")
         }
     }
 
@@ -183,7 +168,7 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                             DrawerItem.SupportHelp
                         )
 
-                        "vehicle owner" -> listOf(
+                        "driver" -> listOf(
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindStudent,
@@ -264,10 +249,15 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                 composable(DrawerItem.Home.route) {
                     userId?.let { it1 ->
                         userRole?.let { it2 ->
-                            HomeScreen(
-                                loginViewModel,
-                                it1
-                            )
+                            assignVehicleId?.let { it3 ->
+//                                HomeScreen(
+//                                    loginViewModel,
+//                                    it1,
+//                                    it2,
+//                                    it3
+//                                )
+                                MapScreen()
+                            }
                         }
                     }
                 }
@@ -298,9 +288,7 @@ fun MyApp(onPaymentSuccessCallback: (() -> Unit)?, onPaymentFailureCallback: (()
                     userId?.let { it1 ->
                         FindVehicleScreen(
                             viewModel = loginViewModel,
-                            userId = it1,
-                            onPaymentSuccess = { onPaymentSuccessCallback?.invoke() },
-                            onPaymentFailure = { onPaymentFailureCallback?.invoke() }
+                            userId = it1
                         )
                     }
                 }

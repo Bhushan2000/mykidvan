@@ -2,19 +2,38 @@ package com.example.mykidsvan.android.data.dto.response
 
 import com.google.gson.annotations.SerializedName
 
-data class DriverRequestResponse(
-    @SerializedName("status") var status: Boolean? = null,
-    @SerializedName("Message") var Message: String? = null,
-    @SerializedName("data") var data: ArrayList<RequestData> = arrayListOf()
-)
+//data class ParentData(
+//    val id: String,
+//    val parent_name: String,
+//    val contact_number: String,
+//    val password: String?,
+//    val state: String,
+//    val district: String,
+//    val taluka: String,
+//    val city: String,
+//    val parent_address: String?,
+//    val child_name: String?,
+//    val child_school_name: String?,
+//    val child_class: String?,
+//    val child_dob: String?,
+//    val pick_up: String?,
+//    val drop_off: String?,
+//    val number_of_chlid: String?,
+//    val emergency_contact: String?,
+//    val terms_condition: String?,
+//    val role: String?,
+//    val school_id: String?,
+//    val transaction_id: String?,
+//    val amount: String?,
+//    val payment_status: String?,
+//    val expire_date: String?,
+//    val payment_date: String?,
+//    val assign_status: String?,
+//    val assign_date: String?
+//)
 
-data class RequestData(
-    @SerializedName("vm_id") var vmId: String? = null,
-    @SerializedName("vehicle_id") var vehicleId: String? = null,
-    @SerializedName("parent_id") var parentId: String? = null,
-    @SerializedName("message") var message: String? = null,
-    @SerializedName("vm_status") var vmStatus: String? = null,
-    @SerializedName("vm_created_at") var vmCreatedAt: String? = null,
+data class ParentData(
+
     @SerializedName("id") var id: String? = null,
     @SerializedName("parent_name") var parentName: String? = null,
     @SerializedName("contact_number") var contactNumber: String? = null,
@@ -42,5 +61,7 @@ data class RequestData(
     @SerializedName("payment_date") var paymentDate: String? = null,
     @SerializedName("assign_status") var assignStatus: String? = null,
     @SerializedName("assign_date") var assignDate: String? = null,
+    @SerializedName("vehicle_id") var vehicleId: String? = null,
     @SerializedName("status") var status: String? = null
+
 )

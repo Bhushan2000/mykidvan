@@ -40,8 +40,10 @@ import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.District
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
+import com.example.mykidsvan.android.data.dto.response.DriverData
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.Parent
+import com.example.mykidsvan.android.data.dto.response.ParentData
 import com.example.mykidsvan.android.data.dto.response.RequestData
 import com.example.mykidsvan.android.data.dto.response.School
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -51,19 +53,27 @@ import com.example.mykidsvan.android.data.dto.response.Vehicle
 import com.example.mykidsvan.android.screens.DropdownField
 import com.example.mykidsvan.android.utils.LoginState
 import com.example.mykidsvan.android.utils.OtpState
+import com.example.mykidsvan.android.utils.PaymentState
 import com.example.mykidsvan.android.utils.UpdatePasswordState
 import com.example.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.maps.model.LatLng
+import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+data class UserSessionData(
+    val isLoggedIn: Boolean,
+    val userId: String?,
+    val userRole: String?,
+    val assignVehicleId: String?,
+    val status: String?
+)
 
 class AuthViewModel(
-    private val repository: AuthRepository,
-    private val userPreferences: UserPreferences
+    private val repository: AuthRepository, private val userPreferences: UserPreferences
 ) : ViewModel() {
     // login
     private val _loginState = MutableStateFlow(LoginState())
@@ -147,28 +157,44 @@ class AuthViewModel(
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
 
+    private val _assignedVehicleId = MutableStateFlow<String?>(null)
+    val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
+
+    private val _vehicleStatus = MutableStateFlow<String?>(null)
+    val vehicleStatus: StateFlow<String?> = _vehicleStatus
+
     init {
         viewModelScope.launch {
             combine(
                 userPreferences.isLoggedInFlow,
                 userPreferences.userIdFlow,
-                userPreferences.userRole
-            ) { isLoggedIn, id, role ->
-                Triple(isLoggedIn, id, role)
-            }.collect { (isLoggedIn, id, role) ->
-                if (isLoggedIn) {
+                userPreferences.userRole,
+                userPreferences.assignVehicleIdFlow,
+                userPreferences.statusFlow
+            ) { isLoggedIn, id, role, vehicleId, status ->
+                UserSessionData(
+                    isLoggedIn = isLoggedIn,
+                    userId = id,
+                    userRole = role,
+                    assignVehicleId = vehicleId,
+                    status = status
+                )
+            }.collect { session ->
+                if (session.isLoggedIn) {
                     _loginState.value = LoginState(success = true, message = "Welcome Back!")
-                    _userId.value = id
-                    _userRole.value = role
+                    _userId.value = session.userId
+                    _userRole.value = session.userRole
+                    _assignedVehicleId.value = session.assignVehicleId
+                    _vehicleStatus.value = session.status
+
+                    session.userId?.let { loadAllRequests(it) }
                 }
             }
         }
 
         loadStateOptions()
         loadAllSchools()
-        userId.value?.let { loadAllRequests(it, parent_id = userId.value!!) }
     }
-
 
     // Function to send OTP
     fun sendOtp(phone: String) {
@@ -198,7 +224,6 @@ class AuthViewModel(
                 if (response.status) {
                     _otpState.value =
                         OtpState(success = true, message = "OTP verified successfully!")
-                    userPreferences.saveLoginState(true)  // Save login state after OTP verification
                     Log.d("AuthViewModel", "verifyOtp: ${response.message}")
                 } else {
                     _otpState.value = OtpState(error = response.message ?: "Failed to verify OTP.")
@@ -226,28 +251,100 @@ class AuthViewModel(
         }
     }
 
+    /*    fun login(username: String, password: String) {
+            _loginState.value = LoginState(isLoading = true)  // Set loading state
+            viewModelScope.launch {
+                try {
+                    val response = repository.login(username, password)
+                    if (response.status) {
+                        _loginState.value = LoginState(success = true, message = "Login successful!")
+                        userPreferences.saveLoginState(true)  // Save login state on success
+                        response.role?.let {
+                            userPreferences.saveLoginUserDetails(
+                                response.id, response.driver_name,
+                                it
+                            )
+                        }
+                        Log.d("TAG", "login: ${response.message}")
+                    } else {
+                        _loginState.value = LoginState(error = response.message ?: "Login failed.")
+                        Log.d("TAG", "login: ${response.message}")
+                    }
+                } catch (e: Exception) {
+                    _loginState.value = LoginState(error = "An error occurred: ${e.localizedMessage}")
+                    Log.e("AuthViewModel", "Login failed", e)
+                }
+            }
+        }*/
+
     fun login(username: String, password: String) {
-        _loginState.value = LoginState(isLoading = true)  // Set loading state
+        _loginState.value = LoginState(isLoading = true)
         viewModelScope.launch {
             try {
                 val response = repository.login(username, password)
-                if (response.status) {
-                    _loginState.value = LoginState(success = true, message = "Login successful!")
-                    userPreferences.saveLoginState(true)  // Save login state on success
-                    response.role?.let {
-                        userPreferences.saveLoginUserDetails(
-                            response.id, response.driver_name,
-                            it
-                        )
+
+                if (response.status == true) {
+                    val role = when {
+                        response.message?.contains("vehicle", ignoreCase = true) == true -> "driver"
+                        response.message?.contains("parent", ignoreCase = true) == true -> "parent"
+                        else -> null
                     }
-                    Log.d("TAG", "login: ${response.message}")
+
+                    role?.let {
+                        when (it) {
+                            "driver" -> {
+                                val driverData =
+                                    Gson().fromJson(response.data, DriverData::class.java)
+                                _loginState.value = LoginState(
+                                    success = true,
+                                    message = "Driver login success",
+                                    driver = driverData
+                                )
+                                userPreferences.saveLoginState(true)  // Save login state
+
+                                userPreferences.saveLoginUserDetails(
+                                    driverData.id, driverData.driver_name, it
+                                )
+                            }
+
+                            "parent" -> {
+                                val parentData =
+                                    Gson().fromJson(response.data, ParentData::class.java)
+                                _loginState.value = LoginState(
+                                    success = true,
+                                    message = "Parent login success",
+                                    parent = parentData
+                                )
+                                userPreferences.saveLoginState(true)  // Save login state
+
+                                parentData.id?.let { it1 ->
+                                    parentData.parentName?.let { it2 ->
+                                        userPreferences.saveLoginUserDetails(
+                                            it1, it2, it
+                                        )
+                                    }
+                                }
+                                parentData.vehicleId?.let { it1 ->
+                                    parentData.status?.let { it2 ->
+                                        userPreferences.updateVehicleDetails(
+                                            it1, it2
+                                        )
+                                    }
+                                }
+                            }
+
+                            else -> {}
+                        }
+                    } ?: run {
+                        _loginState.value = LoginState(error = "Unknown user type")
+                    }
+
                 } else {
                     _loginState.value = LoginState(error = response.message ?: "Login failed.")
-                    Log.d("TAG", "login: ${response.message}")
                 }
             } catch (e: Exception) {
-                _loginState.value = LoginState(error = "An error occurred: ${e.localizedMessage}")
-                Log.e("AuthViewModel", "Login failed", e)
+                _loginState.value = LoginState(error = "An error occurred")
+                Log.e("LoginViewModel", "Login error", e)
             }
         }
     }
@@ -334,8 +431,7 @@ class AuthViewModel(
             val response = repository.getStates()
             _stateOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 State(
-                    id = "",
-                    state_name = "No data found"
+                    id = "", state_name = "No data found"
                 )
             )
             Log.d("TAG", "States loaded: ${_stateOptions.value}")
@@ -349,10 +445,7 @@ class AuthViewModel(
             val response = repository.getAllSchools()
             _schoolAllOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 School(
-                    id = "",
-                    schoolName = "No data found",
-                    "",
-                    "", "", "", "", ""
+                    id = "", schoolName = "No data found", "", "", "", "", "", ""
                 )
             )
             Log.d("TAG", "States loaded: ${_schoolAllOptions.value}")
@@ -362,9 +455,9 @@ class AuthViewModel(
     }
 
 
-    fun loadAllRequests(driver_id: String, parent_id: String) = viewModelScope.launch {
+    fun loadAllRequests(driver_id: String) = viewModelScope.launch {
         try {
-            val response = repository.getDriverRequests(driver_id, parent_id)
+            val response = repository.getDriverRequests(driver_id)
             _driverAllRequest.value = response.data.takeIf { it.isNotEmpty() } ?: listOf(
                 RequestData(
                     id = "",
@@ -372,7 +465,6 @@ class AuthViewModel(
                     message = "",
                     parentId = "",
                     status = "",
-                    createdAt = "",
                     parentName = "No data found",
                     contactNumber = "",
                     password = "",
@@ -413,10 +505,7 @@ class AuthViewModel(
             val response = repository.getAllSchools()
             _schoolAllOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 School(
-                    id = "",
-                    schoolName = "No data found",
-                    "",
-                    "", "", "", "", ""
+                    id = "", schoolName = "No data found", "", "", "", "", "", ""
                 )
             )
             Log.d("TAG", "States loaded: ${_schoolAllOptions.value}")
@@ -431,9 +520,7 @@ class AuthViewModel(
             val response = repository.getDistricts(stateId)
             _districtOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 District(
-                    id = "",
-                    "",
-                    district_name = "No data found"
+                    id = "", "", district_name = "No data found"
                 )
             )
             Log.d("TAG", "Districts loaded: ${_districtOptions.value}")
@@ -447,10 +534,7 @@ class AuthViewModel(
             val response = repository.getTalukas(stateId, districtId)
             _talukaOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 Taluka(
-                    id = "",
-                    "",
-                    "",
-                    taluka_name = "No data found"
+                    id = "", "", "", taluka_name = "No data found"
                 )
             )
             Log.d("TAG", "Talukas loaded: ${_talukaOptions.value}")
@@ -465,14 +549,7 @@ class AuthViewModel(
                 val response = repository.getSchools(stateId, districtId, talukaId)
                 _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                     School(
-                        id = "",
-                        schoolName = "No data found",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        ""
+                        id = "", schoolName = "No data found", "", "", "", "", "", ""
                     )
                 )
                 Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
@@ -486,13 +563,39 @@ class AuthViewModel(
             val response = repository.getDriver(schoolId)
             _driverOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 Driver(
-                    id = "", driver_name = "No data found",
-                    "", "", "", "", "", "",
-                    "", "", "", "", "",
-                    "", "", "",
-                    "", "", "", "", "",
-                    "", "", "",
-                    "", "", "", "", "", "", "", "", ""
+                    id = "",
+                    driver_name = "No data found",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
                 )
             )
             Log.d("TAG", "Driver list loaded: ${_driverOptions.value}")
@@ -506,11 +609,25 @@ class AuthViewModel(
             val response = repository.getParent(schoolId)
             _parentsOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 Parent(
-                    id = "", parentName = "No data found",
-                    "", "", "", "", "",
-                    "", "", "",
-                    "", "", "", "", "",
-                    "", "", "", ""
+                    id = "",
+                    parentName = "No data found",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
                 )
             )
             Log.d("TAG", "Parent list loaded: ${_parentsOptions.value}")
@@ -672,21 +789,18 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 val response = repository.updatePassword(
-                    phone,
-                    _state.value.newPassword
+                    phone, _state.value.newPassword
                 )
                 if (response.status) {
                     _state.value = _state.value.copy(isPasswordUpdated = true, isLoading = false)
                 } else {
                     _state.value = _state.value.copy(
-                        errorMessage = "Failed to update password. Try again.",
-                        isLoading = false
+                        errorMessage = "Failed to update password. Try again.", isLoading = false
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
-                    errorMessage = "An error occurred: ${e.message}",
-                    isLoading = false
+                    errorMessage = "An error occurred: ${e.message}", isLoading = false
                 )
             }
         }
@@ -777,8 +891,7 @@ class AuthViewModel(
             _isAssigningSchool.value = true
             try {
                 val response = repository.assignedStudent(
-                    schoolId,
-                    userId
+                    schoolId, userId
                 ) // ← Replace with your repository or API call
 
                 if (response.status == "success") {
@@ -826,6 +939,10 @@ class AuthViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
+    // Get LatLong
+    private val _currentLatLng = MutableStateFlow<LatLng?>(null)
+    val currentLatLng: StateFlow<LatLng?> get() = _currentLatLng
+
     fun sendLatLong(lat: String, long: String, id: String) {
         viewModelScope.launch {
             isLoading = true
@@ -835,8 +952,7 @@ class AuthViewModel(
 
                 // ✅ Log the successful request for debugging
                 Log.d(
-                    "SendLatLong",
-                    "Sent location -> lat: $lat, long: $long, userId: $id"
+                    "SendLatLong", "Sent location -> lat: $lat, long: $long, userId: $id"
                 )
             } catch (e: Exception) {
                 _errorMessage.value = e.message
@@ -848,11 +964,6 @@ class AuthViewModel(
             }
         }
     }
-
-
-    // Get LatLong
-    private val _currentLatLng = MutableStateFlow<LatLng?>(null)
-    val currentLatLng: StateFlow<LatLng?> get() = _currentLatLng
 
     suspend fun getLatLong(driverId: String): List<LatLng> {
         return try {
@@ -945,11 +1056,11 @@ class AuthViewModel(
     var toastMessage by mutableStateOf<String?>(null)
         private set
 
-    fun loadDriverRequests(driverId: String, parent_id: String) {
+    fun loadDriverRequests(driverId: String) {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = repository.getDriverRequests(driverId, parent_id)
+                val response = repository.getDriverRequests(driverId)
                 _driverRequests.value = response.data
                 Log.e("TAG", "loadDriverRequests: ${_driverRequests.value}")
             } catch (e: Exception) {
@@ -984,8 +1095,7 @@ class AuthViewModel(
                 val imageList = arrayListOf(frontBase64, backBase64, insideBase64, outsideBase64)
 
                 val request = UpdateVehicleImageRequest(
-                    id = userId,
-                    photoOfVehicle = imageList
+                    id = userId, photoOfVehicle = imageList
                 )
 
                 val response = repository.updateVehiclePhotos(request)
@@ -1009,8 +1119,48 @@ class AuthViewModel(
         _uploadMessage.value = null
     }
 
-    fun updateProfile(){
+    fun updateProfile() {
 
+    }
+
+    private val _paymentStatusState = MutableStateFlow<PaymentState>(PaymentState.Idle)
+    val paymentStatusState: StateFlow<PaymentState> = _paymentStatusState
+
+    fun updatePaymentStatus(
+        id: Int,
+        transactionId: String,
+        amount: String,
+        paymentStatus: String,
+        expireDate: String,
+        paymentDate: String,
+        assignStatus: String,
+        assignDate: String
+    ) {
+        viewModelScope.launch {
+            _paymentStatusState.value = PaymentState.Loading
+            try {
+                val response = repository.updatePaymentStatus(
+                    id,
+                    transactionId,
+                    amount,
+                    paymentStatus,
+                    expireDate,
+                    paymentDate,
+                    assignStatus,
+                    assignDate
+                )
+                if (response.status == "success") {
+                    _paymentStatusState.value = PaymentState.Success(response.message)
+                } else {
+                    _paymentStatusState.value =
+                        PaymentState.Error(response.message ?: "Unknown error")
+                }
+
+            } catch (e: Exception) {
+                _paymentStatusState.value =
+                    PaymentState.Error(e.localizedMessage ?: "Network error")
+            }
+        }
     }
 }
 

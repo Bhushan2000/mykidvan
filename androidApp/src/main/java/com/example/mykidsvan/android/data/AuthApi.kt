@@ -31,6 +31,7 @@ import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
+import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import retrofit2.http.Body
 import retrofit2.http.FieldMap
 import retrofit2.http.FormUrlEncoded
@@ -123,11 +124,10 @@ interface AuthApi {
     @POST("index.php/api/AccountsController/vehicle_message")
     suspend fun sendAssignRequest(@Body request: SendAssignRequest): SendRequestToDriverResponse
 
-    @GET("index.php/api/AccountsController/get_vehicle_message/{driver_id}/{parent_id}")
+    @GET("index.php/api/AccountsController/get_vehicle_message/{driver_id}")
     suspend fun getDriverRequests(
         @Path("driver_id") driver_id: String,
-        @Path("parent_id") parent_id: String
-    ): DriverRequestResponse
+     ): DriverRequestResponse
 
     @PUT("index.php/api/AccountsController/update_parentdetail")
     suspend fun updateProfileParent(
@@ -144,8 +144,8 @@ interface AuthApi {
         @Body request: UpdateVehicleImageRequest
     ):ProfileUpdateResponse
 
-//    @PUT("index.php/api/AccountsController/update_payment")
-//    suspend fun updatePayment(
-//        @Body request:
-//    ):
+    @PUT("index.php/api/AccountsController/update_payment")
+    suspend fun updatePayment(
+        @Body body: Map<String, Any>
+    ): UpdatePaymentResponse
 }

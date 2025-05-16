@@ -1,10 +1,11 @@
 package com.example.mykidsvan.android.screens
+
 import androidx.compose.material3.*
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import kotlinx.coroutines.launch
-import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,16 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,8 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,15 +44,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -90,7 +80,8 @@ fun LoginScreen(
 
     if (loginState.success && currentRoute == "login") {
         LaunchedEffect(Unit) {
-            Toast.makeText(context, loginState.message ?: "Welcome back!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, loginState.message ?: "Welcome back!", Toast.LENGTH_SHORT)
+                .show()
             navController.navigate("home") {
                 popUpTo(0) { inclusive = true }
             }
@@ -107,10 +98,9 @@ fun LoginScreen(
     ) {
 
         // Branding or Logo
-        Icon(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+        Image(
+            painter = painterResource(id = R.drawable.my_kid_van),
             contentDescription = "App Logo",
-            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(96.dp)
         )
         Text(
@@ -207,7 +197,8 @@ fun LoginScreen(
         Button(
             onClick = {
                 if (username.isBlank() || password.isBlank()) {
-                    Toast.makeText(context, "Please fill mandatory fields.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Please fill mandatory fields.", Toast.LENGTH_SHORT)
+                        .show()
                 } else {
                     viewModel.login(username, password)
                 }
@@ -217,15 +208,15 @@ fun LoginScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
             elevation = ButtonDefaults.buttonElevation(8.dp)
-         ) {
+        ) {
             if (loginState.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold,color = Color.White)
+                Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 
-         // Error Message
+        // Error Message
         loginState.error?.let {
             Text(
                 text = it,

@@ -22,6 +22,7 @@ import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
+import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import com.google.gson.annotations.SerializedName
 
 // Domain Layer: AuthRepository.kt
@@ -90,7 +91,7 @@ interface AuthRepository {
 
     suspend fun getAllSchools(): AllSchoolResponse
 
-    suspend fun getDriverRequests(driver_id: String, parent_id: String): DriverRequestResponse
+    suspend fun getDriverRequests(driver_id: String): DriverRequestResponse
 
     suspend fun registerDriver(
         ownerName: String,
@@ -155,7 +156,7 @@ interface AuthRepository {
     suspend fun sendLatLong(
         lat: String,
         long: String,
-         id: String
+        id: String
     ): SendLatLongResponse
 
     suspend fun getLatLong(driver_id: String): GetLatLongResponse
@@ -230,4 +231,16 @@ interface AuthRepository {
     ): ProfileUpdateResponse
 
     suspend fun updateVehiclePhotos(request: UpdateVehicleImageRequest): ProfileUpdateResponse
+
+    suspend fun updatePaymentStatus(
+        id: Int,
+        transactionId: String,
+        amount: String,
+        paymentStatus: String,
+        expireDate: String,
+        paymentDate: String,
+        assignStatus: String,
+        assignDate: String
+    ): UpdatePaymentResponse
+
 }

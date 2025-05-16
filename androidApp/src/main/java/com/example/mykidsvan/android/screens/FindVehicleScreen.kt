@@ -1,7 +1,10 @@
 package com.example.mykidsvan.android.screens
 
+import android.app.Activity
+import com.example.mykidsvan.android.R // ✅ Important: ensure R is correctly imported from your app module
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -60,18 +63,42 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.mykidsvan.android.MainActivity
+import com.example.mykidsvan.android.utils.RazorpayHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindVehicleScreen(
     viewModel: AuthViewModel,
-    userId: String,
-    onPaymentSuccess: () -> Unit,
-    onPaymentFailure: () -> Unit
+    userId: String
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    val selectedDriverId = remember { mutableStateOf<String?>(null) }
+
+    // RazorpayHandler initialization
+    val razorpayHandler = remember(activity) {
+        activity?.let {
+            RazorpayHandler(it, viewModel).apply {
+                this.onPaymentSuccessCallback = {
+                    Log.d("Payment", "Success")
+                    selectedDriverId.value?.let { driverId ->
+                        viewModel.sendAssignRequest(driverId, userId)
+                    }
+                }
+                this.onPaymentFailureCallback = { code, message ->
+                    Log.e("Razorpay", "Payment failed with code $code: $message")
+                    Toast.makeText(context, "Payment failed: $message", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf("By School", "By Mobile No.")
+    val paymentAmountInPaise = 50000 // ₹500 in paise
 
     Scaffold { padding ->
         Column(
@@ -94,19 +121,50 @@ fun FindVehicleScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             when (selectedTabIndex) {
-                0 -> FindBySchoolSection(viewModel, userId, onPaymentSuccess, onPaymentFailure)
-                1 -> FindByMobileSection(viewModel, userId, onPaymentSuccess, onPaymentFailure)
+                0 -> FindBySchoolSection(
+                    viewModel = viewModel,
+                    userId = userId,
+                    onStartPayment = { driverId ->
+                        selectedDriverId.value = driverId.toString()
+                        if (razorpayHandler != null) {
+                            razorpayHandler.initiatePayment(
+                                amountInPaise = paymentAmountInPaise,
+                                userId = userId.toInt()
+                            )
+                        } else {
+                            Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                )
+
+                1 -> FindByMobileSection(
+                    viewModel = viewModel,
+                    userId = userId,
+                    onStartPayment = { driverId ->
+                        selectedDriverId.value = driverId.toString()
+                        if (razorpayHandler != null) {
+                            razorpayHandler.initiatePayment(
+                                amountInPaise = paymentAmountInPaise,
+                                userId = userId.toInt()
+                            )
+                        } else {
+                            Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                )
             }
         }
     }
 }
 
+
 @Composable
 fun FindByMobileSection(
     viewModel: AuthViewModel,
     userId: String,
-    onPaymentSuccess: () -> Unit,
-    onPaymentFailure: () -> Unit
+    onStartPayment: (driverId: String) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -226,11 +284,12 @@ fun FindByMobileSection(
                             IconButton(
                                 onClick = {
                                     if (!isLoading) {
-                                        driver.vehicle?.id?.let {
-                                            if (userId != null) {
-                                                viewModel.sendAssignRequest(it, userId)
-                                            }
-                                        }
+//                                        driver.vehicle?.id?.let {
+//                                            if (userId != null) {
+//                                                viewModel.sendAssignRequest(it, userId)
+//                                            }
+//                                        }
+                                        driver.vehicle?.id?.let { onStartPayment(it) }
                                     }
                                 },
                                 enabled = !isLoading
@@ -292,8 +351,7 @@ private fun ProfileDetailRow1(label: String, value: String?) {
 fun FindBySchoolSection(
     viewModel: AuthViewModel,
     userId: String,
-    onPaymentSuccess: () -> Unit,
-    onPaymentFailure: () -> Unit
+    onStartPayment: (driverId: String) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -390,13 +448,7 @@ fun FindBySchoolSection(
                         driver = driver,
                         viewModel = viewModel,
                         userId = userId,
-                        startPayment = { onSuccess, onFailure ->
-                            activity?.initiateDriverAssignPayment(
-                                amountInPaise = 1000,
-                                onSuccess = onSuccess,
-                                onFailure = onFailure
-                            )
-                        }
+                        onStartPayment,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -410,7 +462,7 @@ fun DriverCard(
     driver: Driver,
     viewModel: AuthViewModel,
     userId: String,
-    startPayment: (onSuccess: () -> Unit, onFailure: () -> Unit) -> Unit
+    onStartPayment: (driverId: String) -> Unit,
 ) {
     val context = LocalContext.current
     val isLoading = viewModel.isLoading
@@ -432,13 +484,15 @@ fun DriverCard(
             verticalAlignment = Alignment.Top,
             modifier = Modifier.padding(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
+            AsyncImage(
+                model = "https://avschoolerp.com/${driver.profile_picture}",
                 contentDescription = "Driver Avatar",
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Color.LightGray, CircleShape)
-                    .padding(8.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray)
+                    .padding(4.dp),
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -451,7 +505,13 @@ fun DriverCard(
                 }
 
                 // ✅ Vehicle Photo Preview (Max 3)
-                if (!driver.photo_of_vehicle.isNullOrEmpty()) {
+                val vehiclePhotos = driver.photo_of_vehicle
+                    ?.split(",") // Split by comma
+                    ?.filter { it.isNotBlank() } // Remove empty entries
+                    ?.take(3) // Only take first 3 photos
+                    ?: emptyList()
+
+                if (vehiclePhotos.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Vehicle Photos:", style = MaterialTheme.typography.labelSmall)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -460,9 +520,14 @@ fun DriverCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        driver.photo_of_vehicle.take(3).forEach { photoUrl ->
+                        vehiclePhotos.forEach { photoPath ->
                             AsyncImage(
-                                model = photoUrl,
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("https://avschoolerp.com/$photoPath")
+                                    .crossfade(true)
+                                    .placeholder(R.drawable.placeholder_image)
+                                    .error(R.drawable.placeholder_image)
+                                    .build(),
                                 contentDescription = "Vehicle Photo",
                                 modifier = Modifier
                                     .size(60.dp)
@@ -487,10 +552,8 @@ fun DriverCard(
                 IconButton(
                     onClick = {
                         if (!isLoading) {
-                            startPayment(
-                                { viewModel.sendAssignRequest(driver.id, userId) },
-                                { /* optional toast */ }
-                            )
+                            //    startPayment(driver.id) // Just pass driver ID
+                            onStartPayment(driver.id)
                         }
                     },
                     enabled = !isLoading
