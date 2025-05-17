@@ -50,31 +50,75 @@ class LatLngViewModel(
     private val _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
-    private val _vehicleStatus = MutableStateFlow<String?>(null)
-    val vehicleStatus: StateFlow<String?> = _vehicleStatus
+    private val _vehicleTrackingStatus = MutableStateFlow<String?>(null)
+    val vehicleTrackingStatus: StateFlow<String?> = _vehicleTrackingStatus
+
+    private val _userRole = MutableStateFlow<String?>(null)
+    val userRole: StateFlow<String?> = _userRole
 
     var driverId:String? = null// Your default/fallback
 
+    // user id
+    private val _userId = MutableStateFlow<String?>(null)
+    val userId: StateFlow<String?> = _userId
+
     init {
+        // Collect user role
         viewModelScope.launch {
-            // 1. Get assignedVehicleId from preferences
+            userPreferences.userRole.collect { role ->
+                _userRole.value = role
+
+                // 👇 After role is fetched, update driverId if role is "driver"
+                if (role == "driver") {
+                    userPreferences.userIdFlow.collect { id->
+                        driverId = id
+                    } // or fetchUserIdFromPreferences() if not flow
+                }
+            }
+        }
+
+        // Collect assigned vehicle ID
+        viewModelScope.launch {
             userPreferences.assignVehicleIdFlow.collect { vehicleId ->
                 _assignedVehicleId.value = vehicleId
 
-                // 2. If not null, save the driverId to preferences
-                if (vehicleId != null) {
+                // 👇 Only assign if user is NOT driver (e.g., parent case)
+                if (_userRole.value != "driver" && vehicleId != null) {
                     driverId = vehicleId
                 }
             }
         }
 
+        // Collect tracking status
+        viewModelScope.launch {
+            userPreferences.statusFlow.collect { status ->
+                _vehicleTrackingStatus.value = status
+            }
+        }
+
+        // Collect userId
+        viewModelScope.launch {
+            userPreferences.userIdFlow.collect { id ->
+                _userId.value = id
+
+                // 👇 In case role is already "driver", assign here too
+                if (_userRole.value == "driver") {
+                    driverId = id
+                }
+            }
+        }
+
+        // Initial location fetch
         viewModelScope.launch {
             fetchInitialLocation()
         }
     }
 
     private suspend fun fetchInitialLocation() {
+        if (userRole.value != "driver") return // Skip for parents
+
         if (!isLocationPermissionGranted(context)) return
+
         val location = getLastKnownLocation()
         location?.let {
             _currentLocation.value = LatLng(it.latitude, it.longitude)
@@ -84,12 +128,21 @@ class LatLngViewModel(
 
 
     fun startTracking() {
+        val role = userRole.value
         _isTracking.value = true
         trackingJob = viewModelScope.launch {
             while (isActive) {
-                sendCurrentLocationToServer()
-                fetchLatLngFromServer()
-                delay(10_000) // Wait 10 seconds
+                // Driver → send and receive
+                if (role == "driver") {
+                    sendCurrentLocationToServer()
+                    fetchLatLngFromServer()
+                }
+                // Parent → only receive
+                else if (role == "parent") {
+                    fetchLatLngFromServer()
+                }
+
+                delay(10_000)
             }
         }
     }
@@ -100,21 +153,20 @@ class LatLngViewModel(
     }
 
     private suspend fun sendCurrentLocationToServer() {
+        if (userRole.value != "driver") return // ✅ Prevents sending if the role is "parent"
+
         if (!isLocationPermissionGranted(context)) return
 
         val location = getLastKnownLocation()
         location?.let {
             try {
-                driverId?.let { it1 ->
-                    SendLatLongRequest(
-                        id = it1,
+                driverId?.let { id ->
+                    val request = SendLatLongRequest(
+                        id = id,
                         latitude = it.latitude.toString(),
                         longitude = it.longitude.toString()
                     )
-                }?.let { it2 ->
-                    repository.sendLatLong(
-                        it2
-                    )
+                    repository.sendLatLong(request) // ✅ Sends location to server
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -124,23 +176,26 @@ class LatLngViewModel(
 
     @SuppressLint("MissingPermission")
     suspend fun getLastKnownLocation(): Location? = suspendCancellableCoroutine { cont ->
+        if (userRole.value != "driver") {
+            cont.resume(null, null)
+            return@suspendCancellableCoroutine
+        }
+
         val hasFineLocationPermission = ActivityCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
         val hasCoarseLocationPermission = ActivityCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
         if (!hasFineLocationPermission && !hasCoarseLocationPermission) {
-            cont.resume(null, null) // No location permission, return null safely
+            cont.resume(null, null)
             return@suspendCancellableCoroutine
         }
 
         fusedLocationProvider.lastLocation
-            .addOnSuccessListener { location -> cont.resume(location, null) }
+            .addOnSuccessListener { cont.resume(it, null) }
             .addOnFailureListener { cont.resume(null, null) }
     }
 

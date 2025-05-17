@@ -1,4 +1,5 @@
 package com.example.mykidsvan.android.screens.tracking
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,28 +73,33 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Collect state from ViewModel
     val latLngList by viewModel.latLngList.collectAsState()
     val bearing by viewModel.bearing.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
 
     val cameraPositionState = rememberCameraPositionState()
-    val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
+    val locationPermissionState =
+        rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
 
     val currentLocation = remember { mutableStateOf<LatLng?>(null) }
 
-    // Launcher to show the system dialog to enable GPS
+    val userRole by viewModel.userRole.collectAsState()
+    val assignedVehicleId by viewModel.assignedVehicleId.collectAsState()
+    val vehicleTrackingStatus by viewModel.vehicleTrackingStatus.collectAsState()
+
     val locationSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // GPS enabled, start tracking and move camera to current location
             coroutineScope.launch {
                 val location = viewModel.getLastKnownLocation()
                 location?.let {
                     val latLng = LatLng(it.latitude, it.longitude)
                     currentLocation.value = latLng
-                    cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 18f), 1000)
+                    cameraPositionState.animate(
+                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
+                        1000
+                    )
                     viewModel.startTracking()
                 }
             }
@@ -102,7 +108,6 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         }
     }
 
-    // Function to check if GPS is enabled and prompt user if not
     fun checkAndPromptEnableGps() {
         val locationRequest = LocationRequest.create().apply {
             priority = Priority.PRIORITY_HIGH_ACCURACY
@@ -114,13 +119,15 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         val task = client.checkLocationSettings(builder.build())
 
         task.addOnSuccessListener {
-            // GPS already enabled, get current location and start tracking
             coroutineScope.launch {
                 val location = viewModel.getLastKnownLocation()
                 location?.let {
                     val latLng = LatLng(it.latitude, it.longitude)
                     currentLocation.value = latLng
-                    cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 18f), 1000)
+                    cameraPositionState.animate(
+                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
+                        1000
+                    )
                     viewModel.startTracking()
                 }
             }
@@ -129,7 +136,8 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         task.addOnFailureListener { exception ->
             if (exception is ResolvableApiException) {
                 try {
-                    val intentSenderRequest = IntentSenderRequest.Builder(exception.resolution).build()
+                    val intentSenderRequest =
+                        IntentSenderRequest.Builder(exception.resolution).build()
                     locationSettingsLauncher.launch(intentSenderRequest)
                 } catch (sendEx: IntentSender.SendIntentException) {
                     Toast.makeText(context, "Unable to request GPS enable", Toast.LENGTH_SHORT).show()
@@ -140,21 +148,46 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         }
     }
 
-    // Request location permission on first launch and set map camera to current location
+    // 🔴 Track if the driver is inactive for 40 seconds
+    val isDriverInactive = remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(latLngList.lastOrNull()) {
+        if (userRole == "parent") {
+            isDriverInactive.value = false // Reset inactivity
+
+            delay(40_000) // Wait 40 seconds
+            val lastPoint = latLngList.lastOrNull()
+
+            // If no new update has come in 40 seconds
+            if (lastPoint == latLngList.lastOrNull()) {
+                isDriverInactive.value = true
+                snackbarHostState.showSnackbar("Driver has not started tracking yet.")
+
+             }
+        }
+    }
+
+    // Request location permission on first launch (only for driver)
     LaunchedEffect(Unit) {
-        if (!locationPermissionState.status.isGranted) {
-            locationPermissionState.launchPermissionRequest()
-        } else {
-            val location = viewModel.getLastKnownLocation()
-            location?.let {
-                val latLng = LatLng(it.latitude, it.longitude)
-                currentLocation.value = latLng
-                cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 18f), 1000)
+        if (userRole == "driver") {
+            if (!locationPermissionState.status.isGranted) {
+                locationPermissionState.launchPermissionRequest()
+            } else {
+                val location = viewModel.getLastKnownLocation()
+                location?.let {
+                    val latLng = LatLng(it.latitude, it.longitude)
+                    currentLocation.value = latLng
+                    cameraPositionState.animate(
+                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
+                        1000
+                    )
+                }
             }
         }
     }
 
-    // Follow last position update to animate camera while tracking
+    // Follow the latest location update to animate camera
     LaunchedEffect(latLngList.lastOrNull()) {
         latLngList.lastOrNull()?.let { newLatLng ->
             if (isTracking) {
@@ -175,7 +208,12 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
 
                 Marker(
                     state = MarkerState(position = latLngList.last()),
-                    icon = bitmapDescriptorFromVector(context, R.drawable.busyellow, 80, 120),
+                    icon = bitmapDescriptorFromVector(
+                        context,
+                        if (userRole == "parent" && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
+                        100,
+                        180
+                    ),
                     rotation = bearing,
                     anchor = Offset(0.5f, 0.5f),
                     flat = true
@@ -183,29 +221,41 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             }
         }
 
-        Button(
-            onClick = {
-                if (isTracking) {
-                    viewModel.stopTracking()
-                } else {
-                    if (locationPermissionState.status.isGranted) {
-                        checkAndPromptEnableGps()
+        // 🟢 Driver-only Start/Stop button
+        if (userRole == "driver") {
+            Button(
+                onClick = {
+                    if (isTracking) {
+                        viewModel.stopTracking()
                     } else {
-                        locationPermissionState.launchPermissionRequest()
+                        if (locationPermissionState.status.isGranted) {
+                            checkAndPromptEnableGps()
+                        } else {
+                            locationPermissionState.launchPermissionRequest()
+                        }
                     }
-                }
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isTracking) Color.Red else Color.Green
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        ) {
-            Text(color = Color.White, text = if (isTracking) "Stop" else "Start",)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isTracking) Color.Red else Color.Green
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                Text(color = Color.White, text = if (isTracking) "Stop" else "Start")
+            }
         }
+
+        // Snackbar for parent
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+        )
     }
 }
+
 
 
 fun bitmapDescriptorFromVector(

@@ -256,10 +256,10 @@ fun MyApp() {
 //                                    it2,
 //                                    it3
 //                                )
-                                MapScreen()
                             }
                         }
                     }
+                    MapScreen()
                 }
 
                 composable(DrawerItem.Profile.route) {
