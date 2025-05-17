@@ -23,6 +23,7 @@ import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.example.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 import com.google.gson.annotations.SerializedName
 
 // Domain Layer: AuthRepository.kt
@@ -243,4 +244,7 @@ interface AuthRepository {
         assignDate: String
     ): UpdatePaymentResponse
 
+    suspend fun getVehiclePhotos(
+        driver_id: String
+    ): VehiclePhotosResponse
 }

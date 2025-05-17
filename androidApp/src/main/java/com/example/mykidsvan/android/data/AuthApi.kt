@@ -4,6 +4,7 @@ import com.example.mykidsvan.android.data.dto.request.AssignRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
+import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
@@ -32,6 +33,7 @@ import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.example.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 import retrofit2.http.Body
 import retrofit2.http.FieldMap
 import retrofit2.http.FormUrlEncoded
@@ -115,7 +117,7 @@ interface AuthApi {
 
     @GET("index.php/api/AccountsController/get_vehicles/{driver_id}")
     suspend fun getLatLong(
-         @Path("driver_id") driver_id: String
+        @Path("driver_id") driver_id: String
     ): GetLatLongResponse
 
     @PUT("index.php/api/AccountsController/vehicle_message")
@@ -127,7 +129,7 @@ interface AuthApi {
     @GET("index.php/api/AccountsController/get_vehicle_message/{driver_id}")
     suspend fun getDriverRequests(
         @Path("driver_id") driver_id: String,
-     ): DriverRequestResponse
+    ): DriverRequestResponse
 
     @PUT("index.php/api/AccountsController/update_parentdetail")
     suspend fun updateProfileParent(
@@ -142,10 +144,15 @@ interface AuthApi {
     @PUT("index.php/api/AccountsController/update_vehicle_photo")
     suspend fun updateVehiclePhotos(
         @Body request: UpdateVehicleImageRequest
-    ):ProfileUpdateResponse
+    ): ProfileUpdateResponse
 
     @PUT("index.php/api/AccountsController/update_payment")
     suspend fun updatePayment(
-        @Body body: Map<String, Any>
+        @Body request: PaymentUpdateRequest
     ): UpdatePaymentResponse
+
+    @GET("index.php/api/AccountsController/get_vehicle_photos/{driver_id}")
+    suspend fun getVehiclePhotos(
+        @Path("driver_id") driver_id: String
+    ): VehiclePhotosResponse
 }

@@ -58,6 +58,8 @@ import com.google.android.gms.location.LocationServices
 import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.unit.sp
 import com.example.maptracking.LatLngViewModel
 import com.example.mykidsvan.android.R
 import com.google.android.gms.common.api.ResolvableApiException
@@ -140,7 +142,8 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                         IntentSenderRequest.Builder(exception.resolution).build()
                     locationSettingsLauncher.launch(intentSenderRequest)
                 } catch (sendEx: IntentSender.SendIntentException) {
-                    Toast.makeText(context, "Unable to request GPS enable", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Unable to request GPS enable", Toast.LENGTH_SHORT)
+                        .show()
                 }
             } else {
                 Toast.makeText(context, "Please enable GPS manually", Toast.LENGTH_LONG).show()
@@ -164,7 +167,26 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                 isDriverInactive.value = true
                 snackbarHostState.showSnackbar("Driver has not started tracking yet.")
 
-             }
+            }
+        }
+    }
+
+    // 🔁 Auto-start/stop tracking for parent based on assignedVehicleId and status
+    LaunchedEffect(userRole, assignedVehicleId, vehicleTrackingStatus) {
+        if (userRole == "parent") {
+            if (!assignedVehicleId.isNullOrBlank() && vehicleTrackingStatus.equals(
+                    "accepted",
+                    ignoreCase = true
+                )
+            ) {
+                if (!isTracking) {
+                    viewModel.startTracking()
+                }
+            } else {
+                if (isTracking) {
+                    viewModel.stopTracking()
+                }
+            }
         }
     }
 
@@ -196,12 +218,64 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         }
     }
 
+    // for dark mode of the map
+
+    val darkMapStyleJson = """
+[
+  {
+    "elementType": "geometry",
+    "stylers": [{"color": "#212121"}]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [{"color": "#757575"}]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [{"color": "#212121"}]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry",
+    "stylers": [{"color": "#757575"}]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "geometry",
+    "stylers": [{"color": "#181818"}]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry",
+    "stylers": [{"color": "#373737"}]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [{"color": "#000000"}]
+  }
+]
+""".trimIndent()
+
+    val isDarkTheme = isSystemInDarkTheme()
+    val mapStyleOptions = remember {
+        if (isDarkTheme) {
+            MapStyleOptions(darkMapStyleJson)
+        } else null // Default Google Map Light style
+    }
     Box(Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             uiSettings = MapUiSettings(zoomControlsEnabled = false),
-            properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted)
+            properties = MapProperties(
+                isMyLocationEnabled = locationPermissionState.status.isGranted,
+                mapStyleOptions = mapStyleOptions
+            )
         ) {
             if (latLngList.isNotEmpty()) {
                 Polyline(points = latLngList, color = Color.Cyan, width = 20f)
@@ -223,6 +297,8 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
 
         // 🟢 Driver-only Start/Stop button
         if (userRole == "driver") {
+            val greenColor = Color(0xFF99CC33) // Green color
+            val redColor = Color(0xFFA03232)   // Red color
             Button(
                 onClick = {
                     if (isTracking) {
@@ -236,14 +312,33 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isTracking) Color.Red else Color.Green
+                    containerColor = if (isTracking) redColor else greenColor
                 ),
                 modifier = Modifier
+                    .wrapContentSize() // Makes the composable size itself based on its content
                     .align(Alignment.BottomCenter)
                     .padding(16.dp)
             ) {
                 Text(color = Color.White, text = if (isTracking) "Stop" else "Start")
             }
+        }
+
+        // 🚫 Parent – show driver not assigned message
+        if (userRole == "parent" &&
+            (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
+                "accepted",
+                ignoreCase = true
+            ))
+        ) {
+            Text(
+                text = "Driver not assigned",
+                color = Color.Red,
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            )
         }
 
         // Snackbar for parent
@@ -255,7 +350,6 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         )
     }
 }
-
 
 
 fun bitmapDescriptorFromVector(

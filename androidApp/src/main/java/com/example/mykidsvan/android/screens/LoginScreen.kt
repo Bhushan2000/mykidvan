@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -99,9 +100,12 @@ fun LoginScreen(
 
         // Branding or Logo
         Image(
-            painter = painterResource(id = R.drawable.my_kid_van),
+            painter = painterResource(id = R.drawable.mykidvan),
             contentDescription = "App Logo",
-            modifier = Modifier.size(96.dp)
+            modifier = Modifier
+                .fillMaxWidth() // fill horizontally
+                .height(180.dp), // set desired height
+            contentScale = ContentScale.FillBounds // stretch both horizontally & vertically
         )
         Text(
             text = "Welcome Back!",
@@ -111,11 +115,11 @@ fun LoginScreen(
             ),
             modifier = Modifier.padding(top = 16.dp)
         )
-        Text(
-            text = "Login to your account",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
+//        Text(
+//            text = "Login to your account",
+//            style = MaterialTheme.typography.bodyMedium,
+//            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+//        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -216,6 +220,8 @@ fun LoginScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Error Message
         loginState.error?.let {
             Text(
@@ -228,9 +234,9 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Social login
-        Text("Or login with", color = Color.Gray)
+     //   Text("Or login with", color = Color.Gray)
         Spacer(modifier = Modifier.height(16.dp))
-        SocialLoginButtons()
+     //   SocialLoginButtons()
 
         Spacer(modifier = Modifier.height(32.dp))
 

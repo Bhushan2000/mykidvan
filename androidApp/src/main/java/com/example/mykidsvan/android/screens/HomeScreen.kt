@@ -304,7 +304,7 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, assignVehic
                 Polyline(points = pathPoints, color = Color.Blue, width = 20f)
                 Marker(
                     state = MarkerState(position = currentLocation),
-                    icon = bitmapDescriptorFromVector(context, R.drawable.busyellow, 50, 80),
+                    icon = bitmapDescriptorFromVector(context, R.drawable.green_marker, 50, 80),
                     rotation = bearing,
                     anchor = Offset(0.5f, 0.5f),
                     flat = true

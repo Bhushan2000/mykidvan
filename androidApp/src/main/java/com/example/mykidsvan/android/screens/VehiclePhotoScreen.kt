@@ -4,6 +4,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 
 @Composable
@@ -54,9 +56,16 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
     var outsideImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val isUploading by viewModel.isUploading.collectAsState()
-
     var wasUploading by remember { mutableStateOf(false) }
 
+    val vehiclePhotos by viewModel.vehiclePhotos.collectAsState()
+
+    // Fetch photos when screen opens
+    LaunchedEffect(Unit) {
+        viewModel.getVehiclePhotos()
+    }
+
+    // Upload success toast
     LaunchedEffect(isUploading) {
         if (wasUploading && !isUploading) {
             Toast.makeText(context, "✅ Upload successful! Thank you 🎉", Toast.LENGTH_LONG).show()
@@ -64,6 +73,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
         wasUploading = isUploading
     }
 
+    // Image pickers
     val frontPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             frontImageUri = uri
@@ -81,6 +91,12 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
             outsideImageUri = uri
         }
 
+    // Server image fallback
+    val serverFront = vehiclePhotos.getOrNull(0)?.let { ensureFullUrl(it) }
+    val serverBack = vehiclePhotos.getOrNull(1)?.let { ensureFullUrl(it) }
+    val serverInside = vehiclePhotos.getOrNull(2)?.let { ensureFullUrl(it) }
+    val serverOutside = vehiclePhotos.getOrNull(3)?.let { ensureFullUrl(it) }
+
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -88,31 +104,20 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                "Tap to upload each vehicle photo",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Text("Tap to upload each vehicle photo", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(16.dp))
 
-            UploadPhotoCard("Front View", frontImageUri) { frontPickerLauncher.launch("image/*") }
-            UploadPhotoCard("Back View", backImageUri) { backPickerLauncher.launch("image/*") }
-            UploadPhotoCard(
-                "Inside View",
-                insideImageUri
-            ) { insidePickerLauncher.launch("image/*") }
-            UploadPhotoCard(
-                "Outside View",
-                outsideImageUri
-            ) { outsidePickerLauncher.launch("image/*") }
+            UploadPhotoCard("Front View", frontImageUri, serverFront) { frontPickerLauncher.launch("image/*") }
+            UploadPhotoCard("Back View", backImageUri, serverBack) { backPickerLauncher.launch("image/*") }
+            UploadPhotoCard("Inside View", insideImageUri, serverInside) { insidePickerLauncher.launch("image/*") }
+            UploadPhotoCard("Outside View", outsideImageUri, serverOutside) { outsidePickerLauncher.launch("image/*") }
 
             Spacer(Modifier.height(24.dp))
 
             Button(
                 onClick = {
                     if (frontImageUri == null || backImageUri == null || insideImageUri == null || outsideImageUri == null) {
-                        Toast.makeText(context, "Please upload all photos", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(context, "Please upload all photos", Toast.LENGTH_SHORT).show()
                     } else {
                         val frontBase64 = uriToBase64(context, frontImageUri!!)
                         val backBase64 = uriToBase64(context, backImageUri!!)
@@ -144,6 +149,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
                     Text("Submit", fontSize = 16.sp, color = Color.White)
                 }
             }
+
             val uploadMessage by viewModel.uploadMessage.collectAsState()
             uploadMessage?.let { message ->
                 LaunchedEffect(message) {
@@ -155,41 +161,55 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
     }
 }
 
+fun ensureFullUrl(path: String): String {
+    return if (path.startsWith("http")) path
+    else "https://avschoolerp.com/$path"
+}
+
 
 @Composable
 fun UploadPhotoCard(
     label: String,
     imageUri: Uri?,
+    imageUrl: String?,
     onClick: () -> Unit
 ) {
-    Column {
-        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() }
+    ) {
+        Text(text = label, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val painter = when {
+            imageUri != null -> rememberAsyncImagePainter(imageUri)
+            imageUrl != null -> rememberAsyncImagePainter(imageUrl)
+            else -> null
+        }
+
         Box(
             modifier = Modifier
+                .height(150.dp)
                 .fillMaxWidth()
-                .height(180.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.LightGray.copy(alpha = 0.3f))
-                .clickable { onClick() },
+                .background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUri != null) {
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = "$label image",
+            painter?.let {
+                Image(
+                    painter = it,
+                    contentDescription = "$label Photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Pick $label image",
-                    modifier = Modifier.size(48.dp),
-                    tint = Color.Gray
-                )
-            }
+            } ?: Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Upload $label",
+                modifier = Modifier.size(48.dp)
+            )
         }
-        Spacer(Modifier.height(16.dp))
     }
 }
+

@@ -131,6 +131,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     state = data.state.orEmpty()
                     district = data.district.orEmpty()
                     city = data.city.orEmpty()
+                    schoolName = data.school_serviced.orEmpty()
                 }
             }
         }
@@ -277,6 +278,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 EditableField("State", state) { state = it }
                                                 EditableField("District", district) { district = it }
                                                 EditableField("City", city) { city = it }
+                                                EditableField("School", schoolName) { schoolName = it }
                                             } else {
                                                 ProfileDetailRow("Driver Name", name)
                                                 ProfileDetailRow("Mobile Number", mobileNumber)
@@ -284,6 +286,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 ProfileDetailRow("State", state)
                                                 ProfileDetailRow("District", district)
                                                 ProfileDetailRow("City", city)
+                                                ProfileDetailRow("School", schoolName)
                                             }
                                         }
                                     }

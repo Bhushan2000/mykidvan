@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,6 +65,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+
 data class UserSessionData(
     val isLoggedIn: Boolean,
     val userId: String?,
@@ -343,9 +346,23 @@ class AuthViewModel(
                     _loginState.value = LoginState(error = response.message ?: "Login failed.")
                 }
             } catch (e: Exception) {
-                _loginState.value = LoginState(error = "An error occurred")
+                val errorMessage = when (e) {
+                    is HttpException -> {
+                        when (e.code()) {
+                            401 -> "Invalid username or password"
+                            403 -> "Access denied"
+                            500 -> "Server error, try again later"
+                            else -> "Login failed with code ${e.code()}"
+                        }
+                    }
+
+                    else -> "Something went wrong: ${e.localizedMessage}"
+                }
+
+                _loginState.value = LoginState(error = errorMessage)
                 Log.e("LoginViewModel", "Login error", e)
             }
+
         }
     }
 
@@ -1028,13 +1045,17 @@ class AuthViewModel(
     val isUpdatingRequest = MutableStateFlow(false)
     val updateMessage = MutableStateFlow<String?>(null)
 
-    fun updateRequestStatus(driverId: String, status: String) {
+    fun updateRequestStatus(parentId: String, status: String) {
         viewModelScope.launch {
-            updatingRequestId.value = driverId
+            updatingRequestId.value = parentId
             isUpdatingRequest.value = true
             try {
-                val response = repository.updateAssignRequest(driverId, status)
+                val response = repository.updateAssignRequest(parentId, status)
                 updateMessage.value = response.message ?: "Updated successfully"
+
+                // 👇 Reload list after update
+                loadDriverRequests(userId.value.toString())
+
             } catch (e: Exception) {
                 updateMessage.value = e.message ?: "Failed to update"
             } finally {
@@ -1119,10 +1140,6 @@ class AuthViewModel(
         _uploadMessage.value = null
     }
 
-    fun updateProfile() {
-
-    }
-
     private val _paymentStatusState = MutableStateFlow<PaymentState>(PaymentState.Idle)
     val paymentStatusState: StateFlow<PaymentState> = _paymentStatusState
 
@@ -1159,6 +1176,31 @@ class AuthViewModel(
             } catch (e: Exception) {
                 _paymentStatusState.value =
                     PaymentState.Error(e.localizedMessage ?: "Network error")
+            }
+        }
+    }
+
+    private val _vehiclePhotos = MutableStateFlow<List<String>>(emptyList())
+    val vehiclePhotos: StateFlow<List<String>> = _vehiclePhotos.asStateFlow()
+
+    fun getVehiclePhotos() {
+        viewModelScope.launch {
+            try {
+                val response = repository.getVehiclePhotos(userId.value.toString())
+
+                if (response.status == true) {
+                    // Clean and normalize URLs
+                    val baseUrl = "https://avschoolerp.com/"
+                    val formattedPhotos = response.photos.map { photo ->
+                        if (photo.startsWith("http")) photo else baseUrl + photo
+                    }
+                    _vehiclePhotos.value = formattedPhotos
+                } else {
+                    // Handle false status case if needed
+                    Log.e("VehiclePhotos", "Status false from server")
+                }
+            } catch (e: Exception) {
+                Log.e("VehiclePhotos", "Error fetching vehicle photos: ${e.localizedMessage}")
             }
         }
     }

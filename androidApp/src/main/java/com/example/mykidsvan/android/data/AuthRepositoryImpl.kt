@@ -4,6 +4,7 @@ import com.example.mykidsvan.android.data.dto.request.AssignRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
+import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
@@ -32,6 +33,7 @@ import com.example.mykidsvan.android.data.dto.response.StatesResponse
 import com.example.mykidsvan.android.data.dto.response.TalukasResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.example.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.example.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 
 
 class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
@@ -387,16 +389,21 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         assignStatus: String,
         assignDate: String
     ): UpdatePaymentResponse {
-        val requestBody = mapOf(
-            "id" to id,
-            "transaction_id" to transactionId,
-            "amount" to amount,
-            "payment_status" to paymentStatus,
-            "expire_date" to expireDate,
-            "payment_date" to paymentDate,
-            "assign_status" to assignStatus,
-            "assign_date" to assignDate
+        val request = PaymentUpdateRequest(
+            id,
+            transactionId,
+            amount,
+            paymentStatus,
+            expireDate,
+            paymentDate,
+            assignStatus,
+            assignDate
         )
-        return api.updatePayment(requestBody)
+        return api.updatePayment(request)
     }
+
+    override suspend fun getVehiclePhotos(driver_id: String): VehiclePhotosResponse {
+       return  api.getVehiclePhotos(driver_id)
+    }
+
 }
