@@ -430,7 +430,6 @@ fun RealTimeTrackingScreen(viewModel: AuthViewModel, userId: String, assignVehic
     }
 }
 
-
 fun interpolate(start: LatLng, end: LatLng, fraction: Float): LatLng {
     val lat = (end.latitude - start.latitude) * fraction + start.latitude
     val lng = (end.longitude - start.longitude) * fraction + start.longitude

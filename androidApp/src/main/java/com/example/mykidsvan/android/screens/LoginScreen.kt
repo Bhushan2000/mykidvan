@@ -104,7 +104,7 @@ fun LoginScreen(
             contentDescription = "App Logo",
             modifier = Modifier
                 .fillMaxWidth() // fill horizontally
-                .height(180.dp), // set desired height
+                .height(150.dp), // set desired height
             contentScale = ContentScale.FillBounds // stretch both horizontally & vertically
         )
         Text(
@@ -293,7 +293,7 @@ fun LoginScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Parent Signup")
+                        Text("Parent Signup", color = Color.White)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -308,7 +308,7 @@ fun LoginScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Driver Signup")
+                        Text("Driver Signup", color = Color.Black)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

@@ -1,9 +1,11 @@
 package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.AssignRequest
+import com.example.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
+import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
@@ -65,7 +67,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         aboutMe: String,
         verificationState: String,
         availabilityStatus: String,
-        termsAccepted: String
+        termsAccepted: String,
+        referalCode: String,
+        referby: String
     ): RegistrationResponse {
         val requestBodyMap = mapOf(
             "driver_name" to ownerName,
@@ -94,6 +98,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             "veritication_status" to verificationState,
             "availability_status" to availabilityStatus,
             "terms_and_condition" to termsAccepted,
+            "refer_id" to referalCode,
+            "refer_by" to referby
         )
         return api.registerDriver(requestBodyMap)
     }
@@ -116,7 +122,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         dropOffLocation: String,
         numberOfChildren: String,
         emergencyContact: String,
-        termsAccepted: String
+        termsAccepted: String,
+        referalCode:String,
+        referby: String
     ): RegistrationResponse {
         val registerParentRequest = ParentRegistrationRequest(
             parentName,
@@ -135,7 +143,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             dropOffLocation,
             numberOfChildren,
             emergencyContact,
-            termsAccepted
+            termsAccepted,
+            referalCode,
+            referby
         )
         return api.registerParent(registerParentRequest)
     }
@@ -258,45 +268,17 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         id: String,
         parentName: String,
         contactNumber: String,
-        password: String,
-        state: String,
-        district: String,
-        taluka: String,
-        city: String,
         parentAddress: String,
         childName: String,
-        childSchoolName: String,
-        childClass: String,
-        childDob: String,
-        pickUp: String,
-        dropOff: String,
-        numberOfChlid: String,
-        emergencyContact: String,
-        termsCondition: String,
-        role: String,
-        schoolId: String
+        childSchoolName: String
     ): ProfileUpdateResponse {
-        val request = Parent(
+        val request = ParentUpdateRequest(
             id = id,
             parentName = parentName,
             contactNumber = contactNumber,
-            password = password,
-            state = state,
-            district = district,
-            taluka = taluka,
-            city = city,
             parentAddress = parentAddress,
             childName = childName,
-            childSchoolName = childSchoolName,
-            childClass = childClass,
-            childDob = childDob,
-            pickUp = pickUp,
-            dropOff = dropOff,
-            numberOfChlid = numberOfChlid,
-            emergencyContact = emergencyContact,
-            termsCondition = termsCondition,
-            role = role,
-            schoolId = schoolId
+            childSchoolName = childSchoolName
         )
         return api.updateProfileParent(request)
     }
@@ -305,7 +287,6 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun updateProfileDriver(
         id: String,
         driver_name: String,
-        driver_type: String?,
         number: String,
         vehicle_number: String?,
         state: String,
@@ -313,64 +294,21 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         taluka: String?,
         city: String?,
         address: String?,
-        adhar_number: String?,
-        driver_license: String?,
-        vehicle_registration: String?,
-        vehicle_model: String?,
-        seating_capacity: String?,
-        insurance_details: String?,
-        fintness_certificate: String?,
-        photo_of_vehicle: String?,
-        areas_covered: String?,
         school_serviced: String?,
-        profile_picture: String?,
-        about_me: String?,
-        veritication_status: String?,
-        availability_status: String?,
-        terms_and_condition: String?,
-        latitude: String?,
-        longitude: String?,
-        timer: String?,
-        role: String?,
-        username: String?,
-        password: String,
-        status: String,
-        school_id: String
+        profile_picture: String?
     ): ProfileUpdateResponse {
-        val request = Driver(
+        val request = DriverUpdateRequest(
             id = id,
-            driver_name = driver_name,
-            driver_type = driver_type,
+            driverName = driver_name,
             number = number,
-            vehicle_number = vehicle_number,
+            vehicleNumber = vehicle_number,
             state = state,
             district = district,
             taluka = taluka,
             city = city,
             address = address,
-            adhar_number = adhar_number,
-            driver_license = driver_license,
-            vehicle_registration = vehicle_registration,
-            vehicle_model = vehicle_model,
-            seating_capacity = seating_capacity,
-            insurance_details = insurance_details,
-            fintness_certificate = fintness_certificate,
-            photo_of_vehicle = photo_of_vehicle,
-            areas_covered = areas_covered,
-            school_serviced = school_serviced,
-            profile_picture = profile_picture,
-            about_me = about_me,
-            veritication_status = veritication_status,
-            availability_status = availability_status,
-            terms_and_condition = terms_and_condition,
-            latitude = latitude,
-            longitude = longitude,
-            timer = timer,
-            role = role,
-            username = username,
-            password = password,
-            status = status,
-            school_id = school_id
+            schoolServiced = school_serviced,
+            profilePicture = profile_picture
         )
         return api.updateProfileDriver(request)
     }
@@ -403,7 +341,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun getVehiclePhotos(driver_id: String): VehiclePhotosResponse {
-       return  api.getVehiclePhotos(driver_id)
+        return api.getVehiclePhotos(driver_id)
     }
 
 }

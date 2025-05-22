@@ -118,7 +118,9 @@ interface AuthRepository {
         aboutMe: String,
         verificationState: String,
         availabilityStatus: String,
-        termsAccepted: String
+        termsAccepted: String,
+        referalCode: String,
+        referby:String
     ): RegistrationResponse
 
     suspend fun registerParent(
@@ -138,7 +140,9 @@ interface AuthRepository {
         dropOffLocation: String,
         numberOfChildren: String,
         emergencyContact: String,
-        termsAccepted: String
+        termsAccepted: String,
+        refralCode:String,
+        refralby: String
     ): RegistrationResponse
 
     suspend fun assignedVehicle(
@@ -176,29 +180,14 @@ interface AuthRepository {
         id: String,
         parentName: String,
         contactNumber: String,
-        password: String,
-        state: String,
-        district: String,
-        taluka: String,
-        city: String,
         parentAddress: String,
         childName: String,
-        childSchoolName: String,
-        childClass: String,
-        childDob: String,
-        pickUp: String,
-        dropOff: String,
-        numberOfChlid: String,
-        emergencyContact: String,
-        termsCondition: String,
-        role: String,
-        schoolId: String
+        childSchoolName: String
     ): ProfileUpdateResponse
 
     suspend fun updateProfileDriver(
         id: String,
         driver_name: String,
-        driver_type: String?,
         number: String,
         vehicle_number: String?,
         state: String,
@@ -206,29 +195,8 @@ interface AuthRepository {
         taluka: String?,
         city: String?,
         address: String?,
-        adhar_number: String?,
-        driver_license: String?,
-        vehicle_registration: String?,
-        vehicle_model: String?,
-        seating_capacity: String?,
-        insurance_details: String?,
-        fintness_certificate: String?,
-        photo_of_vehicle: String?,
-        areas_covered: String?,
         school_serviced: String?,
-        profile_picture: String?,
-        about_me: String?,
-        veritication_status: String?,
-        availability_status: String?,
-        terms_and_condition: String?,
-        latitude: String?,
-        longitude: String?,
-        timer: String?,
-        role: String?,
-        username: String?,
-        password: String,
-        status: String,
-        school_id: String
+        profile_picture: String?
     ): ProfileUpdateResponse
 
     suspend fun updateVehiclePhotos(request: UpdateVehicleImageRequest): ProfileUpdateResponse

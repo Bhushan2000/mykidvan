@@ -232,6 +232,16 @@ fun StudentCard(parent: Parent, onCallClick: () -> Unit = {}, onMoreClick: () ->
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
+                Text(
+                    text = parent.pickUp ?: "No Pickup point",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "No of child: ${parent.numberOfChlid}" ?: "N/A",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
 
             // Optional: Action Icons

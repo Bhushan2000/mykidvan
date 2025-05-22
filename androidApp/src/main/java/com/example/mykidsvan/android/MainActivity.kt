@@ -1,24 +1,32 @@
 package com.example.mykidsvan.android
 
-import android.os.Build
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,7 +38,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,6 +51,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,7 +68,6 @@ import com.example.mykidsvan.android.screens.AssignedVehicleScreen
 import com.example.mykidsvan.android.screens.DriverSignupScreen
 import com.example.mykidsvan.android.screens.FindStudentScreen
 import com.example.mykidsvan.android.screens.FindVehicleScreen
-import com.example.mykidsvan.android.screens.HomeScreen
 import com.example.mykidsvan.android.screens.LoginScreen
 import com.example.mykidsvan.android.screens.MessageScreen
 import com.example.mykidsvan.android.screens.OTPVerificationScreen
@@ -68,48 +79,89 @@ import com.example.mykidsvan.android.screens.SchoolRegistrationScreen
 import com.example.mykidsvan.android.screens.SplashScreen
 import com.example.mykidsvan.android.screens.SupportHelpScreen
 import com.example.mykidsvan.android.screens.UpdatePasswordScreen
+import com.example.mykidsvan.android.screens.VehicleDetailsScreen
 import com.example.mykidsvan.android.screens.VehiclePhotoScreen
 import com.example.mykidsvan.android.screens.tracking.MapScreen
 import com.example.mykidsvan.android.utils.DrawerItem
-import com.example.mykidsvan.android.utils.RazorpayHandler
-import com.example.mykidsvan.android.utils.RazorpayHandler.Companion.triggerPaymentSuccess
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
-import com.razorpay.PaymentResultListener
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
-class MainActivity : ComponentActivity(), PaymentResultListener {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MyApplicationTheme {
-                MyApp()
+class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
+
+    var onPaymentSuccessCallback: ((PaymentData) -> Unit)? = null
+    var onPaymentFailureCallback: ((Int, String?) -> Unit)? = null
+    val locationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.let {
+                val lat = it.getDoubleExtra("lat", 0.0)
+                val lng = it.getDoubleExtra("lng", 0.0)
+                // Handle location update here
             }
         }
     }
 
-    // Razorpay success callback
-    override fun onPaymentSuccess(razorpayPaymentID: String?) {
-        Log.d("Razorpay", "Payment Success: $razorpayPaymentID")
-        RazorpayHandler.triggerPaymentSuccess(razorpayPaymentID)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Checkout.preload(applicationContext)
+        setContent {
+            MyApplicationTheme {
+                MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
+            }
+        }
     }
 
-    // Razorpay failure callback
-    override fun onPaymentError(code: Int, response: String?) {
-        Log.e("Razorpay", "Payment Failed: $response")
-        RazorpayHandler.triggerPaymentError(code, response)
+    fun startPayment(amountInPaise: Int) {
+        val checkout = Checkout()
+        checkout.setKeyID("rzp_test_BVJygtmA6ljXBB") // 🔐 Replace with your real key
+
+        val options = JSONObject().apply {
+            put("name", "Assign Driver")
+            put("description", "Driver Assignment")
+            put("currency", "INR")
+            put("amount", amountInPaise) // e.g., 100000 = ₹1000
+
+            put("prefill", JSONObject().apply {
+                put("email", "example@example.com")
+                put("contact", "9876543210")
+            })
+        }
+
+        checkout.open(this, options)
+    }
+
+    override fun onPaymentSuccess(p0: String?, p1: PaymentData?) {
+        Log.d("Razorpay", "Success: $p0")
+        p1?.let { onPaymentSuccessCallback?.invoke(it) }
+    }
+
+    override fun onPaymentError(code: Int, message: String?, p1: PaymentData?) {
+        Log.e("Razorpay", "Error: $message")
+        onPaymentFailureCallback?.invoke(code, message)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(locationReceiver, IntentFilter("LOCATION_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(locationReceiver)
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun MyApp() {
+fun MyApp(
+    onPaymentSuccessCallback: ((PaymentData) -> Unit)?,
+    onPaymentFailureCallback: ((Int, String?) -> Unit)?
+) {
     val navController = rememberAnimatedNavController() // Use Animated NavController
 
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
@@ -128,7 +180,10 @@ fun MyApp() {
 
     LaunchedEffect(userId) {
         if (userId != null) {
-            Log.d("UserID", "Logged-in user ID: $userId & user role - $userRole assigned vehicle id - $assignVehicleId  assign status - $requestAssignedStatus")
+            Log.d(
+                "UserID",
+                "Logged-in user ID: $userId & user role - $userRole assigned vehicle id - $assignVehicleId  assign status - $requestAssignedStatus"
+            )
         }
     }
 
@@ -163,6 +218,7 @@ fun MyApp() {
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindVehicle,
+                            DrawerItem.VehicleDetails,
                             DrawerItem.RegisterSchool,
                             DrawerItem.Message,
                             DrawerItem.SupportHelp
@@ -192,33 +248,18 @@ fun MyApp() {
                 }
             }
         }
-
     ) {
         var showLogoutDialog by remember { mutableStateOf(false) }  // Logout dialog state
 
         Scaffold(
             topBar = {
-                if (!hideTopBarAndDrawer) {  // Show top bar only when logged in
-                    TopAppBar(
-                        title = { Text("My Kid Van") },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu")
-                            }
-                        },
-                        actions = {
-                            // Add logout icon in the top bar
-                            IconButton(onClick = {
-                                showLogoutDialog = true
-
-                            }) {
-                                Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
-                            }
-                        }
+                if (!hideTopBarAndDrawer) {
+                    CustomTopAppBar(
+                        onMenuClick = { scope.launch { drawerState.open() } },
+                        onLogoutClick = { showLogoutDialog = true }
                     )
                 }
-            }
-        ) { innerPadding ->
+            }) { innerPadding ->
             NavHost(
                 navController = navController,
                 startDestination = "splash",
@@ -288,7 +329,13 @@ fun MyApp() {
                     userId?.let { it1 ->
                         FindVehicleScreen(
                             viewModel = loginViewModel,
-                            userId = it1
+                            userId = it1,
+                            onPaymentSuccess = { paymentData ->
+                                onPaymentSuccessCallback?.invoke(paymentData)
+                            },
+                            onPaymentFailure = { code, message ->
+                                onPaymentFailureCallback?.invoke(code, message)
+                            }
                         )
                     }
                 }
@@ -306,6 +353,7 @@ fun MyApp() {
                         )
                     }
                 }
+                composable(DrawerItem.VehicleDetails.route) { VehicleDetailsScreen() }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }
@@ -347,23 +395,107 @@ fun MyApp() {
 
 @Composable
 fun DrawerItemRow(item: DrawerItem, onClick: () -> Unit) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Icon(
-            painter = painterResource(id = item.iconRes),
-            contentDescription = item.title,
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(item.title, fontSize = 18.sp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = item.iconRes),
+                contentDescription = item.title,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+        }
+
     }
 }
+
+@Composable
+fun DrawerContent(drawerItems: List<DrawerItem>, onItemClicked: (DrawerItem) -> Unit) {
+    ModalDrawerSheet(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(280.dp),
+        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+        drawerContainerColor = MaterialTheme.colorScheme.background
+    ) {
+        // Gradient Header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Text(
+                text = "My Kids Van",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        drawerItems.forEach { item ->
+            DrawerItemRow(item) {
+                onItemClicked(item)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomTopAppBar(
+    title: String = "My Kid Van",
+    onMenuClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onMenuClick) {
+                Icon(Icons.Default.Menu, contentDescription = "Menu")
+            }
+        },
+        actions = {
+            IconButton(onClick = onLogoutClick) {
+                Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+        )
+    )
+}
+
 
 @Preview(showBackground = true)
 @Composable

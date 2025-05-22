@@ -61,6 +61,7 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
 import kotlinx.coroutines.CoroutineStart
 import android.util.Base64
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.scaleIn
@@ -95,7 +96,11 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     var vehicleNumber by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
     var district by remember { mutableStateOf("") }
+    var taluka by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
+
+    val isUpdating by viewModel.isProfileUpdating.collectAsState()
+    val updateMessage by viewModel.updateMessage.collectAsState()
 
     // Gallery launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -130,6 +135,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     vehicleNumber = data.vehicle_number.orEmpty()
                     state = data.state.orEmpty()
                     district = data.district.orEmpty()
+                    taluka = data.taluka.orEmpty()
                     city = data.city.orEmpty()
                     schoolName = data.school_serviced.orEmpty()
                 }
@@ -211,26 +217,28 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                     onClick = {
                                         if (isEditing) {
                                             // Save logic - you can pass all fields and imageUri to ViewModel
-//                                            viewModel.updateProfile(
-//                                                userId = userId,
-//                                                userType = userType,
-//                                                name = name,
-//                                                contact = contact,
-//                                                address = address,
-//                                                childName = childName,
-//                                                schoolName = schoolName,
-//                                                mobile = mobileNumber,
-//                                                vehicle = vehicleNumber,
-//                                                state = state,
-//                                                district = district,
-//                                                city = city,
-//                                                imageUri = profileImageUri
-//                                            )
+                                            viewModel.updateProfile(
+                                                context = context,
+                                                userId = userId,
+                                                userType = userType,
+                                                name = name,
+                                                contact = contact,
+                                                address = address,
+                                                childName = childName,
+                                                schoolName = schoolName,
+                                                mobile = mobileNumber,
+                                                vehicle = vehicleNumber,
+                                                state = state,
+                                                district = district,
+                                                taluka = taluka,
+                                                city = city,
+                                                imageUri = profileImageUri
+                                            )
                                         }
                                         isEditing = !isEditing
                                     }
                                 ) {
-                                    Text(if (isEditing) "Save" else "Edit")
+                                    Text(if (isEditing) "Save" else "Edit", color = Color.White)
                                 }
 
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -277,6 +285,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 EditableField("Vehicle Number", vehicleNumber) { vehicleNumber = it }
                                                 EditableField("State", state) { state = it }
                                                 EditableField("District", district) { district = it }
+                                                EditableField("Taluka", taluka) { taluka = it }
                                                 EditableField("City", city) { city = it }
                                                 EditableField("School", schoolName) { schoolName = it }
                                             } else {
@@ -285,6 +294,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 ProfileDetailRow("Vehicle Number", vehicleNumber)
                                                 ProfileDetailRow("State", state)
                                                 ProfileDetailRow("District", district)
+                                                ProfileDetailRow("Taluka", taluka)
                                                 ProfileDetailRow("City", city)
                                                 ProfileDetailRow("School", schoolName)
                                             }
@@ -305,6 +315,12 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                 ),
                 textAlign = TextAlign.Center
             )
+        }
+        // Show toast if update message is available
+        LaunchedEffect(updateMessage) {
+            updateMessage?.let {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

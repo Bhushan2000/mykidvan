@@ -62,7 +62,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
             viewModel.clearUpdateMessage()
         }
     }
-    // Load data on launch
+
     LaunchedEffect(Unit) {
         userId?.let { viewModel.loadDriverRequests(it) }
     }
@@ -81,10 +81,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
             )
 
             if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
@@ -117,31 +114,41 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "📍 ${request.parentAddress?.replaceFirstChar { it.uppercase() } ?: "No Address"}",
+                                    text = request.parentAddress?.replaceFirstChar { it.uppercase() } ?: "No Address",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "📞 ${request.contactNumber ?: "N/A"}",
+                                    text = request.contactNumber ?: "N/A",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Highlighted status
+                                val status = request.status?.lowercase() ?: "N/A"
+                                val statusColor = when (status) {
+                                    "accepted" -> Color(0xFF4CAF50)
+                                    "rejected" -> Color(0xFFE53935)
+                                    else -> Color.Gray
+                                }
 
                                 Text(
-                                    text = "* ${request.status?.replaceFirstChar { it.uppercase() } ?: "N/A"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
+                                    text = status.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = statusColor,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Only show buttons when status is not accepted/cancelled
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    // Accept Button - Only show if not accepted
-                                    if (!request.status.equals("accepted", ignoreCase = true)) {
+                                // Show buttons only if not accepted or rejected
+                                if (status != "accepted" && status != "rejected") {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         Button(
                                             onClick = {
                                                 request.parentId?.let {
@@ -162,10 +169,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                                 Text("Accept", color = Color.White)
                                             }
                                         }
-                                    }
 
-                                    // Reject Button - Only show if not cancelled
-                                    if (!request.status.equals("rejected", ignoreCase = true)) {
                                         Button(
                                             onClick = {
                                                 request.parentId?.let {

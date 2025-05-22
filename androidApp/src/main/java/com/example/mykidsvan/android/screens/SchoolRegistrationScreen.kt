@@ -86,7 +86,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
 
-        TitleWithAsterisk("Contact Number")
+        TitleWithOutAsterisk("Contact Number")
         OutlinedTextField(
             value = contactNumber.value,
             onValueChange = { contactNumber.value = it },
@@ -140,7 +140,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
 
-        Text("School Address")
+        TitleWithOutAsterisk("School Address")
         OutlinedTextField(
             value = schoolAddress.value,
             onValueChange = { schoolAddress.value = it },
@@ -156,7 +156,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
                 val selectedDistrictName = selectedDistrict?.district_name ?: ""
                 val selectedTalukaName = selectedTaluka?.taluka_name ?: ""
 
-                if (schoolName.value.isBlank() || contactNumber.value.isBlank() ||
+                if (schoolName.value.isBlank() ||
                     selectedStateName.isBlank() || selectedDistrictName.isBlank() ||
                     selectedTalukaName.isBlank() || city.value.isBlank()
                 ) {
@@ -220,6 +220,22 @@ fun TitleWithAsterisk(text: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "* ",
+            color = Color.Red,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+@Composable
+fun TitleWithOutAsterisk(text: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "  ",
             color = Color.Red,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodyLarge

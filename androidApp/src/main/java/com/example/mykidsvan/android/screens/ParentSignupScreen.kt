@@ -1,6 +1,9 @@
 package com.example.mykidsvan.android.screens
 
+import android.app.DatePickerDialog
+import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,11 +19,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +59,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,13 +82,21 @@ fun ParentSignupScreen(
     val childName = remember { mutableStateOf("") }
     val childClass = remember { mutableStateOf("") }
     val schoolName = remember { mutableStateOf("") }
-    val dob = remember { mutableStateOf("") }
+    val childDateOfBirth = remember { mutableStateOf("") }
     val pickupLocation = remember { mutableStateOf("") }
     val dropOffLocation = remember { mutableStateOf("") }
     val numberOfChildren = remember { mutableStateOf("") }
+    val numberOfChildList = listOf("1", "2", "3", "4")
+    val childClassList = listOf("Nursery","KG-I","KG-II","1st std", "2nd std", "3rd std", "4th std","5th std")
     val emergencyContact = remember { mutableStateOf("") }
     val termsAccepted = remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }  // Loading state for progress bar
+
+    // for no of child
+    var expanded by remember { mutableStateOf(false) }
+    // for child class
+    var expandedChildren by remember { mutableStateOf(false) }
+
 
     val stateOptions by viewModel.stateOptions.collectAsState()
     val districtOptions by viewModel.districtOptions.collectAsState()
@@ -90,6 +109,8 @@ fun ParentSignupScreen(
     val referralCode = remember { mutableStateOf(generateReferralCode()) }
     val enteredReferralCode = remember { mutableStateOf("") }
     val isReferralCodeApplied = remember { mutableStateOf(false) }
+
+    val calendar = remember { Calendar.getInstance() }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -213,16 +234,41 @@ fun ParentSignupScreen(
                     .fillMaxWidth()
                     .height(64.dp)
             )
-            OutlinedTextField(
-                value = childClass.value,
-                onValueChange = { childClass.value = it },
-                label = { Text("Child's class") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            )
+
+            ExposedDropdownMenuBox(
+                expanded = expandedChildren,
+                onExpandedChange = { expandedChildren = !expandedChildren }
+            ) {
+                OutlinedTextField(
+                    value = childClass.value,
+                    onValueChange = {},
+                    shape = RoundedCornerShape(14.dp),
+                    readOnly = true,
+                    label = { Text("Child Class") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedChildren) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expandedChildren,
+                    onDismissRequest = { expandedChildren = false }
+                ) {
+                    childClassList.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type) },
+                            onClick = {
+                                childClass.value = type
+                                expandedChildren = false
+                            }
+                        )
+                    }
+                }
+            }
+
+
             OutlinedTextField(
                 value = schoolName.value,
                 onValueChange = { schoolName.value = it },
@@ -234,14 +280,31 @@ fun ParentSignupScreen(
                     .height(64.dp)
             )
             OutlinedTextField(
-                value = dob.value,
-                onValueChange = { dob.value = it },
+                value = childDateOfBirth.value,
+                onValueChange = {}, // Prevent manual input
+                readOnly = true,     // Prevent keyboard and focus
                 label = { Text("Child's DOB") },
                 shape = RoundedCornerShape(14.dp),
                 colors = textFieldColors,
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.clickable {
+                            showDatePickerDialog(context, calendar) {
+                                childDateOfBirth.value = it
+                            }
+                        }
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(64.dp).
+                clickable{
+                    showDatePickerDialog(context, calendar) {
+                        childDateOfBirth.value = it
+                    }
+                }
             )
 
             OutlinedTextField(
@@ -254,27 +317,39 @@ fun ParentSignupScreen(
                     .fillMaxWidth()
                     .height(64.dp)
             )
-            OutlinedTextField(
-                value = dropOffLocation.value,
-                onValueChange = { dropOffLocation.value = it },
-                label = { Text("Drop-off Location") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            )
-            OutlinedTextField(
-                value = numberOfChildren.value,
-                onValueChange = { numberOfChildren.value = it },
-                label = { Text("Number of Children") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-            )
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = numberOfChildren.value,
+                    onValueChange = {},
+                    shape = RoundedCornerShape(14.dp),
+                    readOnly = true,
+                    label = { Text("Number of Children") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    numberOfChildList.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type) },
+                            onClick = {
+                                numberOfChildren.value = type
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = emergencyContact.value,
                 onValueChange = { emergencyContact.value = it },
@@ -328,7 +403,7 @@ fun ParentSignupScreen(
                         .height(50.dp)
                         .padding(start = 8.dp) // Optional, to add some spacing between elements
                 ) {
-                    Text(text = "Apply")
+                    Text(text = "Apply", color = Color.White)
                 }
             }
 
@@ -372,12 +447,14 @@ fun ParentSignupScreen(
                             childName.value,
                             childClass.value,
                             schoolName.value,
-                            dob.value,
+                            childDateOfBirth.value,
                             pickupLocation.value,
                             dropOffLocation.value,
                             numberOfChildren.value,
                             emergencyContact.value,
-                            termsAccepted.value.toString()
+                            termsAccepted.value.toString(),
+                            referralCode.value,
+                            enteredReferralCode.value
                         )
                     }
                 }, enabled = !isLoading,  // Disable button when loading to prevent multiple clicks
@@ -413,7 +490,7 @@ fun ParentSignupScreen(
                     childName.value = ""
                     childClass.value = ""
                     schoolName.value = ""
-                    dob.value = ""
+                    childDateOfBirth.value = ""
                     pickupLocation.value = ""
                     dropOffLocation.value = ""
                     numberOfChildren.value = ""

@@ -3,7 +3,7 @@ package com.example.mykidsvan.android.data.dto.request
 data class ParentRegistrationRequest(
     val parent_name: String,
     val contact_number: String,
-    val password:String,
+    val password: String,
     val state: String,
     val district: String,
     val taluka: String,
@@ -17,5 +17,7 @@ data class ParentRegistrationRequest(
     val drop_off: String,
     val number_of_chlid: String,       // You can change it to Int if needed
     val emergency_contact: String,
-    val terms_condition: String        // Assuming "true"/"false" as String
+    val terms_condition: String,        // Assuming "true"/"false" as String
+    val refer_id: String,
+    val refer_by: String
 )

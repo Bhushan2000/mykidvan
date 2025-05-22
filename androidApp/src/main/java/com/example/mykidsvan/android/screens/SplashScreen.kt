@@ -37,9 +37,8 @@ fun SplashScreen(navController: NavHostController) {
         }
     }
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color.White
-    ) {
+        modifier = Modifier.fillMaxSize()
+     ) {
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn()

@@ -6,12 +6,12 @@ data class DriverByMobResponse(
 
     @SerializedName("status") var status: Boolean? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("vehicle") var vehicle: Vehicle? = Vehicle(),
+    @SerializedName("vehicle") var driverMob: DriverMob? = DriverMob(),
     @SerializedName("sent_message") var sentMessage: SentMessage? = SentMessage()
 
 )
 
-data class Vehicle(
+data class DriverMob(
 
     @SerializedName("id") var id: String? = null,
     @SerializedName("driver_name") var driverName: String? = null,

@@ -1,36 +1,15 @@
 package com.example.authapp.presentation.viewmodel
 
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.util.Base64
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -42,7 +21,7 @@ import com.example.mykidsvan.android.data.dto.response.District
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverData
-import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMob
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentData
 import com.example.mykidsvan.android.data.dto.response.RequestData
@@ -50,8 +29,7 @@ import com.example.mykidsvan.android.data.dto.response.School
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.State
 import com.example.mykidsvan.android.data.dto.response.Taluka
-import com.example.mykidsvan.android.data.dto.response.Vehicle
-import com.example.mykidsvan.android.screens.DropdownField
+import com.example.mykidsvan.android.utils.LocationForegroundService
 import com.example.mykidsvan.android.utils.LoginState
 import com.example.mykidsvan.android.utils.OtpState
 import com.example.mykidsvan.android.utils.PaymentState
@@ -59,7 +37,6 @@ import com.example.mykidsvan.android.utils.UpdatePasswordState
 import com.example.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -115,7 +92,7 @@ class AuthViewModel(
     val driverOptions: StateFlow<List<Driver>> = _driverOptions
 
     // driver list by mob no
-    val foundDriver = MutableStateFlow<DriverByMobResponse?>(null) // Create a state flow
+    val foundDriver = MutableStateFlow<DriverMob?>(null) // Create a state flow
     ///////////////////////////////////////////////////////////////////
 
     private val _selectedState = MutableStateFlow<State?>(null)
@@ -300,7 +277,7 @@ class AuthViewModel(
                                     Gson().fromJson(response.data, DriverData::class.java)
                                 _loginState.value = LoginState(
                                     success = true,
-                                    message = "Driver login success",
+                                    message = "Vehicle Owner login success",
                                     driver = driverData
                                 )
                                 userPreferences.saveLoginState(true)  // Save login state
@@ -681,7 +658,9 @@ class AuthViewModel(
         aboutMe: String,
         verificationState: String,
         availabilityStatus: String,
-        termsAccepted: String
+        termsAccepted: String,
+        referCode:String,
+        referby:String
     ) = viewModelScope.launch {
         try {
             val response = repository.registerDriver(
@@ -708,7 +687,9 @@ class AuthViewModel(
                 aboutMe,
                 verificationState,
                 availabilityStatus,
-                termsAccepted
+                termsAccepted,
+                referCode,
+                referby
             )
             if (response.status == true) {
                 _driverRegistrationSuccess.value = true
@@ -737,7 +718,9 @@ class AuthViewModel(
         dropOffLocation: String,
         numberOfChildren: String,
         emergencyContact: String,
-        termsAccepted: String
+        termsAccepted: String,
+        referCode: String,
+        referby: String
     ) = viewModelScope.launch {
         try {
             val response = repository.registerParent(
@@ -757,7 +740,9 @@ class AuthViewModel(
                 dropOffLocation,
                 numberOfChildren,
                 emergencyContact,
-                termsAccepted
+                termsAccepted,
+                referCode,
+                referby
             )
             if (response.status == true) {
                 _parentRegistrationSuccess.value = true
@@ -934,7 +919,7 @@ class AuthViewModel(
             _isAssigningSchool.value = true
             try {
                 val driverByMob = repository.getDriverByMob(mobile)
-                foundDriver.value = driverByMob
+                foundDriver.value = driverByMob.driverMob
             } catch (e: Exception) {
                 Log.d("TAG", "findDriverByMobile: Driver not found or error occurred")
             } finally {
@@ -1203,6 +1188,85 @@ class AuthViewModel(
                 Log.e("VehiclePhotos", "Error fetching vehicle photos: ${e.localizedMessage}")
             }
         }
+    }
+
+    private val _isProfileUpdating = MutableStateFlow(false)
+    val isProfileUpdating: StateFlow<Boolean> = _isProfileUpdating
+
+    private val _updateProfileMessage = MutableStateFlow<String?>(null)
+    val updateProfileMessage: StateFlow<String?> = _updateProfileMessage
+
+    fun updateProfile(
+        context: Context,
+        userId: String,
+        userType: String,
+        name: String,
+        contact: String,
+        address: String,
+        childName: String,
+        schoolName: String,
+        mobile: String,
+        vehicle: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        imageUri: Uri?
+    ) {
+        viewModelScope.launch {
+            _isProfileUpdating.value = true
+            _updateProfileMessage.value = null
+
+            try {
+                val profilePicBase64 = uriToBase64(context, imageUri)
+
+                val result = when (userType.lowercase()) {
+                    "driver" -> {
+                        repository.updateProfileDriver(userId,name,mobile,vehicle,state,district, taluka,city,address,schoolName, profilePicBase64)
+                    }
+
+                    "parent" -> {
+                        repository.updateProfileParent(userId,name,contact,address,childName,schoolName)
+                    }
+
+                    else -> throw IllegalArgumentException("Unknown user type")
+                }
+
+                if (result.status == true) {
+                    _updateProfileMessage.value = "Profile updated successfully"
+                    loadProfile(userId, userType) // refresh after update
+                } else {
+                    _updateProfileMessage.value = "Update failed: ${result.message}"
+                }
+
+            } catch (e: Exception) {
+                _updateProfileMessage.value = "An error occurred: ${e.localizedMessage}"
+            } finally {
+                _isProfileUpdating.value = false
+            }
+        }
+    }
+
+    fun uriToBase64(context: Context, uri: Uri?): String? {
+        if (uri == null) return null
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+            inputStream?.close()
+            Base64.encodeToString(bytes, Base64.DEFAULT)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun startLocationService(context: Context) {
+        val intent = Intent(context, LocationForegroundService::class.java)
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    fun stopLocationService(context: Context) {
+        val intent = Intent(context, LocationForegroundService::class.java)
+        context.stopService(intent)
     }
 }
 

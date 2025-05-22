@@ -1,9 +1,11 @@
 package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.AssignRequest
+import com.example.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
+import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
@@ -133,12 +135,12 @@ interface AuthApi {
 
     @PUT("index.php/api/AccountsController/update_parentdetail")
     suspend fun updateProfileParent(
-        @Body request: Parent
+        @Body request: ParentUpdateRequest
     ): ProfileUpdateResponse
 
     @PUT("index.php/api/AccountsController/update_driverdetail")
     suspend fun updateProfileDriver(
-        @Body request: Driver
+        @Body request: DriverUpdateRequest
     ): ProfileUpdateResponse
 
     @PUT("index.php/api/AccountsController/update_vehicle_photo")

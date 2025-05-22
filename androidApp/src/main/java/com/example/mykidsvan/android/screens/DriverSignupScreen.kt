@@ -117,9 +117,8 @@ fun DriverSignupScreen(
     val enteredReferralCode = remember { mutableStateOf("") }
     val isReferralCodeApplied = remember { mutableStateOf(false) }
 
-    val vehicleTypes = listOf("Van", "Auto Rickshaw", "Car", "Tempo", "Mini Bus")
-    val verificationOptions = listOf("Pending", "Approved", "Rejected")
-    val availabilityOptions = listOf("Available", "Not Available", "On Leave")
+    val vehicleTypes = listOf("Van", "Auto Rickshaw", "Car", "Tempo", "Mini School Bus")
+
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -146,7 +145,7 @@ fun DriverSignupScreen(
             OutlinedTextField(
                 value = ownerName,
                 onValueChange = { ownerName = it },
-                label = { Text("Owner Name") },
+                label = { Text("Vehicle Owner Name") },
                 shape = RoundedCornerShape(14.dp),
                 colors = textFieldColors,
                 modifier = Modifier
@@ -330,9 +329,6 @@ fun DriverSignupScreen(
                     .height(64.dp)
             )
 
-            DropdownField("Verification Status", verificationState, verificationOptions) { verificationState = it }
-            DropdownField("Availability Status", availabilityStatus, availabilityOptions) { availabilityStatus = it }
-
             // Referral Code UI
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -375,7 +371,7 @@ fun DriverSignupScreen(
                         .height(50.dp)
                         .padding(start = 8.dp) // Optional, to add some spacing between elements
                 ) {
-                    Text(text = "Apply")
+                    Text(text = "Apply", color = Color.White)
                 }
             }
 
@@ -406,7 +402,8 @@ fun DriverSignupScreen(
                             city, address, aadharPhoto, licensePhoto, vehicleRegNumber, vehicleModel,
                             seatingCapacity, vehicleType, insurancePhoto, fitnessCertificate, vehiclePhoto,
                             areasCovered, schoolServiced, profilePicture, aboutMe,
-                            verificationState, availabilityStatus, termsAccepted.toString()
+                            verificationState, availabilityStatus, termsAccepted.toString(),
+                            referralCode.value,enteredReferralCode.value
                         )
                     }
                 },
