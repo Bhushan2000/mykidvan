@@ -117,7 +117,7 @@ fun FindVehicleScreen(
     Scaffold { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
@@ -141,7 +141,11 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
+                            ?: Toast.makeText(
+                                context,
+                                "Unable to start payment.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                     }
                 )
 
@@ -151,8 +155,12 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
-                    }
+                            ?: Toast.makeText(
+                                context,
+                                "Unable to start payment.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                    },
                 )
             }
         }
@@ -181,151 +189,146 @@ fun FindByMobileSection(
             viewModel.clearAssignSchoolMessage()
         }
     }
-    Scaffold { padding ->
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            OutlinedTextField(
-                value = mobileNumber,
-                onValueChange = { mobileNumber = it },
-                label = { Text("Enter Driver Mobile No.") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF1E88E5),
-                    unfocusedBorderColor = Color.Gray,
-                    cursorColor = Color.Black
-                )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        OutlinedTextField(
+            value = mobileNumber,
+            onValueChange = { mobileNumber = it },
+            label = { Text("Enter Driver Mobile No.") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp), // Use shape here instead of clip
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF1E88E5),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color.Black
             )
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = {
-                    if (mobileNumber.length == 10) {
-                        viewModel.findDriverByMobile(mobileNumber)
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Enter valid 10-digit mobile number",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                },
-                enabled = !isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = ButtonDefaults.buttonElevation(8.dp)
+        Button(
+            onClick = {
+                if (mobileNumber.length == 10) {
+                    viewModel.findDriverByMobile(mobileNumber)
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Enter valid 10-digit mobile number",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            enabled = !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.buttonElevation(8.dp)
+        ) {
+            Text("Search", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+
+        // Driver Details Card
+        foundDriver?.let { driver ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut()
             ) {
-                Text("Search", color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-
-            // ✅ Use DriverCard instead of manual Card
-            // Driver Details Card
-            foundDriver?.let { driver ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "Driver Found",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Driver Found",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                            ProfileDetailRow1("Name", driver.driverName ?: "N/A")
-                            ProfileDetailRow1("Mobile", driver.number ?: "N/A")
-                            ProfileDetailRow1("Vehicle No", driver.vehicleNumber ?: "N/A")
+                        ProfileDetailRow1("Name", driver.driverName ?: "N/A")
+                        ProfileDetailRow1("Mobile", driver.number ?: "N/A")
+                        ProfileDetailRow1("Vehicle No", driver.vehicleNumber ?: "N/A")
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                            Row(
-                                horizontalArrangement = Arrangement.End,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                IconButton(onClick = {
-                                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = Uri.parse("tel:${driver.number}")
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconButton(onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${driver.number}")
+                                }
+                                context.startActivity(intent)
+                            }) {
+                                Icon(
+                                    Icons.Default.Call,
+                                    contentDescription = "Call Driver",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            IconButton(
+                                onClick = {
+                                    if (!isLoading) {
+                                        onStartPayment(driver.id.toString())
                                     }
-                                    context.startActivity(intent)
-                                }) {
+                                },
+                                enabled = !isLoading
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
                                     Icon(
-                                        Icons.Default.Call,
-                                        contentDescription = "Call Driver",
+                                        Icons.Default.Send,
+                                        contentDescription = "Send Request",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                IconButton(
-                                    onClick = {
-                                        if (!isLoading) {
-                                            driver.id?.let {
-                                                if (userId != null) {
-                                                    viewModel.sendAssignRequest(it, userId)
-                                                }
-                                            }
-                                        }
-                                    },
-                                    enabled = !isLoading
-                                ) {
-                                    if (isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(18.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Icon(
-                                            Icons.Default.Send,
-                                            contentDescription = "Send Request",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-
         }
     }
     val assignResponse by viewModel.assignRequestResponse.collectAsState()
     LaunchedEffect(assignResponse) {
-        assignResponse?.let {
-            Toast.makeText(context, "Request sent to vehicle owner", Toast.LENGTH_SHORT).show()
+        assignResponse?.let { response ->
+            Toast.makeText(
+                context,
+                response.message ?: "Request Sent",
+                Toast.LENGTH_SHORT
+            ).show()
             viewModel.clearResponses()
         }
     }
 }
+
 
 @Composable
 private fun ProfileDetailRow1(label: String, value: String?) {

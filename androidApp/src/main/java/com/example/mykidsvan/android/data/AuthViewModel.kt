@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mykidsvan.android.data.AuthRepository
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequestP
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
@@ -24,12 +26,12 @@ import com.example.mykidsvan.android.data.dto.response.DriverData
 import com.example.mykidsvan.android.data.dto.response.DriverMob
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentData
+import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.RequestData
 import com.example.mykidsvan.android.data.dto.response.School
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.State
 import com.example.mykidsvan.android.data.dto.response.Taluka
-import com.example.mykidsvan.android.utils.LocationForegroundService
 import com.example.mykidsvan.android.utils.LoginState
 import com.example.mykidsvan.android.utils.OtpState
 import com.example.mykidsvan.android.utils.PaymentState
@@ -115,8 +117,11 @@ class AuthViewModel(
     val driverRegistrationSuccess: StateFlow<Boolean> = _driverRegistrationSuccess
 
     // parent registration
-    private val _parentRegistrationSuccess = MutableStateFlow(false)
-    val parentRegistrationSuccess: StateFlow<Boolean> = _parentRegistrationSuccess
+//    private val _parentRegistrationSuccess = MutableStateFlow(false)
+//    val parentRegistrationSuccess: StateFlow<Boolean> = _parentRegistrationSuccess
+
+    private val _parentRegistrationSuccess = MutableStateFlow<RegistrationResponse?>(null)
+    val parentRegistrationSuccess: StateFlow<RegistrationResponse?> = _parentRegistrationSuccess
 
     // school registration
     private val _schoolRegistrationSuccess = MutableStateFlow(false)
@@ -745,9 +750,9 @@ class AuthViewModel(
                 referby
             )
             if (response.status == true) {
-                _parentRegistrationSuccess.value = true
+                _parentRegistrationSuccess.value = response
             } else {
-                _parentRegistrationSuccess.value = false
+                _parentRegistrationSuccess.value = response
             }
         } catch (e: Exception) {
             Log.e("AuthViewModel", "Parent Registration failed", e)
@@ -1259,15 +1264,47 @@ class AuthViewModel(
         }
     }
 
-    fun startLocationService(context: Context) {
-        val intent = Intent(context, LocationForegroundService::class.java)
-        ContextCompat.startForegroundService(context, intent)
-    }
 
-    fun stopLocationService(context: Context) {
-        val intent = Intent(context, LocationForegroundService::class.java)
-        context.stopService(intent)
-    }
+    private val _schoolRegistrationPSuccess = MutableStateFlow(false)
+    val schoolRegistrationPSuccess: StateFlow<Boolean> = _schoolRegistrationPSuccess
+
+    private val _schoolRegistrationDSuccess = MutableStateFlow(false)
+    val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
+
+//    fun registerSchoolParent(schoolRegistrationRequest: RegisterSchoolRequestP) {
+//        viewModelScope.launch {
+//            try {
+//                val response = repository.parentSchoolOnRegister(schoolRegistrationRequest)
+//                if (response.status) {
+//                    Log.d("TAG", "School Registration (Parent) Successful: ${response.message}")
+//                    _schoolRegistrationPSuccess.value = true
+//                } else {
+//                    Log.e("TAG", "School Registration (Parent) Failed: ${response.message}")
+//                    _schoolRegistrationPSuccess.value = false
+//                }
+//            } catch (e: Exception) {
+//                Log.e("TAG", "Error during school registration (Parent)", e)
+//            }
+//        }
+//    }
+//
+//    fun registerSchoolDriver(schoolRegistrationRequest: RegisterSchoolRequest) {
+//        viewModelScope.launch {
+//            try {
+//                val response = repository.driverSchoolOnRegister(schoolRegistrationRequest)
+//                if (response.status) {
+//                    Log.d("TAG", "School Registration (Driver) Successful: ${response.message}")
+//                    _schoolRegistrationDSuccess.value = true
+//                } else {
+//                    Log.e("TAG", "School Registration (Driver) Failed: ${response.message}")
+//                    _schoolRegistrationDSuccess.value = false
+//                }
+//            } catch (e: Exception) {
+//                Log.e("TAG", "Error during school registration (Driver)", e)
+//            }
+//        }
+//    }
+
 }
 
 

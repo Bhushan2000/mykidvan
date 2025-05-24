@@ -7,6 +7,7 @@ import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
@@ -28,6 +29,7 @@ import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
+import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -343,5 +345,32 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun getVehiclePhotos(driver_id: String): VehiclePhotosResponse {
         return api.getVehiclePhotos(driver_id)
     }
+
+    override suspend fun driverSchoolOnRegister(
+        vehiclesId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ): RegisterSchoolResponse {
+        val request = RegisterSchoolRequest(vehiclesId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        return api.driverSchoolOnRegister(request)
+    }
+
+    override suspend fun parentSchoolOnRegister(
+        parentId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ): RegisterSchoolResponse {
+        val request = RegisterSchoolRequest(parentId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        return api.parentSchoolOnRegister(request)    }
 
 }

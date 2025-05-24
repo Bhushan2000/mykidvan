@@ -1,9 +1,5 @@
 package com.example.mykidsvan.android
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -75,6 +71,7 @@ import com.example.mykidsvan.android.screens.ParentSignupScreen
 import com.example.mykidsvan.android.screens.PhoneLoginScreen
 import com.example.mykidsvan.android.screens.ProfileScreen
 import com.example.mykidsvan.android.screens.ReferAppScreen
+import com.example.mykidsvan.android.screens.SchoolOnRegistrationScreen
 import com.example.mykidsvan.android.screens.SchoolRegistrationScreen
 import com.example.mykidsvan.android.screens.SplashScreen
 import com.example.mykidsvan.android.screens.SupportHelpScreen
@@ -96,15 +93,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     var onPaymentSuccessCallback: ((PaymentData) -> Unit)? = null
     var onPaymentFailureCallback: ((Int, String?) -> Unit)? = null
-    val locationReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            intent?.let {
-                val lat = it.getDoubleExtra("lat", 0.0)
-                val lng = it.getDoubleExtra("lng", 0.0)
-                // Handle location update here
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,16 +131,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onPaymentError(code: Int, message: String?, p1: PaymentData?) {
         Log.e("Razorpay", "Error: $message")
         onPaymentFailureCallback?.invoke(code, message)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        registerReceiver(locationReceiver, IntentFilter("LOCATION_UPDATE"), Context.RECEIVER_NOT_EXPORTED)
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unregisterReceiver(locationReceiver)
     }
 }
 
@@ -267,6 +245,7 @@ fun MyApp(
             ) {
                 composable("splash") { SplashScreen(navController) }
                 composable("login") { LoginScreen(navController, loginViewModel) }
+                composable("schoolOnRegistration") { SchoolOnRegistrationScreen(navController, loginViewModel) }
                 composable("otp_verification/{phone}") { backStackEntry ->
                     val phoneNumber = backStackEntry.arguments?.getString("phone") ?: ""
                     OTPVerificationScreen(
@@ -353,7 +332,7 @@ fun MyApp(
                         )
                     }
                 }
-                composable(DrawerItem.VehicleDetails.route) { VehicleDetailsScreen() }
+                composable(DrawerItem.VehicleDetails.route) { VehicleDetailsScreen(loginViewModel,assignVehicleId,userRole) }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }

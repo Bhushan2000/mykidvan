@@ -8,8 +8,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Optional, but recommended -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".Application"
@@ -20,9 +21,9 @@
         android:label="My Kid Van"
         android:theme="@style/AppTheme">
         <service
-            android:name=".utils.LocationForegroundService"
+            android:name=".screens.tracking.LocationTrackingService"
             android:foregroundServiceType="location"
-            android:exported="false" />
+             android:exported="false" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAFDOC21jOwNmm4xASd_mL7AoA1xXOWdyY" />

@@ -1,10 +1,15 @@
 package com.example.mykidsvan.android.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.material3.*
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +59,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.authapp.presentation.viewmodel.AuthViewModel
@@ -66,6 +73,52 @@ fun LoginScreen(
 ) {
     val loginState by viewModel.loginState.collectAsState()
     val context = LocalContext.current
+
+    val locationPermissions = listOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
+
+    val postNotificationPermission = Manifest.permission.POST_NOTIFICATIONS
+
+    val showPermissionRationale = remember { mutableStateOf(false) }
+    val showNotificationRationale = remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val allGranted = result.values.all { it }
+        if (!allGranted) {
+            showPermissionRationale.value = true
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            showNotificationRationale.value = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val notGrantedLocation = locationPermissions.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (notGrantedLocation.isNotEmpty()) {
+            locationPermissionLauncher.launch(notGrantedLocation.toTypedArray())
+        }
+
+        // Notification permission (only Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, postNotificationPermission)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(postNotificationPermission)
+            }
+        }
+    }
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -108,12 +161,9 @@ fun LoginScreen(
             contentScale = ContentScale.FillBounds // stretch both horizontally & vertically
         )
         Text(
-            text = "Welcome Back!",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            ),
-            modifier = Modifier.padding(top = 16.dp)
+            text = "Welcome Back!", style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
+            ), modifier = Modifier.padding(top = 16.dp)
         )
 //        Text(
 //            text = "Login to your account",
@@ -141,8 +191,7 @@ fun LoginScreen(
             label = { Text("Phone Number") },
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = "Phone"
+                    imageVector = Icons.Default.Phone, contentDescription = "Phone"
                 )
             },
             singleLine = true,
@@ -162,8 +211,7 @@ fun LoginScreen(
             label = { Text("Password") },
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password"
+                    imageVector = Icons.Default.Lock, contentDescription = "Password"
                 )
             },
             trailingIcon = {
@@ -225,18 +273,16 @@ fun LoginScreen(
         // Error Message
         loginState.error?.let {
             Text(
-                text = it,
-                color = Color.Red,
-                modifier = Modifier.padding(top = 8.dp)
+                text = it, color = Color.Red, modifier = Modifier.padding(top = 8.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Social login
-     //   Text("Or login with", color = Color.Gray)
+        //   Text("Or login with", color = Color.Gray)
         Spacer(modifier = Modifier.height(16.dp))
-     //   SocialLoginButtons()
+        //   SocialLoginButtons()
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -308,7 +354,7 @@ fun LoginScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Driver Signup", color = Color.Black)
+                        Text("Driver Signup", color = Color.LightGray)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -316,23 +362,71 @@ fun LoginScreen(
             }
         }
     }
+
+    if (showPermissionRationale.value) {
+        AlertDialog(
+            onDismissRequest = { showPermissionRationale.value = false },
+            title = { Text("Location Permission Required") },
+            text = {
+                Text("We need your location to provide accurate pickup and drop-off tracking.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionRationale.value = false
+                    locationPermissionLauncher.launch(locationPermissions.toTypedArray())
+                }) {
+                    Text("Allow")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPermissionRationale.value = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showNotificationRationale.value) {
+        AlertDialog(
+            onDismissRequest = { showNotificationRationale.value = false },
+            title = { Text("Notification Permission Needed") },
+            text = {
+                Text("We use notifications to alert you about bus arrivals and updates.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showNotificationRationale.value = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(postNotificationPermission)
+                    }
+                }) {
+                    Text("Allow")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNotificationRationale.value = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
 }
 
 @Composable
 fun SocialLoginButtons() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()
     ) {
         SocialSignInButton(
-            iconRes = R.drawable.google,
-            text = "Continue with Google",
-            color = Color.White
+            iconRes = R.drawable.google, text = "Continue with Google", color = Color.White
         )
         SocialSignInButton(
-            iconRes = R.drawable.apple,
-            text = "Continue with Apple",
-            color = Color.Black
+            iconRes = R.drawable.apple, text = "Continue with Apple", color = Color.Black
         )
     }
 }

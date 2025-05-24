@@ -15,6 +15,7 @@ import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
+import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
@@ -215,4 +216,26 @@ interface AuthRepository {
     suspend fun getVehiclePhotos(
         driver_id: String
     ): VehiclePhotosResponse
+
+    suspend fun driverSchoolOnRegister(
+        vehiclesId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ): RegisterSchoolResponse
+
+    suspend fun parentSchoolOnRegister(
+        parentId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ): RegisterSchoolResponse
 }

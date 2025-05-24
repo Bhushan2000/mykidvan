@@ -1,15 +1,24 @@
 package com.example.maptracking
+
 import android.Manifest
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.example.mykidsvan.android.screens.tracking.isLocationPermissionGranted
+import com.example.mykidsvan.android.screens.tracking.LocationTrackingService
+import com.example.mykidsvan.android.utils.Constants
 import com.example.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
@@ -24,7 +33,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.random.Random
 
 class LatLngViewModel(
     private val userPreferences: UserPreferences,// Inject via constructor
@@ -56,7 +64,9 @@ class LatLngViewModel(
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
 
-    var driverId:String? = null// Your default/fallback
+    var driverId: String? = null// Your default/fallback
+
+    private var locationReceiver: BroadcastReceiver? = null
 
     // user id
     private val _userId = MutableStateFlow<String?>(null)
@@ -70,7 +80,7 @@ class LatLngViewModel(
 
                 // 👇 After role is fetched, update driverId if role is "driver"
                 if (role == "driver") {
-                    userPreferences.userIdFlow.collect { id->
+                    userPreferences.userIdFlow.collect { id ->
                         driverId = id
                     } // or fetchUserIdFromPreferences() if not flow
                 }
@@ -125,16 +135,16 @@ class LatLngViewModel(
         }
     }
 
-
-
     fun startTracking() {
         val role = userRole.value
         _isTracking.value = true
-        trackingJob = viewModelScope.launch {
+         trackingJob = viewModelScope.launch {
             while (isActive) {
                 // Driver → send and receive
                 if (role == "driver") {
-                    sendCurrentLocationToServer()
+                    // Keep fallback for ViewModel polling
+                    val location = getLastKnownLocation()
+                    location?.let { sendCurrentLocationToServer(it) }
                     fetchLatLngFromServer()
                 }
                 // Parent → only receive
@@ -147,30 +157,72 @@ class LatLngViewModel(
         }
     }
 
+    fun registerLocationBroadcastReceiver(context: Context) {
+        if (locationReceiver != null) return // Avoid re-registering
+
+        locationReceiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val lat = intent?.getDoubleExtra("latitude", 0.0)
+                val lng = intent?.getDoubleExtra("longitude", 0.0)
+
+                if (lat != null && lng != null) {
+                    val location = Location("service").apply {
+                        latitude = lat
+                        longitude = lng
+                    }
+
+                    _currentLocation.value = LatLng(lat, lng)
+
+                    viewModelScope.launch {
+                        sendCurrentLocationToServer(location)
+                    }
+                }
+
+            }
+        }
+
+        val filter = IntentFilter(Constants.LOCATION_BROADCAST_ACTION)
+        LocalBroadcastManager.getInstance(context).registerReceiver(locationReceiver!!, filter)
+    }
+
+    fun unregisterLocationBroadcastReceiver(context: Context) {
+        locationReceiver?.let {
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(it)
+            locationReceiver = null
+        }
+    }
+
+
+    fun startTrackingService(context: Context) {
+        val intent = Intent(context, LocationTrackingService::class.java)
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    fun stopTrackingService(context: Context) {
+        val intent = Intent(context, LocationTrackingService::class.java)
+        context.stopService(intent)
+    }
+
     fun stopTracking() {
         _isTracking.value = false
         trackingJob?.cancel()
+        stopTrackingService(context)
     }
 
-    private suspend fun sendCurrentLocationToServer() {
+    private suspend fun sendCurrentLocationToServer(location: Location) {
         if (userRole.value != "driver") return // ✅ Prevents sending if the role is "parent"
-
         if (!isLocationPermissionGranted(context)) return
-
-        val location = getLastKnownLocation()
-        location?.let {
-            try {
-                driverId?.let { id ->
-                    val request = SendLatLongRequest(
-                        id = id,
-                        latitude = it.latitude.toString(),
-                        longitude = it.longitude.toString()
-                    )
-                    repository.sendLatLong(request) // ✅ Sends location to server
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        try {
+            driverId?.let { id ->
+                val request = SendLatLongRequest(
+                    id = id,
+                    latitude = location.latitude.toString(),
+                    longitude = location.longitude.toString()
+                )
+                repository.sendLatLong(request) // ✅ Sends location to server
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -235,5 +287,18 @@ class LatLngViewModel(
         return (Math.toDegrees(atan2(y, x)).toFloat() + 360) % 360
     }
 
+    fun hasAllPermissions(): Boolean {
+        val permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.FOREGROUND_SERVICE,
+            Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+
+        return permissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
 
 }

@@ -429,7 +429,7 @@ fun DriverSignupScreen(
             LaunchedEffect(registrationSuccess) {
                 if (registrationSuccess) {
                     isLoading = false
-                    navController.navigate("login")
+                    navController.navigate("schoolOnRegistration")
                 } else {
                     isLoading = false
                 }
@@ -594,5 +594,5 @@ fun uriToBase64(context: Context, uri: Uri): String {
 // Function to generate a random referral code
 fun generateReferralCodeDriver(): String {
     val randomDigits = (100000..999999).random()
-    return "D$randomDigits"
+    return "MKV${randomDigits}D"
 }

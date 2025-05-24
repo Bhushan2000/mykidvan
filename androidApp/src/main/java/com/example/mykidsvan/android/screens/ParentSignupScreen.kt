@@ -87,7 +87,8 @@ fun ParentSignupScreen(
     val dropOffLocation = remember { mutableStateOf("") }
     val numberOfChildren = remember { mutableStateOf("") }
     val numberOfChildList = listOf("1", "2", "3", "4")
-    val childClassList = listOf("Nursery","KG-I","KG-II","1st std", "2nd std", "3rd std", "4th std","5th std")
+    val childClassList =
+        listOf("Nursery", "KG-I", "KG-II", "1st std", "2nd std", "3rd std", "4th std", "5th std")
     val emergencyContact = remember { mutableStateOf("") }
     val termsAccepted = remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }  // Loading state for progress bar
@@ -106,7 +107,7 @@ fun ParentSignupScreen(
     val selectedTaluka by viewModel.selectedTaluka.collectAsState()
 
     // Referral Code States
-    val referralCode = remember { mutableStateOf(generateReferralCode()) }
+    val referralCode = remember { mutableStateOf(generateReferralCodP()) }
     val enteredReferralCode = remember { mutableStateOf("") }
     val isReferralCodeApplied = remember { mutableStateOf(false) }
 
@@ -285,7 +286,6 @@ fun ParentSignupScreen(
                 readOnly = true,     // Prevent keyboard and focus
                 label = { Text("Child's DOB") },
                 shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.Default.DateRange,
@@ -297,14 +297,15 @@ fun ParentSignupScreen(
                         }
                     )
                 },
+                colors = textFieldColors,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp).
-                clickable{
-                    showDatePickerDialog(context, calendar) {
-                        childDateOfBirth.value = it
+                    .height(64.dp)
+                    .clickable {
+                        showDatePickerDialog(context, calendar) {
+                            childDateOfBirth.value = it
+                        }
                     }
-                }
             )
 
             OutlinedTextField(
@@ -364,7 +365,11 @@ fun ParentSignupScreen(
             // Referral Code UI
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Your Referral Code: ${referralCode.value}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Your Referral Code: ${referralCode.value}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -396,7 +401,8 @@ fun ParentSignupScreen(
                         if (enteredReferralCode.value.isNotBlank()) {
                             // Apply the entered referral code (you can integrate this with your ViewModel or API)
                             isReferralCodeApplied.value = true
-                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     },
                     modifier = Modifier
@@ -478,7 +484,7 @@ fun ParentSignupScreen(
             val registrationSuccess by viewModel.parentRegistrationSuccess.collectAsState()
 
             LaunchedEffect(registrationSuccess) {
-                if (registrationSuccess) {
+                if (registrationSuccess?.status == true) {
                     isLoading = false
                     parentName.value = ""
                     contactNumber.value = ""
@@ -498,7 +504,8 @@ fun ParentSignupScreen(
                     termsAccepted.value = false
                     Toast.makeText(context, "Parent Registration Successful!", Toast.LENGTH_SHORT)
                         .show()
-                    navController.navigate("login")  // Navigate to the login screen
+                    val uid = registrationSuccess!!.id.toString()
+                    navController.navigate("schoolOnRegistration/$uid")  // Navigate to the login screen
                 } else {
                     isLoading = false  // Stop loading if failed or UI remains unchanged
                 }
@@ -514,7 +521,26 @@ fun ParentSignupScreen(
 }
 
 // Function to generate a random referral code
-fun generateReferralCode(): String {
+fun generateReferralCodP(): String {
     val randomDigits = (100000..999999).random()
-    return "P$randomDigits"
+    return "MKV${randomDigits}P"
+}
+
+// 🔁 Reusable Date Picker Logic
+fun showDatePickerDialog(
+    context: Context,
+    calendar: Calendar,
+    onDateSelected: (String) -> Unit
+) {
+    DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            calendar.set(year, month, dayOfMonth)
+            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            onDateSelected(formatter.format(calendar.time))
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    ).show()
 }

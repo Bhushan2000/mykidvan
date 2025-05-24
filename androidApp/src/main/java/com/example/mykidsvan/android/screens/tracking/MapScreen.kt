@@ -1,5 +1,8 @@
 package com.example.mykidsvan.android.screens.tracking
 
+import com.google.maps.android.compose.Polyline
+import com.google.android.gms.maps.model.JointType
+import com.google.android.gms.maps.model.Cap
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,10 +61,12 @@ import com.google.android.gms.location.LocationServices
 import org.koin.androidx.compose.koinViewModel
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.unit.sp
 import com.example.maptracking.LatLngViewModel
 import com.example.mykidsvan.android.R
+import com.example.mykidsvan.android.screens.tracking.LocationTrackingService
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationSettingsRequest
@@ -88,6 +93,13 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
     val userRole by viewModel.userRole.collectAsState()
     val assignedVehicleId by viewModel.assignedVehicleId.collectAsState()
     val vehicleTrackingStatus by viewModel.vehicleTrackingStatus.collectAsState()
+    DisposableEffect(Unit) {
+        viewModel.registerLocationBroadcastReceiver(context)
+        onDispose {
+            viewModel.unregisterLocationBroadcastReceiver(context)
+        }
+    }
+
 
     val locationSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -99,8 +111,15 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     val latLng = LatLng(it.latitude, it.longitude)
                     currentLocation.value = latLng
                     cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
-                        1000
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.builder()
+                                .target(latLng)
+                                .zoom(20f)
+                                .tilt(45f)
+                                .bearing(0f)
+                                .build()
+                        ),
+                        durationMs = 1000
                     )
                     viewModel.startTracking()
                 }
@@ -127,10 +146,20 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     val latLng = LatLng(it.latitude, it.longitude)
                     currentLocation.value = latLng
                     cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
-                        1000
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.builder()
+                                .target(latLng)
+                                .zoom(20f)
+                                .tilt(45f)
+                                .bearing(0f)
+                                .build()
+                        ),
+                        durationMs = 1000
                     )
+                    /////////////// start the service  //////////////////////////////
+                    viewModel.startTrackingService(context)
                     viewModel.startTracking()
+
                 }
             }
         }
@@ -162,11 +191,9 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             delay(40_000) // Wait 40 seconds
             val lastPoint = latLngList.lastOrNull()
 
-            // If no new update has come in 40 seconds
             if (lastPoint == latLngList.lastOrNull()) {
                 isDriverInactive.value = true
-                snackbarHostState.showSnackbar("Driver has not started tracking yet.")
-
+                snackbarHostState.showSnackbar("Vehicle owner has not started tracking yet or stopped.")
             }
         }
     }
@@ -180,7 +207,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                 )
             ) {
                 if (!isTracking) {
-                    viewModel.startTracking()
+                     viewModel.startTracking()
                 }
             } else {
                 if (isTracking) {
@@ -201,8 +228,15 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     val latLng = LatLng(it.latitude, it.longitude)
                     currentLocation.value = latLng
                     cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(latLng, 18f),
-                        1000
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.builder()
+                                .target(latLng)
+                                .zoom(20f)
+                                .tilt(45f)
+                                .bearing(0f)
+                                .build()
+                        ),
+                        durationMs = 1000
                     )
                 }
             }
@@ -224,20 +258,20 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
 [
   {
     "elementType": "geometry",
-    "stylers": [{"color": "#1d2c4d"}]
+    "stylers": [{"color": "#0f1a30"}]   // Darker background geometry
   },
   {
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#8ec3b9"}]
+    "stylers": [{"color": "#a0c4c8"}]  // Slightly brighter text fill
   },
   {
     "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#1a3646"}]
+    "stylers": [{"color": "#0b1a2b"}]  // Darker text stroke for better contrast
   },
   {
     "featureType": "administrative.country",
     "elementType": "geometry.stroke",
-    "stylers": [{"color": "#4b6878"}]
+    "stylers": [{"color": "#3b5360"}]  // Slightly darker boundary lines
   },
   {
     "featureType": "administrative.land_parcel",
@@ -246,57 +280,57 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
   {
     "featureType": "landscape.man_made",
     "elementType": "geometry.stroke",
-    "stylers": [{"color": "#334e87"}]
+    "stylers": [{"color": "#25406d"}]  // Deeper color for man-made structures
   },
   {
     "featureType": "poi",
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#6f9ba5"}]
+    "stylers": [{"color": "#5f8a96"}]  // More muted poi label color
   },
   {
     "featureType": "poi.park",
     "elementType": "geometry.fill",
-    "stylers": [{"color": "#023e58"}]
+    "stylers": [{"color": "#014455"}]  // Darker park fill
   },
   {
     "featureType": "poi.park",
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#3C7680"}]
+    "stylers": [{"color": "#2c5f6a"}]  // Darker park label text
   },
   {
     "featureType": "road",
     "elementType": "geometry",
-    "stylers": [{"color": "#304a7d"}]
+    "stylers": [{"color": "#223d6f"}]  // Dark blue roads
   },
   {
     "featureType": "road",
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#98a5be"}]
+    "stylers": [{"color": "#a5b4cc"}]  // Slightly brighter road text
   },
   {
     "featureType": "road",
     "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#1d2c4d"}]
+    "stylers": [{"color": "#0f1a30"}]  // Darker road text stroke
   },
   {
     "featureType": "transit",
     "elementType": "geometry",
-    "stylers": [{"color": "#2f3948"}]
+    "stylers": [{"color": "#23364b"}]  // Deeper transit geometry color
   },
   {
     "featureType": "transit.station",
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#d59563"}]
+    "stylers": [{"color": "#d07b43"}]  // Slightly warmer transit station labels
   },
   {
     "featureType": "water",
     "elementType": "geometry",
-    "stylers": [{"color": "#0e1626"}]
+    "stylers": [{"color": "#07141f"}]  // Darker water color
   },
   {
     "featureType": "water",
     "elementType": "labels.text.fill",
-    "stylers": [{"color": "#4e6d70"}]
+    "stylers": [{"color": "#3d5a5f"}]  // Muted water labels
   }
 ]
 """.trimIndent()
@@ -307,90 +341,125 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             MapStyleOptions(darkMapStyleJson)
         } else null // Default Google Map Light style
     }
-    Box(Modifier.fillMaxSize()) {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                uiSettings = MapUiSettings(zoomControlsEnabled = false),
+                properties = MapProperties(
+                    isMyLocationEnabled = locationPermissionState.status.isGranted,
+                    mapStyleOptions = mapStyleOptions
+                )
+            )
+            /* GoogleMap(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp)), // Optional map with rounded corners
+
             cameraPositionState = cameraPositionState,
-            uiSettings = MapUiSettings(zoomControlsEnabled = false),
+
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true,
+                compassEnabled = true,
+                myLocationButtonEnabled = true,
+                mapToolbarEnabled = false, // Hide default toolbar on markers
+                rotationGesturesEnabled = true,
+                tiltGesturesEnabled = false,
+                scrollGesturesEnabled = true
+            ),
+
             properties = MapProperties(
                 isMyLocationEnabled = locationPermissionState.status.isGranted,
-                mapStyleOptions = mapStyleOptions
+                mapType = MapType.NORMAL, // Options: NORMAL, SATELLITE, HYBRID, TERRAIN, NONE
+                isTrafficEnabled = true,
+                isBuildingEnabled = true,
+                isIndoorEnabled = false,
+                mapStyleOptions = mapStyleOptions // Load from assets or raw
             )
-        ) {
-            if (latLngList.isNotEmpty()) {
-                Polyline(points = latLngList, color = Color.Cyan, width = 20f)
+        )*/
 
-                Marker(
-                    state = MarkerState(position = latLngList.last()),
-                    icon = bitmapDescriptorFromVector(
-                        context,
-                        if (userRole == "parent" && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
-                        100,
-                        180
+
+            {
+                if (latLngList.isNotEmpty()) {
+                    Polyline(
+                        points = latLngList,
+                        color = Color.Blue,
+                        width = 24f,
+                        visible = true,
+                        geodesic = true, // Makes lines follow Earth curvature
+                        clickable = false,
+                        jointType = JointType.ROUND, // Smooth corners
+                        startCap = RoundCap(),   // ✅ Rounded start
+                        endCap = SquareCap(),    // ✅ Flat end
+                    )
+                    Marker(
+                        state = MarkerState(position = latLngList.last()),
+                        icon = bitmapDescriptorFromVector(
+                            context,
+                            if (userRole == "parent" && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
+                            100,
+                            180
+                        ),
+                        rotation = bearing,
+                        anchor = Offset(0.5f, 0.5f),
+                        flat = true
+                    )
+                }
+            }
+
+            // 🟢 Driver-only Start/Stop button
+            if (userRole == "driver") {
+                val greenColor = Color(0xFF99CC33) // Green color
+                val redColor = Color(0xFFA03232)   // Red color
+                Button(
+                    onClick = {
+                        if (isTracking) {
+                            viewModel.stopTracking()
+                        } else {
+                            if (locationPermissionState.status.isGranted) {
+                                checkAndPromptEnableGps()
+                            } else {
+                                locationPermissionState.launchPermissionRequest()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isTracking) redColor else greenColor
                     ),
-                    rotation = bearing,
-                    anchor = Offset(0.5f, 0.5f),
-                    flat = true
+                    modifier = Modifier
+                        .wrapContentSize() // Makes the composable size itself based on its content
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                ) {
+                    Text(color = Color.White, text = if (isTracking) "Stop" else "Start")
+                }
+            }
+
+            // 🚫 Parent – show driver not assigned message
+            if (userRole == "parent" &&
+                (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
+                    "accepted",
+                    ignoreCase = true
+                ))
+            ) {
+                Text(
+                    text = "Driver not assigned",
+                    color = Color.Red,
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
                 )
             }
-        }
 
-        // 🟢 Driver-only Start/Stop button
-        if (userRole == "driver") {
-            val greenColor = Color(0xFF99CC33) // Green color
-            val redColor = Color(0xFFA03232)   // Red color
-            Button(
-                onClick = {
-                    if (isTracking) {
-                        viewModel.stopTracking()
-                    } else {
-                        if (locationPermissionState.status.isGranted) {
-                            checkAndPromptEnableGps()
-                        } else {
-                            locationPermissionState.launchPermissionRequest()
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isTracking) redColor else greenColor
-                ),
-                modifier = Modifier
-                    .wrapContentSize() // Makes the composable size itself based on its content
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Text(color = Color.White, text = if (isTracking) "Stop" else "Start")
-            }
-        }
 
-        // 🚫 Parent – show driver not assigned message
-        if (userRole == "parent" &&
-            (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
-                "accepted",
-                ignoreCase = true
-            ))
-        ) {
-            Text(
-                text = "Driver not assigned",
-                color = Color.Red,
-                fontSize = 16.sp,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            )
         }
-
-        // Snackbar for parent
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-        )
     }
 }
-
 
 fun bitmapDescriptorFromVector(
     context: Context,
