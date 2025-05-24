@@ -1,5 +1,6 @@
 package com.example.mykidsvan.android.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +40,12 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 
 @Composable
-fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: AuthViewModel) {
+fun SchoolOnRegistrationScreen(
+    navController: NavHostController,
+    viewModel: AuthViewModel,
+    uid: String,
+    userRole: String?
+) {
     val context = LocalContext.current
 
     val schoolName = remember { mutableStateOf("") }
@@ -66,6 +72,13 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
     val selectedDistrict by viewModel.selectedDistrict.collectAsState()
     val selectedTaluka by viewModel.selectedTaluka.collectAsState()
 
+    // Observe success state based on role
+    val parentSuccess by viewModel.schoolRegistrationPSuccess.collectAsState()
+    val driverSuccess by viewModel.schoolRegistrationDSuccess.collectAsState()
+
+    LaunchedEffect(Unit) {
+        Log.d("TAG", "SchoolOnRegistrationScreen: uid -- $uid && userRole -- $userRole")
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -74,7 +87,7 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-         OutlinedTextField(
+        OutlinedTextField(
             value = schoolName.value,
             onValueChange = { schoolName.value = it },
             placeholder = { Text("Enter school name") },
@@ -83,7 +96,7 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
             modifier = Modifier.fillMaxWidth()
         )
 
-         OutlinedTextField(
+        OutlinedTextField(
             value = contactNumber.value,
             onValueChange = { contactNumber.value = it },
             placeholder = { Text("Enter contact number") },
@@ -93,36 +106,38 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
             modifier = Modifier.fillMaxWidth()
         )
 
-         DropdownField(
+        DropdownField(
             label = "Select State",
             selectedValue = selectedState?.state_name ?: "",
             options = stateOptions.map { it.state_name },
             onValueChange = { selectedName ->
-                val state = stateOptions.find { it.state_name == selectedName }
-                state?.let { viewModel.onStateSelected(it) }
+                stateOptions.find { it.state_name == selectedName }?.let {
+                    viewModel.onStateSelected(it)
+                }
             }
         )
 
-         DropdownField(
+        DropdownField(
             label = "Select District",
             selectedValue = selectedDistrict?.district_name ?: "",
             options = districtOptions.map { it.district_name },
             onValueChange = { selectedName ->
-                val district = districtOptions.find { it.district_name == selectedName }
-                district?.let { viewModel.onDistrictSelected(it) }
+                districtOptions.find { it.district_name == selectedName }?.let {
+                    viewModel.onDistrictSelected(it)
+                }
             }
         )
 
-         DropdownField(
+        DropdownField(
             label = "Select Taluka",
             selectedValue = selectedTaluka?.taluka_name ?: "",
             options = talukaOptions.map { it.taluka_name },
             onValueChange = { selectedName ->
-                val taluka = talukaOptions.find { it.taluka_name == selectedName }
-                taluka?.let { viewModel.onTalukaSelected(it) }
+                talukaOptions.find { it.taluka_name == selectedName }?.let {
+                    viewModel.onTalukaSelected(it)
+                }
             }
         )
-
 
         OutlinedTextField(
             value = city.value,
@@ -132,7 +147,6 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
             colors = textFieldColors,
             modifier = Modifier.fillMaxWidth()
         )
-
 
         OutlinedTextField(
             value = schoolAddress.value,
@@ -149,23 +163,42 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
                 val selectedDistrictName = selectedDistrict?.district_name ?: ""
                 val selectedTalukaName = selectedTaluka?.taluka_name ?: ""
 
-                if (schoolName.value.isBlank() ||
-                    selectedStateName.isBlank() || selectedDistrictName.isBlank() ||
-                    selectedTalukaName.isBlank() || city.value.isBlank()
+                if (schoolName.value.isBlank() || selectedStateName.isBlank() ||
+                    selectedDistrictName.isBlank() || selectedTalukaName.isBlank() ||
+                    city.value.isBlank()
                 ) {
-                    Toast.makeText(context, "Please fill all mandatory fields.", Toast.LENGTH_SHORT).show()
-                } else {
-                    isLoading = true
-                    val request = SchoolRegistrationRequest(
-                        school_name = schoolName.value,
-                        contact_number = contactNumber.value,
-                        state = selectedState?.id ?: "",
-                        district = selectedDistrict?.id ?: "",
-                        taluka = selectedTaluka?.id ?: "",
-                        city = city.value,
-                        school_address = schoolAddress.value
+                    Toast.makeText(context, "Please fill all mandatory fields.", Toast.LENGTH_SHORT)
+                        .show()
+                    return@Button
+                }
+
+                isLoading = true
+
+                if (userRole?.lowercase() == "parent") {
+                    viewModel.registerSchoolParent(
+                        uid.toInt(),
+                        schoolName.value,
+                        contactNumber.value,
+                        selectedStateName,
+                        selectedDistrictName,
+                        selectedTalukaName,
+                        city.value,
+                        schoolAddress.value
                     )
-                    viewModel.registerSchool(request)
+                } else if (userRole?.lowercase() == "driver") {
+                    viewModel.registerSchoolDriver(
+                        uid.toInt(),
+                        schoolName.value,
+                        contactNumber.value,
+                        selectedStateName,
+                        selectedDistrictName,
+                        selectedTalukaName,
+                        city.value,
+                        schoolAddress.value
+                    )
+                } else {
+                    isLoading = false
+                    Toast.makeText(context, "Unknown user role.", Toast.LENGTH_SHORT).show()
                 }
             },
             enabled = !isLoading,
@@ -185,22 +218,31 @@ fun SchoolOnRegistrationScreen(navController: NavHostController, viewModel: Auth
                 Text("Submit", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
+    }
 
-        val registrationSuccess by viewModel.schoolRegistrationSuccess.collectAsState()
-        LaunchedEffect(registrationSuccess) {
-            if (registrationSuccess) {
-                isLoading = false
-                schoolName.value = ""
-                contactNumber.value = ""
-                city.value = ""
-                schoolAddress.value = ""
-                viewModel.resetSchoolRegistrationDropDowns()
-                Toast.makeText(context, "School Registration Successful!", Toast.LENGTH_SHORT).show()
-            } else {
-                isLoading = false
+    // Observe registration success based on role
+    LaunchedEffect(parentSuccess, driverSuccess) {
+        if ((userRole == "parent" && parentSuccess) || (userRole == "driver" && driverSuccess)) {
+            isLoading = false
+            schoolName.value = ""
+            contactNumber.value = ""
+            city.value = ""
+            schoolAddress.value = ""
+            viewModel.resetSchoolRegistrationDropDowns()
+            Toast.makeText(context, "School Registration Successful!", Toast.LENGTH_SHORT).show()
+            if (userRole == "parent")
+                navController.navigate("login") {
+                    popUpTo("schoolOnRegistration") { inclusive = true }
+                }
+            else {
+                navController.navigate("fileupload/$uid")
             }
+
+        } else if ((userRole == "parent" && !parentSuccess) || (userRole == "driver" && !driverSuccess)) {
+            isLoading = false
         }
     }
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()

@@ -2,7 +2,7 @@ package com.example.mykidsvan.android.data.dto.request
 
 import com.google.gson.annotations.SerializedName
 
-data class RegisterSchoolRequest(
+data class RegisterSchoolDriverRequest(
 
     @SerializedName("vehicles_id") var vehiclesId: Int? = null,
     @SerializedName("school_name") var schoolName: String? = null,

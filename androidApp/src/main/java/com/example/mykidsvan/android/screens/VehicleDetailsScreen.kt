@@ -44,13 +44,11 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
     var expanded by remember { mutableStateOf(false) }
 
     val profileData by viewModel.profileData.collectAsState()
-    val isLoading = profileData == null
+    val isLoading = profileData == null && assignVehicleId != null
 
     LaunchedEffect(Unit) {
         if (assignVehicleId != null) {
             viewModel.loadProfile(assignVehicleId, "driver")
-        } else {
-            Toast.makeText(context, "Vehicle Owner not assigned yet", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -72,96 +70,117 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.Center)
-            )
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+        when {
+            assignVehicleId == null -> {
                 Text(
-                    text = "Vehicle Details",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    text = "Vehicle Owner not assigned yet",
+                    modifier = Modifier.align(Alignment.Center),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
                 )
+            }
 
-                OutlinedTextField(
-                    value = vehicleNumber.value,
-                    onValueChange = { vehicleNumber.value = it },
-                    label = { Text("Vehicle Number") },
-                    shape = RoundedCornerShape(14.dp),
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            profileData == null -> {
+                Text(
+                    text = "Vehicle data not found",
+                    modifier = Modifier.align(Alignment.Center),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            else -> {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-
-                OutlinedTextField(
-                    value = ownerName.value,
-                    onValueChange = { ownerName.value = it },
-                    label = { Text("Owner Name") },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = vehicleType.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Vehicle Type") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
+                    Text(
+                        text = "Vehicle Details",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
 
-                    ExposedDropdownMenu(
+                    OutlinedTextField(
+                        value = vehicleNumber.value,
+                        onValueChange = { vehicleNumber.value = it },
+                        label = { Text("Vehicle Number") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = ownerName.value,
+                        onValueChange = { ownerName.value = it },
+                        label = { Text("Owner Name") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
+
+                    ExposedDropdownMenuBox(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onExpandedChange = { expanded = !expanded }
                     ) {
-                        vehicleTypes.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type) },
-                                onClick = {
-                                    vehicleType.value = type
-                                    expanded = false
-                                }
-                            )
+                        OutlinedTextField(
+                            value = vehicleType.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Vehicle Type") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            vehicleTypes.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type) },
+                                    onClick = {
+                                        vehicleType.value = type
+                                        expanded = false
+                                    }
+                                )
+                            }
                         }
                     }
+
+                    OutlinedTextField(
+                        value = model.value,
+                        onValueChange = { model.value = it },
+                        label = { Text("Vehicle Model") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = vehicleRegistration.value,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Registration Date") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
                 }
-
-                OutlinedTextField(
-                    value = model.value,
-                    onValueChange = { model.value = it },
-                    label = { Text("Vehicle Model") },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-
-                OutlinedTextField(
-                    value = vehicleRegistration.value,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Registration Date") },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
             }
         }
     }

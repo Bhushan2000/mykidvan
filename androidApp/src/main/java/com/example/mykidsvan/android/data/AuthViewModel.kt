@@ -2,26 +2,22 @@ package com.example.authapp.presentation.viewmodel
 
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.content.ContextCompat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mykidsvan.android.data.AuthRepository
-import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequest
-import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequestP
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.District
+import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.Driver
-import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverData
 import com.example.mykidsvan.android.data.dto.response.DriverMob
 import com.example.mykidsvan.android.data.dto.response.Parent
@@ -113,8 +109,8 @@ class AuthViewModel(
     val selectedAllSchool: StateFlow<School?> = _selectedAllSchool
 
     // driver registration
-    private val _driverRegistrationSuccess = MutableStateFlow(false)
-    val driverRegistrationSuccess: StateFlow<Boolean> = _driverRegistrationSuccess
+    private val _driverRegistrationSuccess = MutableStateFlow<RegistrationResponse?>(null)
+    val driverRegistrationSuccess: StateFlow<RegistrationResponse?> = _driverRegistrationSuccess
 
     // parent registration
 //    private val _parentRegistrationSuccess = MutableStateFlow(false)
@@ -664,8 +660,8 @@ class AuthViewModel(
         verificationState: String,
         availabilityStatus: String,
         termsAccepted: String,
-        referCode:String,
-        referby:String
+        referCode: String,
+        referby: String
     ) = viewModelScope.launch {
         try {
             val response = repository.registerDriver(
@@ -697,9 +693,9 @@ class AuthViewModel(
                 referby
             )
             if (response.status == true) {
-                _driverRegistrationSuccess.value = true
+                _driverRegistrationSuccess.value = response
             } else {
-                _driverRegistrationSuccess.value = false
+                _driverRegistrationSuccess.value = response
             }
         } catch (e: Exception) {
             Log.e("AuthViewModel", "Driver Registration failed", e)
@@ -1227,11 +1223,30 @@ class AuthViewModel(
 
                 val result = when (userType.lowercase()) {
                     "driver" -> {
-                        repository.updateProfileDriver(userId,name,mobile,vehicle,state,district, taluka,city,address,schoolName, profilePicBase64)
+                        repository.updateProfileDriver(
+                            userId,
+                            name,
+                            mobile,
+                            vehicle,
+                            state,
+                            district,
+                            taluka,
+                            city,
+                            address,
+                            schoolName,
+                            profilePicBase64
+                        )
                     }
 
                     "parent" -> {
-                        repository.updateProfileParent(userId,name,contact,address,childName,schoolName)
+                        repository.updateProfileParent(
+                            userId,
+                            name,
+                            contact,
+                            address,
+                            childName,
+                            schoolName
+                        )
                     }
 
                     else -> throw IllegalArgumentException("Unknown user type")
@@ -1271,39 +1286,104 @@ class AuthViewModel(
     private val _schoolRegistrationDSuccess = MutableStateFlow(false)
     val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
 
-//    fun registerSchoolParent(schoolRegistrationRequest: RegisterSchoolRequestP) {
-//        viewModelScope.launch {
-//            try {
-//                val response = repository.parentSchoolOnRegister(schoolRegistrationRequest)
-//                if (response.status) {
-//                    Log.d("TAG", "School Registration (Parent) Successful: ${response.message}")
-//                    _schoolRegistrationPSuccess.value = true
-//                } else {
-//                    Log.e("TAG", "School Registration (Parent) Failed: ${response.message}")
-//                    _schoolRegistrationPSuccess.value = false
-//                }
-//            } catch (e: Exception) {
-//                Log.e("TAG", "Error during school registration (Parent)", e)
-//            }
-//        }
-//    }
-//
-//    fun registerSchoolDriver(schoolRegistrationRequest: RegisterSchoolRequest) {
-//        viewModelScope.launch {
-//            try {
-//                val response = repository.driverSchoolOnRegister(schoolRegistrationRequest)
-//                if (response.status) {
-//                    Log.d("TAG", "School Registration (Driver) Successful: ${response.message}")
-//                    _schoolRegistrationDSuccess.value = true
-//                } else {
-//                    Log.e("TAG", "School Registration (Driver) Failed: ${response.message}")
-//                    _schoolRegistrationDSuccess.value = false
-//                }
-//            } catch (e: Exception) {
-//                Log.e("TAG", "Error during school registration (Driver)", e)
-//            }
-//        }
-//    }
+    fun registerSchoolParent(
+        parentId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = repository.parentSchoolOnRegister(
+                    parentId,
+                    schoolName,
+                    contactNumber,
+                    state,
+                    district,
+                    taluka,
+                    city,
+                    schoolAddress
+                )
+
+                if (response.status == true) {
+                    Log.d("TAG", "School Registration (Parent) Successful: ${response.message}")
+                    _schoolRegistrationPSuccess.value = true
+                } else {
+                    Log.e("TAG", "School Registration (Parent) Failed: ${response.message}")
+                    _schoolRegistrationPSuccess.value = false
+                }
+            } catch (e: Exception) {
+                Log.e("TAG", "Error during school registration (Parent)", e)
+            }
+        }
+    }
+
+    fun registerSchoolDriver(
+        vehicleId: Int,
+        schoolName: String,
+        contactNumber: String,
+        state: String,
+        district: String,
+        taluka: String,
+        city: String,
+        schoolAddress: String
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = repository.driverSchoolOnRegister(
+                    vehicleId,
+                    schoolName,
+                    contactNumber,
+                    state,
+                    district,
+                    taluka,
+                    city,
+                    schoolAddress
+                )
+                if (response.status == true) {
+                    Log.d("TAG", "School Registration (Driver) Successful: ${response.message}")
+                    _schoolRegistrationDSuccess.value = true
+                } else {
+                    Log.e("TAG", "School Registration (Driver) Failed: ${response.message}")
+                    _schoolRegistrationDSuccess.value = false
+                }
+            } catch (e: Exception) {
+                Log.e("TAG", "Error during school registration (Driver)", e)
+            }
+        }
+    }
+
+    private val _uploadDocSuccess = MutableStateFlow<DocumentUploadResponse?>(null)
+    val uploadDocSuccess: StateFlow<DocumentUploadResponse?> = _uploadDocSuccess
+
+    fun uploadDocumentsToDatabase(data: Map<String, String>) {
+        viewModelScope.launch {
+            try {
+                val response = repository.uploadDocumentsToDatabase(
+                    data["id"] ?: "",
+                    data["profile_picture"] ?: "",
+                    data["adhar_number"] ?: "",
+                    data["driver_license"] ?: "",
+                    data["insurance_detail"] ?: "",
+                    data["fitness_certificat"] ?: "",
+                    data["photo_of_vehicle"] ?: ""
+                )
+
+                if (response.status) {
+                    _uploadDocSuccess.value = response
+                } else {
+                    Log.e("TAG", "Upload failed: ${response.message}")
+                }
+            } catch (e: Exception) {
+                Log.e("TAG", "Error while uploading documents ", e)
+            }
+        }
+    }
+
 
 }
 

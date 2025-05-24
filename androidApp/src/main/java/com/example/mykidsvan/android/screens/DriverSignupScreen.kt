@@ -249,8 +249,12 @@ fun DriverSignupScreen(
 
             FileUploadField("Upload Aadhar Photo", aadharPhoto) { aadharPhoto = it }
             FileUploadField("Upload Driver's License Photo", licensePhoto) { licensePhoto = it }
-            FileUploadField("Upload Insurance Details Photo", insurancePhoto) { insurancePhoto = it }
-            FileUploadField("Upload Fitness Certificate", fitnessCertificate) { fitnessCertificate = it }
+            FileUploadField("Upload Insurance Details Photo", insurancePhoto) {
+                insurancePhoto = it
+            }
+            FileUploadField("Upload Fitness Certificate", fitnessCertificate) {
+                fitnessCertificate = it
+            }
             FileUploadField("Upload Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
             FileUploadField("Upload Profile Picture", profilePicture) { profilePicture = it }
 
@@ -332,7 +336,11 @@ fun DriverSignupScreen(
             // Referral Code UI
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Your Referral Code: ${referralCode.value}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Your Referral Code: ${referralCode.value}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -364,7 +372,8 @@ fun DriverSignupScreen(
                         if (enteredReferralCode.value.isNotBlank()) {
                             // Apply the entered referral code (you can integrate this with your ViewModel or API)
                             isReferralCodeApplied.value = true
-                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     },
                     modifier = Modifier
@@ -391,19 +400,40 @@ fun DriverSignupScreen(
             Button(
                 onClick = {
                     if (ownerName.isBlank() || contactNumber.isBlank() || !termsAccepted) {
-                        Toast.makeText(context, "Please fill mandatory fields and accept the terms.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Please fill mandatory fields and accept the terms.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         isLoading = true
                         viewModel.registerDriver(
-                            ownerName, contactNumber, password,
+                            ownerName,
+                            contactNumber,
+                            password,
                             selectedState?.id ?: "",
                             selectedDistrict?.id ?: "",
                             selectedTaluka?.id ?: "",
-                            city, address, aadharPhoto, licensePhoto, vehicleRegNumber, vehicleModel,
-                            seatingCapacity, vehicleType, insurancePhoto, fitnessCertificate, vehiclePhoto,
-                            areasCovered, schoolServiced, profilePicture, aboutMe,
-                            verificationState, availabilityStatus, termsAccepted.toString(),
-                            referralCode.value,enteredReferralCode.value
+                            city,
+                            address,
+                            aadharPhoto,
+                            licensePhoto,
+                            vehicleRegNumber,
+                            vehicleModel,
+                            seatingCapacity,
+                            vehicleType,
+                            insurancePhoto,
+                            fitnessCertificate,
+                            vehiclePhoto,
+                            areasCovered,
+                            schoolServiced,
+                            profilePicture,
+                            aboutMe,
+                            verificationState,
+                            availabilityStatus,
+                            termsAccepted.toString(),
+                            referralCode.value,
+                            enteredReferralCode.value
                         )
                     }
                 },
@@ -427,9 +457,10 @@ fun DriverSignupScreen(
             val registrationSuccess by viewModel.driverRegistrationSuccess.collectAsState()
 
             LaunchedEffect(registrationSuccess) {
-                if (registrationSuccess) {
+                if (registrationSuccess?.status == true) {
                     isLoading = false
-                    navController.navigate("schoolOnRegistration")
+                    val uid = registrationSuccess?.id.toString()
+                    navController.navigate("schoolOnRegistration/$uid")  // Navigate to the login screen
                 } else {
                     isLoading = false
                 }
@@ -549,7 +580,8 @@ fun FileUploadField(
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val imagePickerLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent(),
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
             onResult = { uri ->
                 if (uri != null) {
                     imageUri = uri

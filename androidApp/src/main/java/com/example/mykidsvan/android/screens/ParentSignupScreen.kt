@@ -504,8 +504,11 @@ fun ParentSignupScreen(
                     termsAccepted.value = false
                     Toast.makeText(context, "Parent Registration Successful!", Toast.LENGTH_SHORT)
                         .show()
+                    // to add school
                     val uid = registrationSuccess!!.id.toString()
-                    navController.navigate("schoolOnRegistration/$uid")  // Navigate to the login screen
+                    navController.navigate("schoolOnRegistration/$uid")
+
+                // Navigate to the login screen
                 } else {
                     isLoading = false  // Stop loading if failed or UI remains unchanged
                 }

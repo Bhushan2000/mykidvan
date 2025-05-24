@@ -76,6 +76,7 @@ import com.example.mykidsvan.android.screens.SchoolRegistrationScreen
 import com.example.mykidsvan.android.screens.SplashScreen
 import com.example.mykidsvan.android.screens.SupportHelpScreen
 import com.example.mykidsvan.android.screens.UpdatePasswordScreen
+import com.example.mykidsvan.android.screens.UploadDocumentsScreen
 import com.example.mykidsvan.android.screens.VehicleDetailsScreen
 import com.example.mykidsvan.android.screens.VehiclePhotoScreen
 import com.example.mykidsvan.android.screens.tracking.MapScreen
@@ -156,6 +157,7 @@ fun MyApp(
     val userRole by loginViewModel.userRole.collectAsState()
 
 
+
     LaunchedEffect(userId) {
         if (userId != null) {
             Log.d(
@@ -175,6 +177,7 @@ fun MyApp(
         "splash",
         "otp_verification/{phone}",
         "update_password/{phone}",
+        "schoolOnRegistration/{uid}"
     )
 
     // Handle navigation with ModalNavigationDrawer and NavHost
@@ -245,7 +248,22 @@ fun MyApp(
             ) {
                 composable("splash") { SplashScreen(navController) }
                 composable("login") { LoginScreen(navController, loginViewModel) }
-                composable("schoolOnRegistration") { SchoolOnRegistrationScreen(navController, loginViewModel) }
+                composable("schoolOnRegistration/{uid}") { navBackStackEntry ->
+                    val uid = navBackStackEntry.arguments?.getString("uid") ?: ""
+                    SchoolOnRegistrationScreen(
+                        navController,
+                        loginViewModel,
+                        uid,
+                        userRole
+                    )
+                }
+                composable("fileupload/{uid}") { backStackEntry ->
+                    val uid = backStackEntry.arguments?.getString("uid") ?: ""
+                    UploadDocumentsScreen(navController, loginViewModel, uid) { base64Map ->
+                        loginViewModel.uploadDocumentsToDatabase(base64Map)
+                    }
+                }
+
                 composable("otp_verification/{phone}") { backStackEntry ->
                     val phoneNumber = backStackEntry.arguments?.getString("phone") ?: ""
                     OTPVerificationScreen(
@@ -332,7 +350,13 @@ fun MyApp(
                         )
                     }
                 }
-                composable(DrawerItem.VehicleDetails.route) { VehicleDetailsScreen(loginViewModel,assignVehicleId,userRole) }
+                composable(DrawerItem.VehicleDetails.route) {
+                    VehicleDetailsScreen(
+                        loginViewModel,
+                        assignVehicleId,
+                        userRole
+                    )
+                }
                 composable(DrawerItem.Message.route) { MessageScreen() }
                 composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }

@@ -10,7 +10,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
@@ -79,13 +82,13 @@ fun FindVehicleScreen(
     val activity = context as? MainActivity
 
     val selectedDriverId = remember { mutableStateOf<String?>(null) }
+    val paymentAmountInPaise = 10000 // ₹100
 
-    // Set Razorpay callbacks
+    // Razorpay Callbacks Setup
     LaunchedEffect(Unit) {
         activity?.onPaymentSuccessCallback = { paymentData ->
             onPaymentSuccess(paymentData)
-            selectedDriverId.value.let { driverId ->
-                // complete payment then send request
+            selectedDriverId.value?.let { driverId ->
                 val currentDate = LocalDate.now()
                 val paymentDate = currentDate.format(DateTimeFormatter.ISO_DATE)
                 val expireDate = currentDate.plusYears(1).format(DateTimeFormatter.ISO_DATE)
@@ -93,14 +96,15 @@ fun FindVehicleScreen(
                 viewModel.updatePaymentStatus(
                     id = userId.toInt(),
                     transactionId = paymentData.paymentId ?: "TXN",
-                    amount = "500.00",
+                    amount = paymentAmountInPaise.toString(),
                     paymentStatus = "Paid",
                     expireDate = expireDate,
                     paymentDate = paymentDate,
                     assignStatus = "Assigned",
                     assignDate = paymentDate
                 )
-                viewModel.sendAssignRequest(driverId.toString(), userId)
+
+                viewModel.sendAssignRequest(driverId, userId)
             }
         }
 
@@ -112,16 +116,16 @@ fun FindVehicleScreen(
 
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf("By School", "By Mobile No.")
-    val paymentAmountInPaise = 50000 // ₹500 in paise
 
-    Scaffold { padding ->
+    Scaffold { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(padding)
+                .fillMaxSize()
+                .padding(paddingValues)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Tab Navigation
             TabRow(selectedTabIndex = selectedTabIndex) {
                 tabTitles.forEachIndexed { index, title ->
                     Tab(
@@ -134,6 +138,7 @@ fun FindVehicleScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Tab Content
             when (selectedTabIndex) {
                 0 -> FindBySchoolSection(
                     viewModel = viewModel,
@@ -141,11 +146,7 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(
-                                context,
-                                "Unable to start payment.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
                     }
                 )
 
@@ -155,12 +156,8 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(
-                                context,
-                                "Unable to start payment.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                    },
+                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
+                    }
                 )
             }
         }
@@ -558,120 +555,6 @@ fun DriverCard(
                         if (!isLoading) {
                             //    startPayment(driver.id) // Just pass driver ID
                             onStartPayment(driver.id)
-                        }
-                    },
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(Icons.Default.Send, contentDescription = "Send Request")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DriverCardMob(
-    driver: DriverMob,
-    viewModel: AuthViewModel,
-    userId: String,
-    onStartPayment: (String) -> Unit,
-) {
-    val context = LocalContext.current
-    val isLoading = viewModel.isLoading
-    val assignResponse by viewModel.assignRequestResponse.collectAsState()
-
-    LaunchedEffect(assignResponse) {
-        assignResponse?.let {
-            Toast.makeText(context, it.message ?: "Request Sent", Toast.LENGTH_SHORT).show()
-            viewModel.clearResponses()
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.Top,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            AsyncImage(
-                model = "https://avschoolerp.com/${driver.profilePicture}",
-                contentDescription = "Driver Avatar",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
-                    .padding(4.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = driver.driverName.toString(), fontWeight = FontWeight.Bold)
-                Text(text = driver.number.toString(), style = MaterialTheme.typography.bodyMedium)
-                driver.vehicleNumber?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium)
-                }
-
-                // ✅ Vehicle Photo Preview (Max 3)
-                val vehiclePhotos = driver.photoOfVehicle
-                    ?.split(",") // Split by comma
-                    ?.filter { it.isNotBlank() } // Remove empty entries
-                    ?.take(3) // Only take first 3 photos
-                    ?: emptyList()
-
-                if (vehiclePhotos.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Vehicle Photos:", style = MaterialTheme.typography.labelSmall)
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        vehiclePhotos.forEach { photoPath ->
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data("https://avschoolerp.com/$photoPath")
-                                    .crossfade(true)
-                                    .placeholder(R.drawable.placeholder_image)
-                                    .error(R.drawable.placeholder_image)
-                                    .build(),
-                                contentDescription = "Vehicle Photo",
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:${driver.number}")
-                    }
-                    context.startActivity(intent)
-                }) {
-                    Icon(Icons.Default.Call, contentDescription = "Call Driver")
-                }
-
-                IconButton(
-                    onClick = {
-                        if (!isLoading) {
-                            //    startPayment(driver.id) // Just pass driver ID
-                            onStartPayment(driver.id.toString())
                         }
                     },
                     enabled = !isLoading

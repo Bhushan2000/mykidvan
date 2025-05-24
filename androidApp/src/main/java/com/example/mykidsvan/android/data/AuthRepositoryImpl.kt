@@ -7,7 +7,8 @@ import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
-import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolDriverRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolParentRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
@@ -18,7 +19,7 @@ import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
-import com.example.mykidsvan.android.data.dto.response.Driver
+import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
@@ -26,7 +27,6 @@ import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
-import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
@@ -356,7 +356,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolRequest(vehiclesId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolDriverRequest(vehiclesId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
         return api.driverSchoolOnRegister(request)
     }
 
@@ -370,7 +370,27 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolRequest(parentId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolParentRequest(parentId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
         return api.parentSchoolOnRegister(request)    }
 
+    override suspend fun uploadDocumentsToDatabase(
+        id: String,
+        profile_picture: String,
+        adhar_number: String,
+        driver_license: String,
+        insurance_detail: String,
+        fitness_certificat: String,
+        photo_of_vehicle: String
+    ): DocumentUploadResponse{
+        val request = mapOf(
+            "id" to id,
+            "profile_picture" to profile_picture,
+            "adhar_number" to adhar_number,
+            "driver_license" to driver_license,
+            "insurance_details" to insurance_detail,
+            "fitness_certificate" to fitness_certificat,
+            "photo_of_vehicle" to photo_of_vehicle
+        )
+        return api.uploadDocumentsToDatabase(request)
+    }
 }

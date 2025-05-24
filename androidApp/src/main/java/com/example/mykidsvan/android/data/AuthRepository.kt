@@ -6,6 +6,7 @@ import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
+import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
@@ -121,7 +122,7 @@ interface AuthRepository {
         availabilityStatus: String,
         termsAccepted: String,
         referalCode: String,
-        referby:String
+        referby: String
     ): RegistrationResponse
 
     suspend fun registerParent(
@@ -142,7 +143,7 @@ interface AuthRepository {
         numberOfChildren: String,
         emergencyContact: String,
         termsAccepted: String,
-        refralCode:String,
+        refralCode: String,
         refralby: String
     ): RegistrationResponse
 
@@ -238,4 +239,14 @@ interface AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse
+
+    suspend fun uploadDocumentsToDatabase(
+        id: String,
+        profile_picture: String,
+        adhar_number: String,
+        driver_license: String,
+        insurance_detail: String,
+        fitness_certificat: String,
+        photo_of_vehicle: String
+    ): DocumentUploadResponse
 }

@@ -7,7 +7,8 @@ import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
-import com.example.mykidsvan.android.data.dto.request.RegisterSchoolRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolDriverRequest
+import com.example.mykidsvan.android.data.dto.request.RegisterSchoolParentRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.example.mykidsvan.android.data.dto.request.SendLatLongRequest
@@ -18,7 +19,7 @@ import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
-import com.example.mykidsvan.android.data.dto.response.Driver
+import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
@@ -26,7 +27,6 @@ import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
-import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
@@ -162,11 +162,14 @@ interface AuthApi {
 
     @POST("index.php/api/AccountsController/school_vehicles")
     suspend fun driverSchoolOnRegister(
-        @Body request : RegisterSchoolRequest
+        @Body request : RegisterSchoolDriverRequest
     ): RegisterSchoolResponse
 
     @POST("index.php/api/AccountsController/school")
     suspend fun parentSchoolOnRegister(
-        @Body request : RegisterSchoolRequest
+        @Body request : RegisterSchoolParentRequest
     ): RegisterSchoolResponse
+
+    @PUT("index.php/api/AccountsController/update_images")
+    suspend fun uploadDocumentsToDatabase(@Body request: Map<String, String>): DocumentUploadResponse
 }
