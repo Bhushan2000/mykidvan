@@ -2,9 +2,12 @@ package com.example.mykidsvan.android.screens
 
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -12,68 +15,57 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
-import com.example.mykidsvan.android.R
-import kotlinx.coroutines.CoroutineStart
-import android.util.Base64
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.border
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.Parent
+import com.example.mykidsvan.android.utils.Constants
 import kotlinx.coroutines.delay
 
 @Composable
@@ -101,6 +93,14 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
 
     val isUpdating by viewModel.isProfileUpdating.collectAsState()
     val updateMessage by viewModel.updateMessage.collectAsState()
+
+    val stateOptions by viewModel.stateOptions.collectAsState()
+    val districtOptions by viewModel.districtOptions.collectAsState()
+    val talukaOptions by viewModel.talukaOptions.collectAsState()
+    val selectedState by viewModel.selectedState.collectAsState()
+    val selectedDistrict by viewModel.selectedDistrict.collectAsState()
+    val selectedTaluka by viewModel.selectedTaluka.collectAsState()
+
 
     // Gallery launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -167,7 +167,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                 Box(contentAlignment = Alignment.TopEnd) {
                                     ProfileImage(
                                         imageUrl = profileImageUri?.toString()
-                                            ?: "https://mykidvan.com/${(data as? Driver)?.profile_picture}"
+                                            ?: "${Constants.BASE_URL}${(data as? Driver)?.profile_picture}"
                                     )
 
                                     if (isEditing) {
@@ -216,6 +216,12 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                 Button(
                                     onClick = {
                                         if (isEditing) {
+                                            val selectedStateName =
+                                                selectedState?.id ?: ""
+                                            val selectedDistrictName =
+                                                selectedDistrict?.id ?: ""
+                                            val selectedTalukaName =
+                                                selectedTaluka?.id ?: ""
                                             // Save logic - you can pass all fields and imageUri to ViewModel
                                             viewModel.updateProfile(
                                                 context = context,
@@ -228,9 +234,9 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 schoolName = schoolName,
                                                 mobile = mobileNumber,
                                                 vehicle = vehicleNumber,
-                                                state = state,
-                                                district = district,
-                                                taluka = taluka,
+                                                state = selectedStateName,
+                                                district = selectedDistrictName,
+                                                taluka = selectedTalukaName,
                                                 city = city,
                                                 imageUri = profileImageUri
                                             )
@@ -265,10 +271,17 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                         is Parent -> {
                                             if (isEditing) {
                                                 EditableField("Parent Name", name) { name = it }
-                                                EditableField("Contact Number", contact) { contact = it }
+                                                EditableField("Contact Number", contact) {
+                                                    contact = it
+                                                }
                                                 EditableField("Address", address) { address = it }
-                                                EditableField("Child Name", childName) { childName = it }
-                                                EditableField("School Name", schoolName) { schoolName = it }
+                                                EditableField("Child Name", childName) {
+                                                    childName = it
+                                                }
+                                                EditableField(
+                                                    "School Name",
+                                                    schoolName
+                                                ) { schoolName = it }
                                             } else {
                                                 ProfileDetailRow("Parent Name", name)
                                                 ProfileDetailRow("Contact Number", contact)
@@ -281,13 +294,59 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                         is Driver -> {
                                             if (isEditing) {
                                                 EditableField("Driver Name", name) { name = it }
-                                                EditableField("Mobile Number", mobileNumber) { mobileNumber = it }
-                                                EditableField("Vehicle Number", vehicleNumber) { vehicleNumber = it }
-                                                EditableField("State", state) { state = it }
-                                                EditableField("District", district) { district = it }
-                                                EditableField("Taluka", taluka) { taluka = it }
+                                                EditableField(
+                                                    "Mobile Number",
+                                                    mobileNumber
+                                                ) { mobileNumber = it }
+                                                EditableField(
+                                                    "Vehicle Number",
+                                                    vehicleNumber
+                                                ) { vehicleNumber = it }
+                                                 /*EditableField("State", state) { state = it }
+                                                 EditableField("District", district) { district = it }
+                                                 EditableField("Taluka", taluka) { taluka = it }*/
+                                                DropdownField(
+                                                    label = "Select State",
+                                                    selectedValue = selectedState?.state_name ?: "",
+                                                    options = stateOptions.map { it.state_name },
+                                                    onValueChange = { selectedName ->
+                                                        stateOptions.find { it.state_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onStateSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                                DropdownField(
+                                                    label = "Select District",
+                                                    selectedValue = selectedDistrict?.district_name
+                                                        ?: "",
+                                                    options = districtOptions.map { it.district_name },
+                                                    onValueChange = { selectedName ->
+                                                        districtOptions.find { it.district_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onDistrictSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                                DropdownField(
+                                                    label = "Select Taluka",
+                                                    selectedValue = selectedTaluka?.taluka_name
+                                                        ?: "",
+                                                    options = talukaOptions.map { it.taluka_name },
+                                                    onValueChange = { selectedName ->
+                                                        talukaOptions.find { it.taluka_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onTalukaSelected(it)
+                                                            }
+                                                    }
+                                                )
+
                                                 EditableField("City", city) { city = it }
-                                                EditableField("School", schoolName) { schoolName = it }
+                                                EditableField("School", schoolName) {
+                                                    schoolName = it
+                                                }
                                             } else {
                                                 ProfileDetailRow("Driver Name", name)
                                                 ProfileDetailRow("Mobile Number", mobileNumber)
@@ -323,6 +382,11 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
             }
         }
     }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetSchoolRegistrationDropDowns()
+        }
+    }
 }
 
 
@@ -332,7 +396,8 @@ fun EditableField(label: String, value: String, onValueChange: (String) -> Unit)
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
     )
 }
 
@@ -384,25 +449,32 @@ fun ProfileImage(imageUrl: String?) {
 
 @Composable
 fun ProfileDetailRow(title: String, value: String?) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
+            text = title.uppercase(), // Optional: uppercase for better distinction
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            ),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
         Text(
             text = value ?: "N/A",
             style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurface
-            )
+            ),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
         )
     }
 }
+

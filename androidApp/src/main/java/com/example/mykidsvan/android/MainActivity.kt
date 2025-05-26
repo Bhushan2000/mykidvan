@@ -54,10 +54,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.screens.AssignedStudentScreen
 import com.example.mykidsvan.android.screens.AssignedVehicleScreen
@@ -85,6 +87,9 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
 import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
@@ -177,7 +182,8 @@ fun MyApp(
         "splash",
         "otp_verification/{phone}",
         "update_password/{phone}",
-        "schoolOnRegistration/{uid}"
+        "schoolOnRegistration/{uid}/{role}",
+        "fileupload/{uid}"
     )
 
     // Handle navigation with ModalNavigationDrawer and NavHost
@@ -202,6 +208,7 @@ fun MyApp(
                             DrawerItem.VehicleDetails,
                             DrawerItem.RegisterSchool,
                             DrawerItem.Message,
+                            DrawerItem.ReferApp,
                             DrawerItem.SupportHelp
                         )
 
@@ -248,13 +255,20 @@ fun MyApp(
             ) {
                 composable("splash") { SplashScreen(navController) }
                 composable("login") { LoginScreen(navController, loginViewModel) }
-                composable("schoolOnRegistration/{uid}") { navBackStackEntry ->
+                composable(
+                    route ="schoolOnRegistration/{uid}/{role}",
+                    arguments = listOf(
+                    navArgument("uid") { type = NavType.StringType },
+                    navArgument("role") { type = NavType.StringType }
+                )) { navBackStackEntry ->
                     val uid = navBackStackEntry.arguments?.getString("uid") ?: ""
+                    val role = navBackStackEntry.arguments?.getString("role")
+
                     SchoolOnRegistrationScreen(
                         navController,
                         loginViewModel,
                         uid,
-                        userRole
+                        role
                     )
                 }
                 composable("fileupload/{uid}") { backStackEntry ->
@@ -321,7 +335,7 @@ fun MyApp(
                         loginViewModel
                     )
                 }
-                composable(DrawerItem.ReferApp.route) { ReferAppScreen() }
+                composable(DrawerItem.ReferApp.route) { ReferAppScreen(loginViewModel) }
                 composable(DrawerItem.FindVehicle.route) {
                     userId?.let { it1 ->
                         FindVehicleScreen(
@@ -372,12 +386,16 @@ fun MyApp(
                             onClick = {
                                 showLogoutDialog = false
 
+                                loginViewModel.resetLoginState()  // Reset the login state to avoid automatic redirection
                                 // Clear user session or token and reset login state
                                 loginViewModel.logout()
-                                loginViewModel.resetLoginState()  // Reset the login state to avoid automatic redirection
 
-                                navController.navigate("login") {
-                                    popUpTo(0) { inclusive = true }  // Clear the entire backstack
+                                // Add slight delay to ensure state flows are reset
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    delay(100) // 100ms
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             }
                         ) {

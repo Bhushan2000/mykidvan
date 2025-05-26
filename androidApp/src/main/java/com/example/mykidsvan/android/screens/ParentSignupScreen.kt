@@ -365,12 +365,12 @@ fun ParentSignupScreen(
             // Referral Code UI
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                "Your Referral Code: ${referralCode.value}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-
+            /*          Text(
+                          "Your Referral Code: ${referralCode.value}",
+                          fontSize = 16.sp,
+                          fontWeight = FontWeight.Bold
+                      )
+          */
             Spacer(modifier = Modifier.height(8.dp))
 
             // Row for Referral Code input and Apply button
@@ -407,9 +407,11 @@ fun ParentSignupScreen(
                     },
                     modifier = Modifier
                         .height(50.dp)
-                        .padding(start = 8.dp) // Optional, to add some spacing between elements
+                        .padding(start = 8.dp), // Optional, to add some spacing between elements
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
                 ) {
-                    Text(text = "Apply", color = Color.White)
+                    Text(text = "Verify", color = Color.White)
                 }
             }
 
@@ -476,49 +478,55 @@ fun ParentSignupScreen(
                         color = Color.White, strokeWidth = 2.dp
                     )
                 } else {
-                    Text(text = "Register", color = Color.White)
+                    Text(text = "Next", color = Color.White)
                 }
             }
 
             // Collecting registration success or failure state
             val registrationSuccess by viewModel.parentRegistrationSuccess.collectAsState()
 
-            LaunchedEffect(registrationSuccess) {
-                if (registrationSuccess?.status == true) {
-                    isLoading = false
-                    parentName.value = ""
-                    contactNumber.value = ""
-                    state.value = ""
-                    district.value = ""
-                    taluka.value = ""
-                    city.value = ""
-                    address.value = ""
-                    childName.value = ""
-                    childClass.value = ""
-                    schoolName.value = ""
-                    childDateOfBirth.value = ""
-                    pickupLocation.value = ""
-                    dropOffLocation.value = ""
-                    numberOfChildren.value = ""
-                    emergencyContact.value = ""
-                    termsAccepted.value = false
-                    Toast.makeText(context, "Parent Registration Successful!", Toast.LENGTH_SHORT)
-                        .show()
-                    // to add school
-                    val uid = registrationSuccess!!.id.toString()
-                    navController.navigate("schoolOnRegistration/$uid")
+            LaunchedEffect(registrationSuccess?.status) {
+                registrationSuccess?.let { result ->
+                    isLoading = false  // Always stop loading when we get a result
+                    if (result.status == true) {
+                        // Reset form fields
+                        parentName.value = ""
+                        contactNumber.value = ""
+                        state.value = ""
+                        district.value = ""
+                        taluka.value = ""
+                        city.value = ""
+                        address.value = ""
+                        childName.value = ""
+                        childClass.value = ""
+                        schoolName.value = ""
+                        childDateOfBirth.value = ""
+                        pickupLocation.value = ""
+                        dropOffLocation.value = ""
+                        numberOfChildren.value = ""
+                        emergencyContact.value = ""
+                        termsAccepted.value = false
 
-                // Navigate to the login screen
-                } else {
-                    isLoading = false  // Stop loading if failed or UI remains unchanged
+                        Toast.makeText(context, "Parent Registration Successful!", Toast.LENGTH_SHORT).show()
+
+                        // Navigate to next screen
+                        val uid = result.id.toString()
+                        val role = "parent"
+                        navController.navigate("schoolOnRegistration/$uid/$role")
+                    } else {
+                        // 🔁 Reset the result so next click can trigger this again
+                        viewModel.resetDriverRegistrationResult()
+                    }
                 }
             }
+
 
         }
     }
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()
+            viewModel.resetDriverRegistrationResult()
         }
     }
 }

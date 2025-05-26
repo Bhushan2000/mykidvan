@@ -39,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,12 +51,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.authapp.presentation.viewmodel.AuthViewModel
 
 @Composable
-fun ReferAppScreen() {
+fun ReferAppScreen(viewModel: AuthViewModel) {
     val isConfettiVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val referralCode = "ABC123"
+    val referCode by viewModel.referCode.collectAsState()
+
+    val referralCode = referCode.toString()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -87,8 +91,7 @@ fun ReferAppScreen() {
                     .padding(8.dp)
                     .scale(scale),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
-            ) {
+             ) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)

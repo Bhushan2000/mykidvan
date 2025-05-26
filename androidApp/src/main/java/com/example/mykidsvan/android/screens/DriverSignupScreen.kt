@@ -244,19 +244,19 @@ fun DriverSignupScreen(
                     .height(64.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle("Documents Upload")
-
-            FileUploadField("Upload Aadhar Photo", aadharPhoto) { aadharPhoto = it }
-            FileUploadField("Upload Driver's License Photo", licensePhoto) { licensePhoto = it }
-            FileUploadField("Upload Insurance Details Photo", insurancePhoto) {
-                insurancePhoto = it
-            }
-            FileUploadField("Upload Fitness Certificate", fitnessCertificate) {
-                fitnessCertificate = it
-            }
-            FileUploadField("Upload Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
-            FileUploadField("Upload Profile Picture", profilePicture) { profilePicture = it }
+//            Spacer(modifier = Modifier.height(16.dp))
+//            SectionTitle("Documents Upload")
+//
+//            FileUploadField("Upload Aadhar Photo", aadharPhoto) { aadharPhoto = it }
+//            FileUploadField("Upload Driver's License Photo", licensePhoto) { licensePhoto = it }
+//            FileUploadField("Upload Insurance Details Photo", insurancePhoto) {
+//                insurancePhoto = it
+//            }
+//            FileUploadField("Upload Fitness Certificate", fitnessCertificate) {
+//                fitnessCertificate = it
+//            }
+//            FileUploadField("Upload Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
+//            FileUploadField("Upload Profile Picture", profilePicture) { profilePicture = it }
 
             Spacer(modifier = Modifier.height(16.dp))
             SectionTitle("Vehicle Details")
@@ -336,11 +336,11 @@ fun DriverSignupScreen(
             // Referral Code UI
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                "Your Referral Code: ${referralCode.value}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+//            Text(
+//                "Your Referral Code: ${referralCode.value}",
+//                fontSize = 16.sp,
+//                fontWeight = FontWeight.Bold
+//            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -378,9 +378,11 @@ fun DriverSignupScreen(
                     },
                     modifier = Modifier
                         .height(50.dp)
-                        .padding(start = 8.dp) // Optional, to add some spacing between elements
+                        .padding(start = 8.dp), // Optional, to add some spacing between elements
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
                 ) {
-                    Text(text = "Apply", color = Color.White)
+                    Text(text = "Verify", color = Color.White)
                 }
             }
 
@@ -450,7 +452,7 @@ fun DriverSignupScreen(
                         modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Register", color = Color.White)
+                    Text("Next", color = Color.White)
                 }
             }
 
@@ -460,9 +462,12 @@ fun DriverSignupScreen(
                 if (registrationSuccess?.status == true) {
                     isLoading = false
                     val uid = registrationSuccess?.id.toString()
-                    navController.navigate("schoolOnRegistration/$uid")  // Navigate to the login screen
+                    val role = "driver"  // or any other value
+                    navController.navigate("schoolOnRegistration/$uid/$role")
                 } else {
                     isLoading = false
+                    // 🔁 Reset the result so next click can trigger this again
+                    viewModel.resetDriverRegistrationResult()
                 }
             }
         }

@@ -47,7 +47,8 @@ data class UserSessionData(
     val userId: String?,
     val userRole: String?,
     val assignVehicleId: String?,
-    val status: String?
+    val status: String?,
+    val referCode:String?
 )
 
 class AuthViewModel(
@@ -138,6 +139,9 @@ class AuthViewModel(
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
 
+    private val _referCode = MutableStateFlow<String?>(null)
+    val referCode: StateFlow<String?> = _referCode
+
     private val _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
@@ -145,33 +149,41 @@ class AuthViewModel(
     val vehicleStatus: StateFlow<String?> = _vehicleStatus
 
     init {
+        val combined = combine(
+            userPreferences.isLoggedInFlow,
+            userPreferences.userIdFlow,
+            userPreferences.userRole,
+            userPreferences.assignVehicleIdFlow,
+            userPreferences.statusFlow
+        ) { isLoggedIn, id, role, vehicleId, status ->
+            arrayOf(isLoggedIn, id, role, vehicleId, status)
+        }
+
         viewModelScope.launch {
-            combine(
-                userPreferences.isLoggedInFlow,
-                userPreferences.userIdFlow,
-                userPreferences.userRole,
-                userPreferences.assignVehicleIdFlow,
-                userPreferences.statusFlow
-            ) { isLoggedIn, id, role, vehicleId, status ->
+            combine(combined, userPreferences.referCode) { array, referCode ->
                 UserSessionData(
-                    isLoggedIn = isLoggedIn,
-                    userId = id,
-                    userRole = role,
-                    assignVehicleId = vehicleId,
-                    status = status
+                    isLoggedIn = array[0] as Boolean,
+                    userId = array[1] as String?,
+                    userRole = array[2] as String?,
+                    assignVehicleId = array[3] as String?,
+                    status = array[4] as String?,
+                    referCode = referCode
                 )
             }.collect { session ->
+                // same as above...
                 if (session.isLoggedIn) {
                     _loginState.value = LoginState(success = true, message = "Welcome Back!")
                     _userId.value = session.userId
                     _userRole.value = session.userRole
                     _assignedVehicleId.value = session.assignVehicleId
                     _vehicleStatus.value = session.status
+                    _referCode.value = session.referCode
 
                     session.userId?.let { loadAllRequests(it) }
                 }
             }
         }
+
 
         loadStateOptions()
         loadAllSchools()
@@ -284,7 +296,7 @@ class AuthViewModel(
                                 userPreferences.saveLoginState(true)  // Save login state
 
                                 userPreferences.saveLoginUserDetails(
-                                    driverData.id, driverData.driver_name, it
+                                    driverData.id, driverData.driver_name, it, driverData.refer_id.toString()
                                 )
                             }
 
@@ -300,9 +312,11 @@ class AuthViewModel(
 
                                 parentData.id?.let { it1 ->
                                     parentData.parentName?.let { it2 ->
-                                        userPreferences.saveLoginUserDetails(
-                                            it1, it2, it
-                                        )
+                                        parentData.referId?.let { refer_code ->
+                                            userPreferences.saveLoginUserDetails(
+                                                it1, it2, it,refer_code
+                                            )
+                                        }
                                     }
                                 }
                                 parentData.vehicleId?.let { it1 ->
@@ -400,7 +414,7 @@ class AuthViewModel(
         }
     }
 
-    fun onSchoolSelected(school: School) {
+    fun onSchoolSelected(school: School?) {
         _selectedSchool.value = school
     }
 
@@ -544,7 +558,7 @@ class AuthViewModel(
                 val response = repository.getSchools(stateId, districtId, talukaId)
                 _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                     School(
-                        id = "", schoolName = "No data found", "", "", "", "", "", ""
+                        id = "", schoolName = "Other", "", "", "", "", "", ""
                     )
                 )
                 Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
@@ -701,6 +715,9 @@ class AuthViewModel(
             Log.e("AuthViewModel", "Driver Registration failed", e)
         }
     }
+    fun resetDriverRegistrationResult() {
+        _driverRegistrationSuccess.value = null
+    }
 
     fun registerParent(
         parentName: String,
@@ -755,6 +772,9 @@ class AuthViewModel(
         }
     }
 
+    fun resetParentRegistrationResult() {
+        _parentRegistrationSuccess.value = null
+    }
     fun registerSchool(schoolRegistrationRequest: SchoolRegistrationRequest) =
         viewModelScope.launch {
             try {

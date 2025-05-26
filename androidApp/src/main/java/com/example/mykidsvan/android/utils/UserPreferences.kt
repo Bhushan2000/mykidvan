@@ -21,6 +21,7 @@ class UserPreferences(context: Context) {
         private val USER_ROLE = stringPreferencesKey("user_role")
         private val ASSIGNED_VEHICLE_ID = stringPreferencesKey("assign_vehicle_id")
         private val STATUS = stringPreferencesKey("status")
+        private val REFER_CODE = stringPreferencesKey("refer_code")
 
     }
 
@@ -29,12 +30,13 @@ class UserPreferences(context: Context) {
         dataStore.edit { prefs -> prefs[IS_LOGGED_IN] = isLoggedIn }
     }
 
-    suspend fun saveLoginUserDetails(id: String, name: String,role:String) {
+    suspend fun saveLoginUserDetails(id: String, name: String,role:String,refer_code: String) {
         dataStore.edit { prefs ->
             prefs[IS_LOGGED_IN] = true
             prefs[USER_ID] = id
             prefs[USER_NAME] = name
             prefs[USER_ROLE] = role
+            prefs[REFER_CODE] = refer_code
         }
     }
 
@@ -69,5 +71,7 @@ class UserPreferences(context: Context) {
     val userIdFlow: Flow<String?> = dataStore.data.map { it[USER_ID] }
 
     val userRole:Flow<String?> = dataStore.data.map { it[USER_ROLE] }
+
+    val referCode:Flow<String?> = dataStore.data.map { it[REFER_CODE] }
 
 }

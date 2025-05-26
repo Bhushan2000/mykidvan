@@ -62,6 +62,9 @@ data class ParentData(
     @SerializedName("assign_status") var assignStatus: String? = null,
     @SerializedName("assign_date") var assignDate: String? = null,
     @SerializedName("vehicle_id") var vehicleId: String? = null,
-    @SerializedName("status") var status: String? = null
+    @SerializedName("status") var status: String? = null,
+    @SerializedName("refer_id") var referId: String? = null,
+    @SerializedName("refer_by") var referBy: String? = null,
+
 
 )

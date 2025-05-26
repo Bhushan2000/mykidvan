@@ -63,6 +63,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.maptracking.LatLngViewModel
 import com.example.mykidsvan.android.R
@@ -112,14 +113,9 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     currentLocation.value = latLng
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder()
-                                .target(latLng)
-                                .zoom(20f)
-                                .tilt(45f)
-                                .bearing(0f)
+                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
                                 .build()
-                        ),
-                        durationMs = 1000
+                        ), durationMs = 1000
                     )
                     viewModel.startTracking()
                 }
@@ -133,8 +129,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         val locationRequest = LocationRequest.create().apply {
             priority = Priority.PRIORITY_HIGH_ACCURACY
         }
-        val builder = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest)
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
             .setAlwaysShow(true)
         val client = LocationServices.getSettingsClient(context)
         val task = client.checkLocationSettings(builder.build())
@@ -147,14 +142,9 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     currentLocation.value = latLng
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder()
-                                .target(latLng)
-                                .zoom(20f)
-                                .tilt(45f)
-                                .bearing(0f)
+                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
                                 .build()
-                        ),
-                        durationMs = 1000
+                        ), durationMs = 1000
                     )
                     /////////////// start the service  //////////////////////////////
                     viewModel.startTrackingService(context)
@@ -202,12 +192,11 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
     LaunchedEffect(userRole, assignedVehicleId, vehicleTrackingStatus) {
         if (userRole == "parent") {
             if (!assignedVehicleId.isNullOrBlank() && vehicleTrackingStatus.equals(
-                    "accepted",
-                    ignoreCase = true
+                    "accepted", ignoreCase = true
                 )
             ) {
                 if (!isTracking) {
-                     viewModel.startTracking()
+                    viewModel.startTracking()
                 }
             } else {
                 if (isTracking) {
@@ -229,14 +218,9 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     currentLocation.value = latLng
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder()
-                                .target(latLng)
-                                .zoom(20f)
-                                .tilt(45f)
-                                .bearing(0f)
+                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
                                 .build()
-                        ),
-                        durationMs = 1000
+                        ), durationMs = 1000
                     )
                 }
             }
@@ -342,8 +326,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         } else null // Default Google Map Light style
     }
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) {
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) {
         Box(Modifier.fillMaxSize()) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -353,8 +336,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     isMyLocationEnabled = locationPermissionState.status.isGranted,
                     mapStyleOptions = mapStyleOptions
                 )
-            )
-            /* GoogleMap(
+            )/* GoogleMap(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(16.dp)), // Optional map with rounded corners
@@ -439,33 +421,56 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             }
 
             // 🚫 Parent – show driver not assigned message
-            if (userRole == "parent" &&
-                (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
-                    "accepted",
-                    ignoreCase = true
+            if (userRole == "parent" && (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
+                    "accepted", ignoreCase = true
                 ))
             ) {
-                Text(
-                    text = "Driver not assigned",
-                    color = Color.Red,
-                    fontSize = 16.sp,
+
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
-                        .padding(12.dp)
-                )
+                        .fillMaxSize(), // Fills the whole screen
+                    contentAlignment = Alignment.Center // Centers the inner content
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp) // This adds margin around the whole message
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(
+                                    Color.White.copy(alpha = 0.8f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No Vehicle Assigned Yet",
+                                color = Color.Red,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = "Please send a request to your driver to assign a vehicle for tracking to begin",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
             }
-
-
         }
     }
 }
 
 fun bitmapDescriptorFromVector(
-    context: Context,
-    @DrawableRes vectorResId: Int,
-    width: Int = 100,
-    height: Int = 100
+    context: Context, @DrawableRes vectorResId: Int, width: Int = 100, height: Int = 100
 ): BitmapDescriptor {
     val vectorDrawable = ContextCompat.getDrawable(context, vectorResId)!!
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -477,7 +482,6 @@ fun bitmapDescriptorFromVector(
 
 fun isLocationPermissionGranted(context: android.content.Context): Boolean {
     return ActivityCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
+        context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
 }

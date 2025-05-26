@@ -66,6 +66,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.mykidsvan.android.MainActivity
 import com.example.mykidsvan.android.data.dto.response.DriverMob
+import com.example.mykidsvan.android.utils.Constants
 import com.razorpay.PaymentData
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -146,7 +147,11 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
+                            ?: Toast.makeText(
+                                context,
+                                "Unable to start payment.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                     }
                 )
 
@@ -156,7 +161,11 @@ fun FindVehicleScreen(
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
                         activity?.startPayment(paymentAmountInPaise)
-                            ?: Toast.makeText(context, "Unable to start payment.", Toast.LENGTH_SHORT).show()
+                            ?: Toast.makeText(
+                                context,
+                                "Unable to start payment.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                     }
                 )
             }
@@ -379,7 +388,7 @@ fun FindBySchoolSection(
                 stateOptions.find { it.state_name == name }?.let { viewModel.onStateSelected(it) }
             }
         )
-
+        Spacer(modifier = Modifier.height(16.dp))
         DropdownField(
             label = "District",
             selectedValue = selectedDistrict?.district_name.orEmpty(),
@@ -389,6 +398,7 @@ fun FindBySchoolSection(
                     ?.let { viewModel.onDistrictSelected(it) }
             }
         )
+        Spacer(modifier = Modifier.height(16.dp))
 
         DropdownField(
             label = "Taluka",
@@ -399,6 +409,7 @@ fun FindBySchoolSection(
                     ?.let { viewModel.onTalukaSelected(it) }
             }
         )
+        Spacer(modifier = Modifier.height(16.dp))
 
         DropdownField(
             label = "School",
@@ -486,7 +497,7 @@ fun DriverCard(
             modifier = Modifier.padding(16.dp)
         ) {
             AsyncImage(
-                model = "https://avschoolerp.com/${driver.profile_picture}",
+                model = "${Constants.BASE_URL}${driver.profile_picture}",
                 contentDescription = "Driver Avatar",
                 modifier = Modifier
                     .size(48.dp)
@@ -500,7 +511,11 @@ fun DriverCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = driver.driver_name, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(text = driver.number, style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 driver.vehicle_number?.let {
                     Text(text = it, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -524,7 +539,7 @@ fun DriverCard(
                         vehiclePhotos.forEach { photoPath ->
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data("https://avschoolerp.com/$photoPath")
+                                    .data("${Constants.BASE_URL}$photoPath")
                                     .crossfade(true)
                                     .placeholder(R.drawable.placeholder_image)
                                     .error(R.drawable.placeholder_image)

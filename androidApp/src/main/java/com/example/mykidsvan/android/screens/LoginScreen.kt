@@ -354,7 +354,7 @@ fun LoginScreen(
                             .height(50.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Driver Signup", color = Color.LightGray)
+                        Text("Driver Signup", color = Color.Gray)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

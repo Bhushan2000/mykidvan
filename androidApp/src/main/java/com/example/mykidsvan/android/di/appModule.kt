@@ -6,8 +6,9 @@ package com.example.mykidsvan.android.di
  import com.example.mykidsvan.android.data.AuthRepository
 import com.example.mykidsvan.android.data.AuthApi
 import com.example.mykidsvan.android.data.AuthRepositoryImpl
+ import com.example.mykidsvan.android.utils.Constants
 
-import com.example.mykidsvan.android.utils.UserPreferences
+ import com.example.mykidsvan.android.utils.UserPreferences
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -18,7 +19,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 val appModule = module {
     single<AuthApi> {
         Retrofit.Builder()
-            .baseUrl("https://avschoolerp.com/")
+            .baseUrl(Constants.BASE_URL)
             .client(OkHttpClient.Builder().build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()

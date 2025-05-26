@@ -25,11 +25,14 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.navigation.NavHostController
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadDocumentsScreen(
     navController: NavHostController,
@@ -55,25 +58,31 @@ fun UploadDocumentsScreen(
             }
         }
     }
-    Scaffold(
 
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Upload Documents") })
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            FileUploadFieldDoc("Upload Aadhar Photo", aadharPhoto) { aadharPhoto = it }
-            FileUploadFieldDoc("Upload Driver's License", licensePhoto) { licensePhoto = it }
-            FileUploadFieldDoc("Upload Insurance Photo", insurancePhoto) { insurancePhoto = it }
-            FileUploadFieldDoc(
-                "Upload Fitness Certificate",
-                fitnessCertificate
-            ) { fitnessCertificate = it }
-            FileUploadFieldDoc("Upload Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
-            FileUploadFieldDoc("Upload Profile Picture", profilePicture) { profilePicture = it }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FileUploadFieldDoc("Aadhar Card Photo", aadharPhoto) { aadharPhoto = it }
+            FileUploadFieldDoc("Driver's License", licensePhoto) { licensePhoto = it }
+            FileUploadFieldDoc("Insurance Photo", insurancePhoto) { insurancePhoto = it }
+            FileUploadFieldDoc("Fitness Certificate", fitnessCertificate) {
+                fitnessCertificate = it
+            }
+            FileUploadFieldDoc("Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
+            FileUploadFieldDoc("Profile Picture", profilePicture) { profilePicture = it }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -96,11 +105,13 @@ fun UploadDocumentsScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    .height(52.dp),
+                shape = RoundedCornerShape(20.dp),
             ) {
                 Text("Submit", color = Color.White, fontWeight = FontWeight.Bold)
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -121,6 +132,9 @@ fun FileUploadFieldDoc(
                 imageUri = it
                 val base64 = uriToBase64FileUpload(context, it)
                 onImageUploaded(base64)
+
+                // ✅ Show success toast
+                Toast.makeText(context, "$label uploaded successfully!", Toast.LENGTH_SHORT).show()
             }
         }
     )
@@ -128,35 +142,48 @@ fun FileUploadFieldDoc(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
+            .shadow(2.dp, RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label, style = MaterialTheme.typography.labelLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { imagePickerLauncher.launch("image/*") },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Upload", tint = Color.White)
-                Spacer(Modifier.width(8.dp))
-                Text("Choose Image", color = Color.White)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Button(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Upload", tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Choose Image", color = Color.White)
+                }
+
+                if (imageUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(imageUri),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            if (imageUri != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(imageUri),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            }
         }
     }
 }

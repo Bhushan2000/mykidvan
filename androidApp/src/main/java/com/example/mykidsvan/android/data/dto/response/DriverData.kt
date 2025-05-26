@@ -33,5 +33,7 @@ data class DriverData(
     val username: String?,
     val password: String?,
     val status: String?,
-    val school_id: String?
+    val school_id: String?,
+    val refer_id: String?,
+    val refer_by: String?
 )

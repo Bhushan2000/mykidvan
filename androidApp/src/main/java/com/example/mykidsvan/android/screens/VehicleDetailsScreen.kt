@@ -73,7 +73,7 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
         when {
             assignVehicleId == null -> {
                 Text(
-                    text = "Vehicle Owner not assigned yet",
+                    text = "No vehicle found and No student found.",
                     modifier = Modifier.align(Alignment.Center),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
@@ -111,7 +111,8 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
 
                     OutlinedTextField(
                         value = vehicleNumber.value,
-                        onValueChange = { vehicleNumber.value = it },
+                        onValueChange = {},
+                        readOnly = true,
                         label = { Text("Vehicle Number") },
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
@@ -121,7 +122,8 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
 
                     OutlinedTextField(
                         value = ownerName.value,
-                        onValueChange = { ownerName.value = it },
+                        onValueChange = {},
+                        readOnly = true,
                         label = { Text("Owner Name") },
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
@@ -129,40 +131,21 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                             .height(64.dp)
                     )
 
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = vehicleType.value,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Vehicle Type") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            vehicleTypes.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type) },
-                                    onClick = {
-                                        vehicleType.value = type
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    OutlinedTextField(
+                        value = vehicleType.value,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Vehicle Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
 
                     OutlinedTextField(
                         value = model.value,
-                        onValueChange = { model.value = it },
+                        onValueChange = {},
+                        readOnly = true,
                         label = { Text("Vehicle Model") },
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
@@ -185,5 +168,4 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
         }
     }
 }
-
 
