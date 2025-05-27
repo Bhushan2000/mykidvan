@@ -7,6 +7,8 @@ import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
+import com.example.mykidsvan.android.data.dto.request.ReferByRequest
+import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.RegisterSchoolDriverRequest
 import com.example.mykidsvan.android.data.dto.request.RegisterSchoolParentRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
@@ -172,4 +174,9 @@ interface AuthApi {
 
     @PUT("index.php/api/AccountsController/update_images")
     suspend fun uploadDocumentsToDatabase(@Body request: Map<String, String>): DocumentUploadResponse
+
+    @POST("index.php/api/AccountsController/check_refer_by_status")
+    suspend fun checkReferCode(
+        @Body request:ReferByRequest
+    ): ReferByResponse
 }

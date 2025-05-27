@@ -1,6 +1,7 @@
 package com.example.mykidsvan.android.screens
 
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +62,8 @@ import com.example.mykidsvan.android.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageScreen() {
+    val context = LocalContext.current
+
     var selectedFilter by remember { mutableStateOf("All Parents") }
     val filterOptions = listOf("All Parents", "By Driver", "By Name", "Individual Parent")
     var specificSelection by remember { mutableStateOf("") }
@@ -68,7 +72,7 @@ fun MessageScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-             .padding(16.dp)
+            .padding(16.dp)
     ) {
         // Filter Type Dropdown
         DropdownSelector(
@@ -100,8 +104,7 @@ fun MessageScreen() {
                     onValueChange = { specificSelection = it },
                     label = { Text("Enter Parent Mobile or ID") },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
+                        .fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         focusedBorderColor = Color(0xFF1E88E5),
@@ -127,8 +130,18 @@ fun MessageScreen() {
         Button(
             onClick = {
                 if (messageText.isNotBlank()) {
-                    println("Sending message to $selectedFilter -> $specificSelection: $messageText")
+                    val recipient = when (selectedFilter) {
+                        "All Parents" -> "All"
+                        else -> specificSelection.ifBlank { "Unknown" }
+                    }
+                    Toast.makeText(
+                        context,
+                        "Message sent to $recipient:\n$messageText",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     messageText = ""
+                } else {
+                    Toast.makeText(context, "Message cannot be empty", Toast.LENGTH_SHORT).show()
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
@@ -163,7 +176,6 @@ fun DropdownSelector(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
                     .clickable { expanded = true },
                 trailingIcon = {
                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
@@ -176,7 +188,6 @@ fun DropdownSelector(
                     unfocusedTextColor = colorScheme.onSurface,
                     cursorColor = colorScheme.primary
                 )
-
             )
 
             DropdownMenu(
@@ -192,8 +203,7 @@ fun DropdownSelector(
                         onClick = {
                             onOptionSelected(option)
                             expanded = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        }
                     )
                 }
             }

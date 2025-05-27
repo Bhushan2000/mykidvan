@@ -1,5 +1,7 @@
 package com.example.mykidsvan.android.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -45,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.authapp.presentation.viewmodel.AuthViewModel
@@ -160,19 +163,32 @@ fun FindStudentScreen(viewModel: AuthViewModel) {
                         modifier = Modifier.animateContentSize()
                     ) {
                         parentOptions.forEach { parent ->
-                            StudentCard(
-                                parent = parent,
-                                onCallClick = { /* Handle call */ },
-                                onMoreClick = { /* Show options */ }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            if (parent.id != null) {
+                                StudentCard(
+                                    parent = parent
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                            } else {
+                                // Show this if no parent data is found
+                                Text(
+                                    text = "No data found",
+                                    color = Color.Gray,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
                         }
                     }
                 }
             }
         }
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()
@@ -182,7 +198,8 @@ fun FindStudentScreen(viewModel: AuthViewModel) {
 }
 
 @Composable
-fun StudentCard(parent: Parent, onCallClick: () -> Unit = {}, onMoreClick: () -> Unit = {}) {
+fun StudentCard(parent: Parent) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -246,12 +263,13 @@ fun StudentCard(parent: Parent, onCallClick: () -> Unit = {}, onMoreClick: () ->
 
             // Optional: Action Icons
             Column(horizontalAlignment = Alignment.End) {
-                IconButton(onClick = onCallClick) {
-                    Icon(
-                        imageVector = Icons.Default.Call,
-                        contentDescription = "Call Parent",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${parent.contactNumber}")
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.Call, contentDescription = "Call Driver")
                 }
             }
         }

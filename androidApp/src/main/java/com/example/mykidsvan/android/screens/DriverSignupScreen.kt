@@ -53,10 +53,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -167,7 +169,7 @@ fun DriverSignupScreen(
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { if (it.length <= 8) password = it },
                 label = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -285,7 +287,7 @@ fun DriverSignupScreen(
 
             OutlinedTextField(
                 value = seatingCapacity,
-                onValueChange = { seatingCapacity = it },
+                onValueChange = { if (it.length <= 2) seatingCapacity = it },
                 label = { Text("Seating Capacity") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(14.dp),
@@ -345,50 +347,11 @@ fun DriverSignupScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Row for Referral Code input and Apply button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Referral Code Text Field
-                OutlinedTextField(
-                    value = enteredReferralCode.value,
-                    onValueChange = { enteredReferralCode.value = it },
-                    label = { Text("Referral Code (Optional)") },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = textFieldColors,
-                    modifier = Modifier
-                        .weight(1f) // Makes the text field take the available space
-                        .height(64.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Apply Button
-                Button(
-                    onClick = {
-                        if (enteredReferralCode.value.isNotBlank()) {
-                            // Apply the entered referral code (you can integrate this with your ViewModel or API)
-                            isReferralCodeApplied.value = true
-                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                    },
-                    modifier = Modifier
-                        .height(50.dp)
-                        .padding(start = 8.dp), // Optional, to add some spacing between elements
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.buttonElevation(8.dp)
-                ) {
-                    Text(text = "Verify", color = Color.White)
-                }
-            }
-
-
-
-
+            ReferralRow(
+                viewModel = viewModel,
+                enteredReferralCode = enteredReferralCode,
+                isReferralCodeApplied = isReferralCodeApplied
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
@@ -632,4 +595,70 @@ fun uriToBase64(context: Context, uri: Uri): String {
 fun generateReferralCodeDriver(): String {
     val randomDigits = (100000..999999).random()
     return "MKV${randomDigits}D"
+}
+
+@Composable
+fun ReferralRow(
+    viewModel: AuthViewModel,
+    enteredReferralCode: MutableState<String>,
+    isReferralCodeApplied: MutableState<Boolean>
+) {
+    val context = LocalContext.current
+    val referByResponse by viewModel.referBySuccess.collectAsState()
+
+    // Reset referral applied status when user changes the input manually
+    LaunchedEffect(enteredReferralCode.value) {
+        isReferralCodeApplied.value = false
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Referral Code Text Field
+        OutlinedTextField(
+            value = enteredReferralCode.value,
+            onValueChange = { enteredReferralCode.value = it },
+            label = { Text("Referral Code (Optional)") },
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(64.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Verify Button
+        Button(
+            onClick = {
+                if (enteredReferralCode.value.isNotBlank()) {
+                    viewModel.checkReferBy(enteredReferralCode.value)
+                }
+            },
+            modifier = Modifier
+                .height(50.dp)
+                .padding(start = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            elevation = ButtonDefaults.buttonElevation(8.dp)
+        ) {
+            Text(
+                text = if (isReferralCodeApplied.value) "Verified" else "Verify",
+                color = Color.White
+            )
+        }
+    }
+
+    // Handle response and show result toast
+    referByResponse?.let { response ->
+        if (response.status.equals("success") && !isReferralCodeApplied.value) {
+            isReferralCodeApplied.value = true
+            Toast.makeText(context, "Referral Code Applied Successfully", Toast.LENGTH_SHORT).show()
+        } else if (!response.status.equals("success") && !isReferralCodeApplied.value) {
+            Toast.makeText(context, "Invalid Code", Toast.LENGTH_SHORT).show()
+        }
+        viewModel.clearReferByResponse()
+    }
 }

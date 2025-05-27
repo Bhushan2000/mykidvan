@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mykidsvan.android.data.AuthRepository
+import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
@@ -555,20 +556,20 @@ class AuthViewModel(
         }
     }
 
-  /*  fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
-        viewModelScope.launch {
-            try {
-                val response = repository.getSchools(stateId, districtId, talukaId)
-                _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
-                    School(
-                        id = "", schoolName = "No data found", "", "", "", "", "", ""
-                    )
-                )
-                Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
-            } catch (e: Exception) {
-                Log.e("LocationViewModel", "Failed to load schools", e)
-            }
-        }*/
+    /*  fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
+          viewModelScope.launch {
+              try {
+                  val response = repository.getSchools(stateId, districtId, talukaId)
+                  _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
+                      School(
+                          id = "", schoolName = "No data found", "", "", "", "", "", ""
+                      )
+                  )
+                  Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
+              } catch (e: Exception) {
+                  Log.e("LocationViewModel", "Failed to load schools", e)
+              }
+          }*/
 
 
     fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
@@ -651,7 +652,7 @@ class AuthViewModel(
             val response = repository.getParent(schoolId)
             _parentsOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                 Parent(
-                    id = "",
+                    id = null,
                     parentName = "No data found",
                     "",
                     "",
@@ -982,6 +983,10 @@ class AuthViewModel(
                 _isAssigningSchool.value = false
             }
         }
+    }
+
+    fun clearFindDriverByMobile() {
+        foundDriver.value = null
     }
 
 
@@ -1440,7 +1445,24 @@ class AuthViewModel(
         }
     }
 
+    private val _referBySuccess = MutableStateFlow<ReferByResponse?>(null)
+    val referBySuccess: StateFlow<ReferByResponse?> = _referBySuccess
 
+    fun checkReferBy(referby: String) {
+        viewModelScope.launch {
+            try {
+                val response = repository.checkReferBy(referby)
+                _referBySuccess.value = response
+            } catch (e: Exception) {
+                Log.e("TAG", "Error while verifying refer code ", e)
+                _referBySuccess.value = null // Optional: Reset on failure
+            }
+        }
+    }
+
+    fun clearReferByResponse(){
+        _referBySuccess.value = null
+    }
 }
 
 

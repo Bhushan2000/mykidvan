@@ -70,6 +70,7 @@ import com.razorpay.PaymentData
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,6 +185,7 @@ fun FindByMobileSection(
     val activity = context as? MainActivity
 
     var mobileNumber by remember { mutableStateOf("") }
+    var hasSearched by remember { mutableStateOf(false) }
 
     val isLoading by viewModel.isAssigningSchool.collectAsState()
     val assignMessage by viewModel.assignSchoolMessage.collectAsState()
@@ -218,6 +220,8 @@ fun FindByMobileSection(
         Button(
             onClick = {
                 if (mobileNumber.length == 10) {
+                    hasSearched = true // Mark that user has searched
+
                     viewModel.findDriverByMobile(mobileNumber)
                 } else {
                     Toast.makeText(
@@ -243,7 +247,7 @@ fun FindByMobileSection(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
         // Driver Details Card
-        if (foundDriver?.id == null) {
+        if (hasSearched && foundDriver?.id == null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -256,7 +260,7 @@ fun FindByMobileSection(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-        } else {
+        } else if (foundDriver?.id != null) {
             DriverCard(
                 driver = foundDriver!!,
                 viewModel = viewModel,
@@ -265,7 +269,6 @@ fun FindByMobileSection(
                 isLoading = isLoading
             )
         }
-
     }
     val assignResponse by viewModel.assignRequestResponse.collectAsState()
     LaunchedEffect(assignResponse) {
@@ -276,6 +279,11 @@ fun FindByMobileSection(
                 Toast.LENGTH_SHORT
             ).show()
             viewModel.clearResponses()
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearFindDriverByMobile()
         }
     }
 }
@@ -581,7 +589,6 @@ fun DriverCard(
                 ),
                 shape = RoundedCornerShape(24.dp)
             )
-            .blur(12.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Driver Name (Bold and Large)
@@ -667,12 +674,12 @@ fun DriverCard(
                     Icon(
                         imageVector = Icons.Default.Call,
                         contentDescription = "Call Driver",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Call",
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = Color.White
                     )
                 }
 
@@ -698,12 +705,12 @@ fun DriverCard(
                         Icon(
                             imageVector = Icons.Default.Send,
                             contentDescription = "Send Request",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = Color.White
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Send",
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = Color.White
                         )
                     }
                 }

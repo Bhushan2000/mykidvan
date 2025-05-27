@@ -7,6 +7,8 @@ import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
+import com.example.mykidsvan.android.data.dto.request.ReferByRequest
+import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.RegisterSchoolDriverRequest
 import com.example.mykidsvan.android.data.dto.request.RegisterSchoolParentRequest
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
@@ -395,4 +397,10 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         )
         return api.uploadDocumentsToDatabase(request)
     }
+
+    override suspend fun checkReferBy(referby: String): ReferByResponse {
+        val request = ReferByRequest(referby)
+        return api.checkReferCode(request)
+    }
+
 }

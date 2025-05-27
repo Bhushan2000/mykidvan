@@ -156,7 +156,7 @@ fun ParentSignupScreen(
             )
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { if (it.length <= 8) password = it },
                 label = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -270,16 +270,16 @@ fun ParentSignupScreen(
             }
 
 
-/*            OutlinedTextField(
-                value = schoolName.value,
-                onValueChange = { schoolName.value = it },
-                label = { Text("Child's School Name") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            )*/
+            /*            OutlinedTextField(
+                            value = schoolName.value,
+                            onValueChange = { schoolName.value = it },
+                            label = { Text("Child's School Name") },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )*/
             OutlinedTextField(
                 value = childDateOfBirth.value,
                 onValueChange = {}, // Prevent manual input
@@ -353,7 +353,7 @@ fun ParentSignupScreen(
 
             OutlinedTextField(
                 value = emergencyContact.value,
-                onValueChange = { emergencyContact.value = it },
+                onValueChange = { if (it.length <= 10) emergencyContact.value = it },
                 label = { Text("Emergency Contact Number") },
                 shape = RoundedCornerShape(14.dp),
                 colors = textFieldColors,
@@ -374,47 +374,11 @@ fun ParentSignupScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Row for Referral Code input and Apply button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Referral Code Text Field
-                OutlinedTextField(
-                    value = enteredReferralCode.value,
-                    onValueChange = { enteredReferralCode.value = it },
-                    label = { Text("Referral Code (Optional)") },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = textFieldColors,
-                    modifier = Modifier
-                        .weight(1f) // Makes the text field take the available space
-                        .height(64.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Apply Button
-                Button(
-                    onClick = {
-                        if (enteredReferralCode.value.isNotBlank()) {
-                            // Apply the entered referral code (you can integrate this with your ViewModel or API)
-                            isReferralCodeApplied.value = true
-                            Toast.makeText(context, "Referral Code Applied", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                    },
-                    modifier = Modifier
-                        .height(50.dp)
-                        .padding(start = 8.dp), // Optional, to add some spacing between elements
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.buttonElevation(8.dp)
-                ) {
-                    Text(text = "Verify", color = Color.White)
-                }
-            }
-
+            ReferralRow(
+                viewModel = viewModel,
+                enteredReferralCode = enteredReferralCode,
+                isReferralCodeApplied = isReferralCodeApplied
+            )
 
             Row(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -507,7 +471,11 @@ fun ParentSignupScreen(
                         emergencyContact.value = ""
                         termsAccepted.value = false
 
-                        Toast.makeText(context, "Parent Registration Successful!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Parent Registration Successful!",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         // Navigate to next screen
                         val uid = result.id.toString()

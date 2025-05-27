@@ -3,6 +3,7 @@ package com.example.mykidsvan.android.screens
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -135,55 +136,56 @@ fun SchoolOnRegistrationScreen(
             DropdownField(
                 label = "Select School",
                 selectedValue = selectedSchool?.schoolName.orEmpty(),
-                options = schoolOptions.map { it.schoolName } + "No data found", // Ensure it's part of the options
+                options = schoolOptions.map { it.schoolName },
                 onValueChange = { name ->
-                    if (name == "No data found") {
-                        showManualFields = true
-                        viewModel.onSchoolSelected(null) // Optionally reset selected school
-                    } else {
-                        showManualFields = false
-                        schoolOptions.find { it.schoolName == name }
-                            ?.let { viewModel.onSchoolSelected(it) }
-                    }
+                    schoolOptions.find { it.schoolName == name }?.let { viewModel.onSchoolSelected(it) }
                 }
             )
 
-            OutlinedTextField(
-                value = schoolName.value,
-                onValueChange = { schoolName.value = it },
-                placeholder = { Text("Enter school name") },
-                shape = RoundedCornerShape(12.dp),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (!selectedSchool?.schoolName.isNullOrEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = schoolName.value,
+                            onValueChange = { schoolName.value = it },
+                            placeholder = { Text("Enter school name") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-            OutlinedTextField(
-                value = contactNumber.value,
-                onValueChange = { if (it.length <= 10) contactNumber.value = it },
-                placeholder = { Text("Enter contact number") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                shape = RoundedCornerShape(12.dp),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth()
-            )
+                        OutlinedTextField(
+                            value = contactNumber.value,
+                            onValueChange = { if (it.length <= 10) contactNumber.value = it },
+                            placeholder = { Text("Enter contact number") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-            OutlinedTextField(
-                value = city.value,
-                onValueChange = { city.value = it },
-                placeholder = { Text("Enter city") },
-                shape = RoundedCornerShape(12.dp),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth()
-            )
+                        OutlinedTextField(
+                            value = city.value,
+                            onValueChange = { city.value = it },
+                            placeholder = { Text("Enter city") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-            OutlinedTextField(
-                value = schoolAddress.value,
-                onValueChange = { schoolAddress.value = it },
-                placeholder = { Text("Enter full address") },
-                shape = RoundedCornerShape(12.dp),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth()
-            )
+                        OutlinedTextField(
+                            value = schoolAddress.value,
+                            onValueChange = { schoolAddress.value = it },
+                            placeholder = { Text("Enter full address") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
 
             Button(
                 onClick = {

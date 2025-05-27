@@ -1,5 +1,6 @@
 package com.example.mykidsvan.android.data
 
+import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
@@ -250,4 +251,8 @@ interface AuthRepository {
         fitness_certificat: String,
         photo_of_vehicle: String
     ): DocumentUploadResponse
+
+    suspend fun checkReferBy(
+        referby: String
+    ): ReferByResponse
 }
