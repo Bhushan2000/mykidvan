@@ -78,4 +78,5 @@ dependencies {
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.0.0")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
 
-}
+    implementation("com.google.accompanist:accompanist-pager:0.34.0") // Pager (optional)
+ }

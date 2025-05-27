@@ -145,7 +145,7 @@ fun ParentSignupScreen(
             )
             OutlinedTextField(
                 value = contactNumber.value,
-                onValueChange = { contactNumber.value = it },
+                onValueChange = { if (it.length <= 10) contactNumber.value = it },
                 label = { Text("Contact Number") },
                 shape = RoundedCornerShape(14.dp),
                 colors = textFieldColors,
@@ -270,7 +270,7 @@ fun ParentSignupScreen(
             }
 
 
-            OutlinedTextField(
+/*            OutlinedTextField(
                 value = schoolName.value,
                 onValueChange = { schoolName.value = it },
                 label = { Text("Child's School Name") },
@@ -279,7 +279,7 @@ fun ParentSignupScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
-            )
+            )*/
             OutlinedTextField(
                 value = childDateOfBirth.value,
                 onValueChange = {}, // Prevent manual input

@@ -110,7 +110,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
             UploadPhotoCard("Front View", frontImageUri, serverFront) { frontPickerLauncher.launch("image/*") }
             UploadPhotoCard("Back View", backImageUri, serverBack) { backPickerLauncher.launch("image/*") }
             UploadPhotoCard("Inside View", insideImageUri, serverInside) { insidePickerLauncher.launch("image/*") }
-            UploadPhotoCard("Outside View", outsideImageUri, "${serverOutside}.jpg") { outsidePickerLauncher.launch("image/*") }
+            UploadPhotoCard("Outside View", outsideImageUri, serverOutside) { outsidePickerLauncher.launch("image/*") }
 
             Spacer(Modifier.height(24.dp))
 

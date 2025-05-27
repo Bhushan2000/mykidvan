@@ -155,7 +155,7 @@ fun DriverSignupScreen(
 
             OutlinedTextField(
                 value = contactNumber,
-                onValueChange = { contactNumber = it },
+                onValueChange = { if (it.length <= 10) contactNumber = it },
                 label = { Text("Contact Number") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 shape = RoundedCornerShape(14.dp),
@@ -311,16 +311,16 @@ fun DriverSignupScreen(
                     .height(64.dp)
             )
 
-            OutlinedTextField(
-                value = schoolServiced,
-                onValueChange = { schoolServiced = it },
-                label = { Text("Schools Serviced/Interested In") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            )
+            /*            OutlinedTextField(
+                            value = schoolServiced,
+                            onValueChange = { schoolServiced = it },
+                            label = { Text("Schools Serviced/Interested In") },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = textFieldColors,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )*/
 
             OutlinedTextField(
                 value = aboutMe,

@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.data.dto.response.Driver
+import com.example.mykidsvan.android.data.dto.response.DriverMob
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.utils.Constants
 import kotlinx.coroutines.delay
@@ -97,9 +98,12 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     val stateOptions by viewModel.stateOptions.collectAsState()
     val districtOptions by viewModel.districtOptions.collectAsState()
     val talukaOptions by viewModel.talukaOptions.collectAsState()
+    val schoolOptions by viewModel.schoolOptions.collectAsState()
+
     val selectedState by viewModel.selectedState.collectAsState()
     val selectedDistrict by viewModel.selectedDistrict.collectAsState()
     val selectedTaluka by viewModel.selectedTaluka.collectAsState()
+    val selectedSchool by viewModel.selectedSchool.collectAsState()
 
 
     // Gallery launcher
@@ -129,15 +133,15 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     schoolName = data.childSchoolName.orEmpty()
                 }
 
-                is Driver -> {
-                    name = data.driver_name.orEmpty()
+                is DriverMob -> {
+                    name = data.driverName.orEmpty()
                     mobileNumber = data.number.orEmpty()
-                    vehicleNumber = data.vehicle_number.orEmpty()
+                    vehicleNumber = data.vehicleNumber.orEmpty()
                     state = data.state.orEmpty()
                     district = data.district.orEmpty()
                     taluka = data.taluka.orEmpty()
                     city = data.city.orEmpty()
-                    schoolName = data.school_serviced.orEmpty()
+                    schoolName = data.schoolId.orEmpty()
                 }
             }
         }
@@ -166,8 +170,13 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                             ) {
                                 Box(contentAlignment = Alignment.TopEnd) {
                                     ProfileImage(
-                                        imageUrl = profileImageUri?.toString()
-                                            ?: "${Constants.BASE_URL}${(data as? Driver)?.profile_picture}"
+                                        imageUrl = when (data) {
+                                            is DriverMob -> profileImageUri?.toString()
+                                                ?: "${Constants.BASE_URL}${data.profilePicture}"
+                                            is Parent -> profileImageUri?.toString()
+                                                ?: "${Constants.BASE_URL}${data.profilePicture}"
+                                            else -> profileImageUri?.toString() ?: ""
+                                        }
                                     )
 
                                     if (isEditing) {
@@ -222,6 +231,8 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 selectedDistrict?.id ?: ""
                                             val selectedTalukaName =
                                                 selectedTaluka?.id ?: ""
+                                            val selectedSchoolName =
+                                                selectedSchool?.id ?:""
                                             // Save logic - you can pass all fields and imageUri to ViewModel
                                             viewModel.updateProfile(
                                                 context = context,
@@ -231,7 +242,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 contact = contact,
                                                 address = address,
                                                 childName = childName,
-                                                schoolName = schoolName,
+                                                schoolName = selectedSchoolName,
                                                 mobile = mobileNumber,
                                                 vehicle = vehicleNumber,
                                                 state = selectedStateName,
@@ -291,7 +302,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                             }
                                         }
 
-                                        is Driver -> {
+                                        is DriverMob -> {
                                             if (isEditing) {
                                                 EditableField("Driver Name", name) { name = it }
                                                 EditableField(
@@ -343,10 +354,21 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                     }
                                                 )
 
-                                                EditableField("City", city) { city = it }
-                                                EditableField("School", schoolName) {
+                                              /*  EditableField("School", schoolName) {
                                                     schoolName = it
-                                                }
+                                                }*/
+                                                DropdownField(
+                                                    label = "Select School",
+                                                    selectedValue = selectedSchool?.schoolName.orEmpty(),
+                                                    options = schoolOptions.map { it.schoolName },
+                                                    onValueChange = { name ->
+                                                        schoolOptions.find { it.schoolName == name }?.let { viewModel.onSchoolSelected(it) }
+                                                    }
+                                                )
+                                                EditableField("City", city) { city = it }
+
+
+
                                             } else {
                                                 ProfileDetailRow("Driver Name", name)
                                                 ProfileDetailRow("Mobile Number", mobileNumber)
@@ -354,8 +376,8 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 ProfileDetailRow("State", state)
                                                 ProfileDetailRow("District", district)
                                                 ProfileDetailRow("Taluka", taluka)
-                                                ProfileDetailRow("City", city)
                                                 ProfileDetailRow("School", schoolName)
+                                                ProfileDetailRow("City", city)
                                             }
                                         }
                                     }

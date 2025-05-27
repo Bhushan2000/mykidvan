@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 data class DriverResponse(
     val status: Boolean,
     val message: String,
-    val data: List<Driver>
+    val data: List<DriverMob>
 )
 
 

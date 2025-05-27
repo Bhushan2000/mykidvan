@@ -272,7 +272,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         contactNumber: String,
         parentAddress: String,
         childName: String,
-        childSchoolName: String
+        childSchoolName: String,
+        profile_picture: String?
     ): ProfileUpdateResponse {
         val request = ParentUpdateRequest(
             id = id,
@@ -280,7 +281,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             contactNumber = contactNumber,
             parentAddress = parentAddress,
             childName = childName,
-            childSchoolName = childSchoolName
+            childSchoolName = childSchoolName,
+            profilePicture = profile_picture
         )
         return api.updateProfileParent(request)
     }
@@ -356,7 +358,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolDriverRequest(vehiclesId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolDriverRequest(vehiclesId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
         return api.driverSchoolOnRegister(request)
     }
 
@@ -370,7 +372,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolParentRequest(parentId,schoolAddress,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolParentRequest(parentId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
         return api.parentSchoolOnRegister(request)    }
 
     override suspend fun uploadDocumentsToDatabase(

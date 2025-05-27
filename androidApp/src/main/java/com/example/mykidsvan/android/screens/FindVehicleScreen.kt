@@ -6,10 +6,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,13 +20,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
@@ -56,12 +53,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.authapp.presentation.viewmodel.AuthViewModel
-import com.example.mykidsvan.android.data.dto.response.Driver
 
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.mykidsvan.android.MainActivity
@@ -70,6 +69,7 @@ import com.example.mykidsvan.android.utils.Constants
 import com.razorpay.PaymentData
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.lazy.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,13 +197,11 @@ fun FindByMobileSection(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+
     ) {
         OutlinedTextField(
             value = mobileNumber,
-            onValueChange = { mobileNumber = it },
+            onValueChange = { if (it.length <= 10) mobileNumber = it },
             label = { Text("Enter Driver Mobile No.") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
@@ -244,83 +242,30 @@ fun FindByMobileSection(
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
-
         // Driver Details Card
-        foundDriver?.let { driver ->
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut()
+        if (foundDriver?.id == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = CardDefaults.cardElevation(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Driver Found",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        ProfileDetailRow1("Name", driver.driverName ?: "N/A")
-                        ProfileDetailRow1("Mobile", driver.number ?: "N/A")
-                        ProfileDetailRow1("Vehicle No", driver.vehicleNumber ?: "N/A")
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.End,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            IconButton(onClick = {
-                                val intent = Intent(Intent.ACTION_DIAL).apply {
-                                    data = Uri.parse("tel:${driver.number}")
-                                }
-                                context.startActivity(intent)
-                            }) {
-                                Icon(
-                                    Icons.Default.Call,
-                                    contentDescription = "Call Driver",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            IconButton(
-                                onClick = {
-                                    if (!isLoading) {
-                                        onStartPayment(driver.id.toString())
-                                    }
-                                },
-                                enabled = !isLoading
-                            ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.Default.Send,
-                                        contentDescription = "Send Request",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                Text(
+                    text = "No data found for above Mobile number",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+        } else {
+            DriverCard(
+                driver = foundDriver!!,
+                viewModel = viewModel,
+                userId = userId,
+                onStartPayment = onStartPayment,
+                isLoading = isLoading
+            )
         }
+
     }
     val assignResponse by viewModel.assignRequestResponse.collectAsState()
     LaunchedEffect(assignResponse) {
@@ -456,20 +401,36 @@ fun FindBySchoolSection(
         AnimatedVisibility(visible = driverOptions.isNotEmpty()) {
             Column(modifier = Modifier.animateContentSize()) {
                 driverOptions.forEach { driver ->
-                    DriverCard(
-                        driver = driver,
-                        viewModel = viewModel,
-                        userId = userId,
-                        onStartPayment,
-                    )
+                    if (driver.driverName.equals("No data found", ignoreCase = true)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No data found for above selection",
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        DriverCard(
+                            driver = driver,
+                            viewModel = viewModel,
+                            userId = userId,
+                            onStartPayment = onStartPayment
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+
             }
         }
     }
 }
 
-@Composable
+/*@Composable
 fun DriverCard(
     driver: Driver,
     viewModel: AuthViewModel,
@@ -586,4 +547,214 @@ fun DriverCard(
             }
         }
     }
+}*/
+
+@Composable
+fun DriverCard(
+    driver: DriverMob,
+    viewModel: AuthViewModel,
+    userId: String,
+    onStartPayment: (String) -> Unit,
+    isLoading: Boolean = false
+) {
+    val context = LocalContext.current
+    val openDialog = remember { mutableStateOf(false) }
+    val selectedImage = remember { mutableStateOf<String?>(null) }
+
+    val vehiclePhotos = driver.photoOfVehicle
+        ?.split(",")
+        ?.map { it.trim() }
+        ?.filter { it.isNotBlank() }
+        ?: emptyList()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .blur(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Driver Name (Bold and Large)
+            Text(
+                text = driver.driverName ?: "N/A",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            DetailItem("Mobile", driver.number ?: "N/A")
+            DetailItem("Vehicle No", driver.vehicleNumber ?: "N/A")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Vehicle Photos
+            if (vehiclePhotos.isNotEmpty()) {
+                Text(
+                    text = "Vehicle Photos",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(vehiclePhotos) { photoPath ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data("${Constants.BASE_URL}$photoPath")
+                                .crossfade(true)
+                                .placeholder(R.drawable.placeholder_image)
+                                .error(R.drawable.placeholder_image)
+                                .build(),
+                            contentDescription = "Vehicle Photo",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable {
+                                    selectedImage.value = "${Constants.BASE_URL}$photoPath"
+                                    openDialog.value = true
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // Buttons Row (Send + Call aligned)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                // Call Button
+                Button(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:${driver.number}")
+                        }
+                        context.startActivity(intent)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = "Call Driver",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Call",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+
+                // Send Request Button
+                Button(
+                    onClick = {
+                        if (!isLoading) onStartPayment(driver.id.toString())
+                    },
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send Request",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Send",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Full Image Preview Dialog
+    if (openDialog.value && selectedImage.value != null) {
+        AlertDialog(
+            onDismissRequest = {
+                openDialog.value = false
+                selectedImage.value = null
+            },
+            confirmButton = {},
+            text = {
+                AsyncImage(
+                    model = selectedImage.value,
+                    contentDescription = "Full Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(400.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.background
+        )
+    }
 }
+
+@Composable
+fun DetailItem(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+

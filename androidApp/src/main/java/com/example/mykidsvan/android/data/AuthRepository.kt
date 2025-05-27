@@ -184,7 +184,8 @@ interface AuthRepository {
         contactNumber: String,
         parentAddress: String,
         childName: String,
-        childSchoolName: String
+        childSchoolName: String,
+        profile_picture: String?
     ): ProfileUpdateResponse
 
     suspend fun updateProfileDriver(

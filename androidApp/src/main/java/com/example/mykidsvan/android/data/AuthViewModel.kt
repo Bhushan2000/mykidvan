@@ -48,7 +48,7 @@ data class UserSessionData(
     val userRole: String?,
     val assignVehicleId: String?,
     val status: String?,
-    val referCode:String?
+    val referCode: String?
 )
 
 class AuthViewModel(
@@ -69,8 +69,8 @@ class AuthViewModel(
     private val _driverAllRequest = MutableStateFlow<List<RequestData>>(emptyList())
     val driverAllRequest: StateFlow<List<RequestData>> = _driverAllRequest
 
-    private val _selectedDriverRequest = MutableStateFlow<Driver?>(null)
-    val selectedDriverRequest: StateFlow<Driver?> = _selectedDriverRequest
+    private val _selectedDriverRequest = MutableStateFlow<DriverMob?>(null)
+    val selectedDriverRequest: StateFlow<DriverMob?> = _selectedDriverRequest
 
     ///////////////////////////////////////
 
@@ -87,8 +87,8 @@ class AuthViewModel(
     private val _parentsOptions = MutableStateFlow<List<Parent>>(emptyList())
     val parentsOptions: StateFlow<List<Parent>> = _parentsOptions
 
-    private val _driverOptions = MutableStateFlow<List<Driver>>(emptyList())
-    val driverOptions: StateFlow<List<Driver>> = _driverOptions
+    private val _driverOptions = MutableStateFlow<List<DriverMob>>(emptyList())
+    val driverOptions: StateFlow<List<DriverMob>> = _driverOptions
 
     // driver list by mob no
     val foundDriver = MutableStateFlow<DriverMob?>(null) // Create a state flow
@@ -296,7 +296,10 @@ class AuthViewModel(
                                 userPreferences.saveLoginState(true)  // Save login state
 
                                 userPreferences.saveLoginUserDetails(
-                                    driverData.id, driverData.driver_name, it, driverData.refer_id.toString()
+                                    driverData.id,
+                                    driverData.driver_name,
+                                    it,
+                                    driverData.refer_id.toString()
                                 )
                             }
 
@@ -314,7 +317,7 @@ class AuthViewModel(
                                     parentData.parentName?.let { it2 ->
                                         parentData.referId?.let { refer_code ->
                                             userPreferences.saveLoginUserDetails(
-                                                it1, it2, it,refer_code
+                                                it1, it2, it, refer_code
                                             )
                                         }
                                     }
@@ -501,7 +504,7 @@ class AuthViewModel(
         }
     }
 
-    fun selectDriverRequest(driver: Driver) {
+    fun selectDriverRequest(driver: DriverMob) {
         _selectedDriverRequest.value = driver
     }
 
@@ -552,28 +555,58 @@ class AuthViewModel(
         }
     }
 
-    fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
+  /*  fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
         viewModelScope.launch {
             try {
                 val response = repository.getSchools(stateId, districtId, talukaId)
                 _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
                     School(
-                        id = "", schoolName = "Other", "", "", "", "", "", ""
+                        id = "", schoolName = "No data found", "", "", "", "", "", ""
                     )
                 )
                 Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
             } catch (e: Exception) {
                 Log.e("LocationViewModel", "Failed to load schools", e)
             }
+        }*/
+
+
+    fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
+        viewModelScope.launch {
+            try {
+                val response = repository.getSchools(stateId, districtId, talukaId)
+                val schoolsFromServer = response.data.orEmpty()
+
+                _schoolOptions.value = if (schoolsFromServer.isNotEmpty()) {
+                    schoolsFromServer + School(
+                        id = "other", schoolName = "Other",
+                        "", "", "",
+                        "", "", ""
+                    )
+                } else {
+                    listOf(
+                        School(
+                            id = "", schoolName = "No data found",
+                            "", "", "",
+                            "", "", ""
+                        )
+                    )
+                }
+
+                Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
+            } catch (e: Exception) {
+                Log.e("LocationViewModel", "Failed to load schools", e)
+            }
         }
+
 
     fun loadDriverList(schoolId: String) = viewModelScope.launch {
         try {
             val response = repository.getDriver(schoolId)
             _driverOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
-                Driver(
+                DriverMob(
                     id = "",
-                    driver_name = "No data found",
+                    driverName = "No data found",
                     "",
                     "",
                     "",
@@ -715,6 +748,7 @@ class AuthViewModel(
             Log.e("AuthViewModel", "Driver Registration failed", e)
         }
     }
+
     fun resetDriverRegistrationResult() {
         _driverRegistrationSuccess.value = null
     }
@@ -775,6 +809,7 @@ class AuthViewModel(
     fun resetParentRegistrationResult() {
         _parentRegistrationSuccess.value = null
     }
+
     fun registerSchool(schoolRegistrationRequest: SchoolRegistrationRequest) =
         viewModelScope.launch {
             try {
@@ -1265,7 +1300,8 @@ class AuthViewModel(
                             contact,
                             address,
                             childName,
-                            schoolName
+                            schoolName,
+                            profilePicBase64
                         )
                     }
 

@@ -89,7 +89,7 @@ fun SchoolRegistrationScreen(viewModel: AuthViewModel) {
         TitleWithOutAsterisk("Contact Number")
         OutlinedTextField(
             value = contactNumber.value,
-            onValueChange = { contactNumber.value = it },
+            onValueChange = { if (it.length <= 10) contactNumber.value = it },
             placeholder = { Text("Enter contact number") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             shape = RoundedCornerShape(12.dp),

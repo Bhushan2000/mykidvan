@@ -8,5 +8,6 @@ data class ParentUpdateRequest(
     @SerializedName("contact_number") var contactNumber: String? = null,
     @SerializedName("parent_address") var parentAddress: String? = null,
     @SerializedName("child_name") var childName: String? = null,
-    @SerializedName("child_school_name") var childSchoolName: String? = null
+    @SerializedName("child_school_name") var childSchoolName: String? = null,
+    @SerializedName("profile_picture") var profilePicture: String? = null
 )
