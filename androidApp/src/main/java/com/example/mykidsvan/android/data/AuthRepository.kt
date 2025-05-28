@@ -221,7 +221,8 @@ interface AuthRepository {
     ): VehiclePhotosResponse
 
     suspend fun driverSchoolOnRegister(
-        vehiclesId: Int,
+        vehiclesId: String,
+        schoolId:String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -232,7 +233,8 @@ interface AuthRepository {
     ): RegisterSchoolResponse
 
     suspend fun parentSchoolOnRegister(
-        parentId: Int,
+        parentId: String,
+        schoolId:String,
         schoolName: String,
         contactNumber: String,
         state: String,

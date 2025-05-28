@@ -4,7 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 data class RegisterSchoolDriverRequest(
 
-    @SerializedName("vehicles_id") var vehiclesId: Int? = null,
+    @SerializedName("vehicles_id") var vehiclesId: String? = null,
+    @SerializedName("school_id") var schoolId: String? = null,
     @SerializedName("school_name") var schoolName: String? = null,
     @SerializedName("contact_number") var contactNumber: String? = null,
     @SerializedName("state") var state: String? = null,

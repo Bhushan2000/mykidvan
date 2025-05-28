@@ -3,7 +3,8 @@ package com.example.mykidsvan.android.data.dto.request
 import com.google.gson.annotations.SerializedName
 
 data class RegisterSchoolParentRequest(
-    @SerializedName("parent_id") var parentId: Int? = null,
+    @SerializedName("parent_id") var parentId: String? = null,
+    @SerializedName("school_id") var schoolId: String? = null,
     @SerializedName("school_name") var schoolName: String? = null,
     @SerializedName("contact_number") var contactNumber: String? = null,
     @SerializedName("state") var state: String? = null,
@@ -11,5 +12,4 @@ data class RegisterSchoolParentRequest(
     @SerializedName("taluka") var taluka: String? = null,
     @SerializedName("city") var city: String? = null,
     @SerializedName("school_address") var schoolAddress: String? = null
-
 )

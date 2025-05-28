@@ -157,6 +157,7 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Vehicle Type") },
+                        shape = RoundedCornerShape(14.dp),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
                         modifier = Modifier.fillMaxWidth().height(64.dp)
                     )

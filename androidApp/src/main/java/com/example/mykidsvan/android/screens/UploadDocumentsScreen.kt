@@ -53,23 +53,28 @@ fun UploadDocumentsScreen(
 
     LaunchedEffect(uploadSuccess) {
         if (uploadSuccess != null) {
+            Toast.makeText(context, "Registration successful.", Toast.LENGTH_SHORT).show()
             navController.navigate("login") {
                 popUpTo("schoolOnRegistration") { inclusive = true }
             }
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearUploadDocToDatabase()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Upload Documents") })
-        }
-    ) { paddingValues ->
+        }) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -118,16 +123,13 @@ fun UploadDocumentsScreen(
 
 @Composable
 fun FileUploadFieldDoc(
-    label: String,
-    imageBase64: String,
-    onImageUploaded: (String) -> Unit
+    label: String, imageBase64: String, onImageUploaded: (String) -> Unit
 ) {
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
+        contract = ActivityResultContracts.GetContent(), onResult = { uri ->
             uri?.let {
                 imageUri = it
                 val base64 = uriToBase64FileUpload(context, it)
@@ -136,8 +138,7 @@ fun FileUploadFieldDoc(
                 // ✅ Show success toast
                 Toast.makeText(context, "$label uploaded successfully!", Toast.LENGTH_SHORT).show()
             }
-        }
-    )
+        })
 
     Card(
         modifier = Modifier
@@ -148,8 +149,7 @@ fun FileUploadFieldDoc(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .padding(16.dp), contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),

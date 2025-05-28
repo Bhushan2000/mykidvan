@@ -21,6 +21,7 @@ import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverData
 import com.example.mykidsvan.android.data.dto.response.DriverMob
+import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentData
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
@@ -344,11 +345,13 @@ class AuthViewModel(
             } catch (e: Exception) {
                 val errorMessage = when (e) {
                     is HttpException -> {
-                        when (e.code()) {
-                            401 -> "Invalid username or password"
-                            403 -> "Access denied"
-                            500 -> "Server error, try again later"
-                            else -> "Login failed with code ${e.code()}"
+                        try {
+                            val errorBody = e.response()?.errorBody()?.string()
+                            val errorResponse =
+                                Gson().fromJson(errorBody, LoginResponse::class.java)
+                            errorResponse?.message ?: "Login failed with code ${e.code()}"
+                        } catch (ex: Exception) {
+                            "Login failed with code ${e.code()}"
                         }
                     }
 
@@ -358,7 +361,6 @@ class AuthViewModel(
                 _loginState.value = LoginState(error = errorMessage)
                 Log.e("LoginViewModel", "Login error", e)
             }
-
         }
     }
 
@@ -1348,19 +1350,22 @@ class AuthViewModel(
     val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
 
     fun registerSchoolParent(
-        parentId: Int,
+        parentId: String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
         district: String,
         taluka: String,
         city: String,
-        schoolAddress: String
-    ) {
+        schoolAddress: String,
+
+        ) {
         viewModelScope.launch {
             try {
                 val response = repository.parentSchoolOnRegister(
                     parentId,
+                    schoolId,
                     schoolName,
                     contactNumber,
                     state,
@@ -1384,7 +1389,8 @@ class AuthViewModel(
     }
 
     fun registerSchoolDriver(
-        vehicleId: Int,
+        vehicleId: String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -1397,6 +1403,7 @@ class AuthViewModel(
             try {
                 val response = repository.driverSchoolOnRegister(
                     vehicleId,
+                    schoolId,
                     schoolName,
                     contactNumber,
                     state,
@@ -1445,6 +1452,10 @@ class AuthViewModel(
         }
     }
 
+    fun clearUploadDocToDatabase() {
+        _uploadDocSuccess.value = null
+    }
+
     private val _referBySuccess = MutableStateFlow<ReferByResponse?>(null)
     val referBySuccess: StateFlow<ReferByResponse?> = _referBySuccess
 
@@ -1460,7 +1471,7 @@ class AuthViewModel(
         }
     }
 
-    fun clearReferByResponse(){
+    fun clearReferByResponse() {
         _referBySuccess.value = null
     }
 }

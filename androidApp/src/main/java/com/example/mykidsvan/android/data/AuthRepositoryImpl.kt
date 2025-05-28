@@ -351,7 +351,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun driverSchoolOnRegister(
-        vehiclesId: Int,
+        vehiclesId: String,
+        schoolId:String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -360,12 +361,13 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolDriverRequest(vehiclesId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolDriverRequest(vehiclesId,schoolId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
         return api.driverSchoolOnRegister(request)
     }
 
     override suspend fun parentSchoolOnRegister(
-        parentId: Int,
+        parentId: String,
+        schoolId:String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -374,7 +376,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolParentRequest(parentId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolParentRequest(parentId,schoolId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
         return api.parentSchoolOnRegister(request)    }
 
     override suspend fun uploadDocumentsToDatabase(

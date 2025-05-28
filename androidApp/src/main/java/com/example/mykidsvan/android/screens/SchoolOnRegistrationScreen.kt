@@ -138,11 +138,12 @@ fun SchoolOnRegistrationScreen(
                 selectedValue = selectedSchool?.schoolName.orEmpty(),
                 options = schoolOptions.map { it.schoolName },
                 onValueChange = { name ->
-                    schoolOptions.find { it.schoolName == name }?.let { viewModel.onSchoolSelected(it) }
+                    schoolOptions.find { it.schoolName == name }
+                        ?.let { viewModel.onSchoolSelected(it) }
                 }
             )
 
-            if (!selectedSchool?.schoolName.isNullOrEmpty()) {
+            if (!selectedSchool?.schoolName.isNullOrEmpty() && selectedSchool?.schoolName.equals("Other")) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -192,10 +193,10 @@ fun SchoolOnRegistrationScreen(
                     val selectedStateName = selectedState?.id ?: ""
                     val selectedDistrictName = selectedDistrict?.id ?: ""
                     val selectedTalukaName = selectedTaluka?.id ?: ""
-
-                    if (schoolName.value.isBlank() || selectedStateName.isBlank() ||
-                        selectedDistrictName.isBlank() || selectedTalukaName.isBlank() ||
-                        city.value.isBlank()
+                    val selectedSchoolName = selectedSchool?.id ?: ""
+                    if (selectedSchool?.schoolName.equals("Other") && (schoolName.value.isBlank() || selectedStateName.isBlank() ||
+                                selectedDistrictName.isBlank() || selectedTalukaName.isBlank() ||
+                                city.value.isBlank())
                     ) {
                         Toast.makeText(
                             context,
@@ -209,27 +210,41 @@ fun SchoolOnRegistrationScreen(
                     isLoading = true
 
                     if (userRole?.lowercase() == "parent") {
-                        viewModel.registerSchoolParent(
-                            uid.toInt(),
-                            schoolName.value,
-                            contactNumber.value,
-                            selectedStateName,
-                            selectedDistrictName,
-                            selectedTalukaName,
-                            city.value,
-                            schoolAddress.value
-                        )
+                        if (!selectedSchool?.schoolName.equals("Other"))
+                            viewModel.registerSchoolParent(
+                                uid ,
+                                selectedSchoolName ,
+                                "", "", "", "", "", "", "")
+                        else
+                            viewModel.registerSchoolParent(
+                                uid,
+                                "",
+                                schoolName.value,
+                                contactNumber.value,
+                                selectedStateName,
+                                selectedDistrictName,
+                                selectedTalukaName,
+                                city.value,
+                                schoolAddress.value
+                            )
                     } else if (userRole?.lowercase() == "driver") {
-                        viewModel.registerSchoolDriver(
-                            uid.toInt(),
-                            schoolName.value,
-                            contactNumber.value,
-                            selectedStateName,
-                            selectedDistrictName,
-                            selectedTalukaName,
-                            city.value,
-                            schoolAddress.value
-                        )
+                        if (!selectedSchool?.schoolName.equals("Other"))
+                            viewModel.registerSchoolDriver(
+                                uid,
+                                selectedSchoolName,
+                                "", "", "", "", "", "", "")
+                        else
+                            viewModel.registerSchoolDriver(
+                                uid,
+                                "",
+                                schoolName.value,
+                                contactNumber.value,
+                                selectedStateName,
+                                selectedDistrictName,
+                                selectedTalukaName,
+                                city.value,
+                                schoolAddress.value
+                            )
                     } else {
                         isLoading = false
                         Toast.makeText(context, "Unknown user role.", Toast.LENGTH_SHORT).show()

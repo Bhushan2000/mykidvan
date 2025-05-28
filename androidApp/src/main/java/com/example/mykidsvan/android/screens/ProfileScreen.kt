@@ -130,7 +130,11 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                     contact = data.contactNumber.orEmpty()
                     address = data.parentAddress.orEmpty()
                     childName = data.childName.orEmpty()
-                    schoolName = data.childSchoolName.orEmpty()
+                    state = data.state.orEmpty()
+                    district = data.district.orEmpty()
+                    taluka = data.taluka.orEmpty()
+                    city = data.city.orEmpty()
+                    schoolName = data.schoolId.orEmpty()
                 }
 
                 is DriverMob -> {
@@ -146,6 +150,32 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
             }
         }
     }
+    LaunchedEffect(stateOptions, districtOptions, talukaOptions, schoolOptions) {
+        if (stateOptions.isNotEmpty() && selectedState == null) {
+            stateOptions.find { it.state_name == state }?.let {
+                viewModel.onStateSelected(it)
+            }
+        }
+
+        if (districtOptions.isNotEmpty() && selectedDistrict == null) {
+            districtOptions.find { it.district_name == district }?.let {
+                viewModel.onDistrictSelected(it)
+            }
+        }
+
+        if (talukaOptions.isNotEmpty() && selectedTaluka == null) {
+            talukaOptions.find { it.taluka_name == taluka }?.let {
+                viewModel.onTalukaSelected(it)
+            }
+        }
+
+        if (schoolOptions.isNotEmpty() && selectedSchool == null) {
+            schoolOptions.find { it.schoolName == schoolName || it.id.equals(schoolName) }?.let {
+                viewModel.onSchoolSelected(it)
+            }
+        }
+    }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (viewModel.isLoading) {
@@ -173,8 +203,10 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                         imageUrl = when (data) {
                                             is DriverMob -> profileImageUri?.toString()
                                                 ?: "${Constants.BASE_URL}${data.profilePicture}"
+
                                             is Parent -> profileImageUri?.toString()
                                                 ?: "${Constants.BASE_URL}${data.profilePicture}"
+
                                             else -> profileImageUri?.toString() ?: ""
                                         }
                                     )
@@ -232,7 +264,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                             val selectedTalukaName =
                                                 selectedTaluka?.id ?: ""
                                             val selectedSchoolName =
-                                                selectedSchool?.id ?:""
+                                                selectedSchool?.id ?: ""
                                             // Save logic - you can pass all fields and imageUri to ViewModel
                                             viewModel.updateProfile(
                                                 context = context,
@@ -289,33 +321,11 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 EditableField("Child Name", childName) {
                                                     childName = it
                                                 }
-                                                EditableField(
-                                                    "School Name",
-                                                    schoolName
-                                                ) { schoolName = it }
-                                            } else {
-                                                ProfileDetailRow("Parent Name", name)
-                                                ProfileDetailRow("Contact Number", contact)
-                                                ProfileDetailRow("Address", address)
-                                                ProfileDetailRow("Child Name", childName)
-                                                ProfileDetailRow("School Name", schoolName)
-                                            }
-                                        }
+                                                /*  EditableField(
+                                                      "School Name",
+                                                      schoolName
+                                                  ) { schoolName = it }*/
 
-                                        is DriverMob -> {
-                                            if (isEditing) {
-                                                EditableField("Driver Name", name) { name = it }
-                                                EditableField(
-                                                    "Mobile Number",
-                                                    mobileNumber
-                                                ) { mobileNumber = it }
-                                                EditableField(
-                                                    "Vehicle Number",
-                                                    vehicleNumber
-                                                ) { vehicleNumber = it }
-                                                 /*EditableField("State", state) { state = it }
-                                                 EditableField("District", district) { district = it }
-                                                 EditableField("Taluka", taluka) { taluka = it }*/
                                                 DropdownField(
                                                     label = "Select State",
                                                     selectedValue = selectedState?.state_name ?: "",
@@ -354,19 +364,91 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                     }
                                                 )
 
-                                              /*  EditableField("School", schoolName) {
-                                                    schoolName = it
-                                                }*/
                                                 DropdownField(
                                                     label = "Select School",
                                                     selectedValue = selectedSchool?.schoolName.orEmpty(),
                                                     options = schoolOptions.map { it.schoolName },
                                                     onValueChange = { name ->
-                                                        schoolOptions.find { it.schoolName == name }?.let { viewModel.onSchoolSelected(it) }
+                                                        schoolOptions.find { it.schoolName == name }
+                                                            ?.let {
+                                                                viewModel.onSchoolSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                            } else {
+                                                ProfileDetailRow("Parent Name", name)
+                                                ProfileDetailRow("Contact Number", contact)
+                                                ProfileDetailRow("Address", address)
+                                                ProfileDetailRow("Child Name", childName)
+                                                ProfileDetailRow("School Name", schoolName)
+                                            }
+                                        }
+
+                                        is DriverMob -> {
+                                            if (isEditing) {
+                                                EditableField("Driver Name", name) { name = it }
+                                                EditableField(
+                                                    "Mobile Number",
+                                                    mobileNumber
+                                                ) { mobileNumber = it }
+                                                EditableField(
+                                                    "Vehicle Number",
+                                                    vehicleNumber
+                                                ) { vehicleNumber = it }
+                                                /*EditableField("State", state) { state = it }
+                                                EditableField("District", district) { district = it }
+                                                EditableField("Taluka", taluka) { taluka = it }*/
+                                                DropdownField(
+                                                    label = "Select State",
+                                                    selectedValue = selectedState?.state_name ?: "",
+                                                    options = stateOptions.map { it.state_name },
+                                                    onValueChange = { selectedName ->
+                                                        stateOptions.find { it.state_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onStateSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                                DropdownField(
+                                                    label = "Select District",
+                                                    selectedValue = selectedDistrict?.district_name
+                                                        ?: "",
+                                                    options = districtOptions.map { it.district_name },
+                                                    onValueChange = { selectedName ->
+                                                        districtOptions.find { it.district_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onDistrictSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                                DropdownField(
+                                                    label = "Select Taluka",
+                                                    selectedValue = selectedTaluka?.taluka_name
+                                                        ?: "",
+                                                    options = talukaOptions.map { it.taluka_name },
+                                                    onValueChange = { selectedName ->
+                                                        talukaOptions.find { it.taluka_name == selectedName }
+                                                            ?.let {
+                                                                viewModel.onTalukaSelected(it)
+                                                            }
+                                                    }
+                                                )
+
+                                                DropdownField(
+                                                    label = "Select School",
+                                                    selectedValue = selectedSchool?.schoolName.orEmpty(),
+                                                    options = schoolOptions.map { it.schoolName },
+                                                    onValueChange = { name ->
+                                                        schoolOptions.find { it.schoolName == name }
+                                                            ?.let {
+                                                                viewModel.onSchoolSelected(it)
+                                                            }
                                                     }
                                                 )
                                                 EditableField("City", city) { city = it }
-
 
 
                                             } else {

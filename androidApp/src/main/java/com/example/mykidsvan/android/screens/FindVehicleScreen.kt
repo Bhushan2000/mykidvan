@@ -341,8 +341,7 @@ fun FindBySchoolSection(
                 stateOptions.find { it.state_name == name }?.let { viewModel.onStateSelected(it) }
             }
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        DropdownField(
+         DropdownField(
             label = "District",
             selectedValue = selectedDistrict?.district_name.orEmpty(),
             options = districtOptions.map { it.district_name },
@@ -351,7 +350,6 @@ fun FindBySchoolSection(
                     ?.let { viewModel.onDistrictSelected(it) }
             }
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         DropdownField(
             label = "Taluka",
@@ -362,7 +360,6 @@ fun FindBySchoolSection(
                     ?.let { viewModel.onTalukaSelected(it) }
             }
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         DropdownField(
             label = "School",
@@ -416,11 +413,23 @@ fun FindBySchoolSection(
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "No data found for above selection",
-                                textAlign = TextAlign.Center,
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth()
-                            )
+                            ) {
+                                Text(
+                                    text = "No Vehicles Found for This School",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "Currently, no drivers have registered for this school. Please try again later or choose a nearby school.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     } else {
                         DriverCard(

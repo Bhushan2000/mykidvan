@@ -653,7 +653,7 @@ fun ReferralRow(
 
     // Handle response and show result toast
     referByResponse?.let { response ->
-        if (response.status.equals("success") && !isReferralCodeApplied.value) {
+        if (response.status) {
             isReferralCodeApplied.value = true
             Toast.makeText(context, "Referral Code Applied Successfully", Toast.LENGTH_SHORT).show()
         } else if (!response.status.equals("success") && !isReferralCodeApplied.value) {
