@@ -79,4 +79,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
 
     implementation("com.google.accompanist:accompanist-pager:0.34.0") // Pager (optional)
- }
+    // Compose Material 3
+    implementation("androidx.compose.material3:material3:1.2.0")
+
+}

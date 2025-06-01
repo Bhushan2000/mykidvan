@@ -8,35 +8,31 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,9 +41,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,28 +56,31 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
-import com.example.mykidsvan.android.screens.AssignedStudentScreen
-import com.example.mykidsvan.android.screens.AssignedVehicleScreen
-import com.example.mykidsvan.android.screens.DriverSignupScreen
-import com.example.mykidsvan.android.screens.FindStudentScreen
-import com.example.mykidsvan.android.screens.FindVehicleScreen
-import com.example.mykidsvan.android.screens.LoginScreen
-import com.example.mykidsvan.android.screens.MessageScreen
-import com.example.mykidsvan.android.screens.OTPVerificationScreen
-import com.example.mykidsvan.android.screens.ParentSignupScreen
-import com.example.mykidsvan.android.screens.PhoneLoginScreen
-import com.example.mykidsvan.android.screens.ProfileScreen
-import com.example.mykidsvan.android.screens.ReferAppScreen
-import com.example.mykidsvan.android.screens.SchoolOnRegistrationScreen
-import com.example.mykidsvan.android.screens.SchoolRegistrationScreen
-import com.example.mykidsvan.android.screens.SplashScreen
-import com.example.mykidsvan.android.screens.SupportHelpScreen
-import com.example.mykidsvan.android.screens.UpdatePasswordScreen
-import com.example.mykidsvan.android.screens.UploadDocumentsScreen
-import com.example.mykidsvan.android.screens.VehicleDetailsScreen
-import com.example.mykidsvan.android.screens.VehiclePhotoScreen
-import com.example.mykidsvan.android.screens.tracking.MapScreen
+import com.example.mykidsvan.android.ui.AssignedStudentScreen
+import com.example.mykidsvan.android.ui.DriverSignupScreen
+import com.example.mykidsvan.android.ui.FindStudentScreen
+import com.example.mykidsvan.android.ui.FindVehicleScreen
+import com.example.mykidsvan.android.ui.LoginScreen
+import com.example.mykidsvan.android.ui.MessageScreen
+import com.example.mykidsvan.android.ui.OTPVerificationScreen
+import com.example.mykidsvan.android.ui.ParentSignupScreen
+import com.example.mykidsvan.android.ui.PhoneLoginScreen
+import com.example.mykidsvan.android.ui.ProfileScreen
+import com.example.mykidsvan.android.ui.ReferAppScreen
+import com.example.mykidsvan.android.ui.SchoolOnRegistrationScreen
+import com.example.mykidsvan.android.ui.SchoolRegistrationScreen
+import com.example.mykidsvan.android.ui.SplashScreen
+import com.example.mykidsvan.android.ui.SupportHelpScreen
+import com.example.mykidsvan.android.ui.UpdatePasswordScreen
+import com.example.mykidsvan.android.ui.UploadDocumentsScreen
+import com.example.mykidsvan.android.ui.VehicleDetailsScreen
+import com.example.mykidsvan.android.ui.VehiclePhotoScreen
+import com.example.mykidsvan.android.ui.tracking.MapScreen
+import com.example.mykidsvan.android.utils.Arguments
+import com.example.mykidsvan.android.utils.Constants
 import com.example.mykidsvan.android.utils.DrawerItem
+import com.example.mykidsvan.android.utils.PlaceHolders
+import com.example.mykidsvan.android.utils.Routes
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
 import com.razorpay.PaymentData
@@ -112,17 +110,17 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     fun startPayment(amountInPaise: Int) {
         val checkout = Checkout()
-        checkout.setKeyID("rzp_test_BVJygtmA6ljXBB") // 🔐 Replace with your real key
+        checkout.setKeyID(Constants.RAZORPAY_TEST_KEY) // 🔐 Replace with your real key
 
         val options = JSONObject().apply {
-            put("name", "Assign Driver")
-            put("description", "Driver Assignment")
-            put("currency", "INR")
+            put("name", Constants.PAYMENT_NAME)
+            put("description", Constants.PAYMENT_DESCRIPTION)
+            put("currency", Constants.PAYMENT_CURRENCY)
             put("amount", amountInPaise) // e.g., 100000 = ₹1000
 
             put("prefill", JSONObject().apply {
-                put("email", "example@example.com")
-                put("contact", "9876543210")
+                put("email", Constants.PREFILL_EMAIL)
+                put("contact", Constants.PREFILL_CONTACT)
             })
         }
 
@@ -161,6 +159,8 @@ fun MyApp(
     val requestAssignedStatus by loginViewModel.vehicleStatus.collectAsState()
     val userRole by loginViewModel.userRole.collectAsState()
 
+    var selectedMenuTitle by remember { mutableStateOf("My Kids Van") } // Initial title
+    var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
 
 
     LaunchedEffect(userId) {
@@ -174,17 +174,17 @@ fun MyApp(
 
     // Define which routes should hide the drawer and top bar
     val hideTopBarAndDrawer = currentRoute in listOf(
-        "login",
-        "phone_login",
-        "parent_signup",
-        "driver_signup",
-        "phone_login",
-        "splash",
-        "otp_verification/{phone}",
-        "update_password/{phone}",
-        "schoolOnRegistration/{uid}/{role}",
-        "fileupload/{uid}"
+        Routes.LOGIN,
+        Routes.PHONE_LOGIN,
+        Routes.PARENT_SIGNUP,
+        Routes.DRIVER_SIGNUP,
+        Routes.SPLASH,
+        Routes.OTP_VERIFICATION,
+        Routes.UPDATE_PASSWORD,
+        Routes.SCHOOL_ON_REGISTRATION,
+        Routes.FILE_UPLOAD
     )
+
 
     // Handle navigation with ModalNavigationDrawer and NavHost
     ModalNavigationDrawer(
@@ -193,7 +193,7 @@ fun MyApp(
             if (!hideTopBarAndDrawer) {
                 ModalDrawerSheet {
                     Text(
-                        text = "My Kids Van",
+                        text = Constants.MY_KID_VAN,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(16.dp)
@@ -201,23 +201,21 @@ fun MyApp(
 
                     // Dynamically show menus based on userRole
                     val drawerItems = when (userRole?.lowercase()) {
-                        "parent" -> listOf(
+                        Constants.USER_PARENT -> listOf(
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindVehicle,
                             DrawerItem.VehicleDetails,
-                            DrawerItem.RegisterSchool,
                             DrawerItem.Message,
                             DrawerItem.ReferApp,
                             DrawerItem.SupportHelp
                         )
 
-                        "driver" -> listOf(
+                        Constants.USER_DRIVER -> listOf(
                             DrawerItem.Home,
                             DrawerItem.Profile,
                             DrawerItem.FindStudent,
                             DrawerItem.AssignedStudent,
-                            DrawerItem.RegisterSchool,
                             DrawerItem.VehiclePhoto,
                             DrawerItem.Message,
                             DrawerItem.ReferApp,
@@ -228,11 +226,18 @@ fun MyApp(
                     }
 
                     drawerItems.forEach { item ->
-                        DrawerItemRow(item) {
-                            scope.launch { drawerState.close() }
-                            navController.navigate(item.route)
-                        }
+                        DrawerItemRow(
+                            item = item,
+                            isSelected = item == selectedDrawerItem,
+                            onClick = { clickedItem ->
+                                selectedDrawerItem = item
+                                selectedMenuTitle = item.title // Updates AppBar title
+                                scope.launch { drawerState.close() }
+                                navController.navigate(item.route)
+                            }
+                        )
                     }
+
                 }
             }
         }
@@ -243,278 +248,289 @@ fun MyApp(
             topBar = {
                 if (!hideTopBarAndDrawer) {
                     CustomTopAppBar(
+                        title = selectedMenuTitle,
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onLogoutClick = { showLogoutDialog = true }
                     )
                 }
-            }) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = "splash",
-                Modifier.padding(innerPadding)
-            ) {
-                composable("splash") { SplashScreen(navController) }
-                composable("login") { LoginScreen(navController, loginViewModel) }
-                composable(
-                    route ="schoolOnRegistration/{uid}/{role}",
-                    arguments = listOf(
-                    navArgument("uid") { type = NavType.StringType },
-                    navArgument("role") { type = NavType.StringType }
-                )) { navBackStackEntry ->
-                    val uid = navBackStackEntry.arguments?.getString("uid") ?: ""
-                    val role = navBackStackEntry.arguments?.getString("role")
+            },
+            content = { innerPadding ->
+                // Add extra top padding to shift the content below the elevated app bar
+                val contentPadding = PaddingValues(
+//                    top = innerPadding.calculateTopPadding() + 72.dp, // Adjust this as needed
+                    top = 0.dp, // Adjust this as needed
+                    start = 0.dp,
+                    end = 0.dp,
+                    bottom = innerPadding.calculateBottomPadding()
+                )
+                NavHost(
+                    navController = navController,
+                    startDestination = Routes.SPLASH,
+                    modifier = Modifier.padding(contentPadding)
+                ) {
+                    composable(Routes.SPLASH) { SplashScreen(navController) }
+                    composable(Routes.LOGIN) { LoginScreen(navController, loginViewModel) }
+                    composable(
+                        route = Routes.SCHOOL_ON_REGISTRATION,
+                        arguments = listOf(
+                            navArgument(Arguments.UID) { type = NavType.StringType },
+                            navArgument(Arguments.ROLE) { type = NavType.StringType }
+                        )) { navBackStackEntry ->
+                        val uid = navBackStackEntry.arguments?.getString(Arguments.UID) ?: ""
+                        val role = navBackStackEntry.arguments?.getString(Arguments.ROLE)
 
-                    SchoolOnRegistrationScreen(
-                        navController,
-                        loginViewModel,
-                        uid,
-                        role
-                    )
-                }
-                composable("fileupload/{uid}") { backStackEntry ->
-                    val uid = backStackEntry.arguments?.getString("uid") ?: ""
-                    UploadDocumentsScreen(navController, loginViewModel, uid) { base64Map ->
-                        loginViewModel.uploadDocumentsToDatabase(base64Map)
-                    }
-                }
-
-                composable("otp_verification/{phone}") { backStackEntry ->
-                    val phoneNumber = backStackEntry.arguments?.getString("phone") ?: ""
-                    OTPVerificationScreen(
-                        navController = navController,
-                        viewModel = loginViewModel,
-                        phoneNumber = phoneNumber
-                    )
-                }
-                composable("parent_signup") { ParentSignupScreen(navController, loginViewModel) }
-                composable("driver_signup") { DriverSignupScreen(navController, loginViewModel) }
-                composable("phone_login") { PhoneLoginScreen(navController, loginViewModel) }
-                composable("update_password/{phone}") { backStackEntry ->
-                    val phoneNumber = backStackEntry.arguments?.getString("phone") ?: ""
-                    UpdatePasswordScreen(
-                        navController = navController,
-                        viewModel = loginViewModel,
-                        phoneNumber = phoneNumber
-                    )
-                }
-                // Drawer items
-                composable(DrawerItem.Home.route) {
-                    userId?.let { it1 ->
-                        userRole?.let { it2 ->
-                            assignVehicleId?.let { it3 ->
-//                                HomeScreen(
-//                                    loginViewModel,
-//                                    it1,
-//                                    it2,
-//                                    it3
-//                                )
-                            }
-                        }
-                    }
-                    MapScreen()
-                }
-
-                composable(DrawerItem.Profile.route) {
-                    userId?.let { id ->
-                        userRole?.let { role ->
-                            ProfileScreen(loginViewModel, id, role)
-
-                        }
-                    }
-                }
-                composable(DrawerItem.FindStudent.route) { FindStudentScreen(loginViewModel) }
-                composable(DrawerItem.AssignedStudent.route) {
-                    AssignedStudentScreen(
-                        loginViewModel,
-                        userId,
-                        userRole
-                    )
-                }
-                composable(DrawerItem.RegisterSchool.route) {
-                    SchoolRegistrationScreen(
-                        loginViewModel
-                    )
-                }
-                composable(DrawerItem.ReferApp.route) { ReferAppScreen(loginViewModel) }
-                composable(DrawerItem.FindVehicle.route) {
-                    userId?.let { it1 ->
-                        FindVehicleScreen(
-                            viewModel = loginViewModel,
-                            userId = it1,
-                            onPaymentSuccess = { paymentData ->
-                                onPaymentSuccessCallback?.invoke(paymentData)
-                            },
-                            onPaymentFailure = { code, message ->
-                                onPaymentFailureCallback?.invoke(code, message)
-                            }
-                        )
-                    }
-                }
-                composable(DrawerItem.AssignedVehicle.route) {
-                    AssignedVehicleScreen(
-                        loginViewModel,
-                        userId
-                    )
-                }
-                composable(DrawerItem.VehiclePhoto.route) {
-                    userId?.let { it1 ->
-                        VehiclePhotoScreen(
+                        SchoolOnRegistrationScreen(
+                            navController,
                             loginViewModel,
-                            it1
+                            uid,
+                            role
                         )
                     }
+                    composable(Routes.FILE_UPLOAD) { backStackEntry ->
+                        val uid = backStackEntry.arguments?.getString(Arguments.UID) ?: ""
+                        UploadDocumentsScreen(navController, loginViewModel, uid) { base64Map ->
+                            loginViewModel.uploadDocumentsToDatabase(base64Map)
+                        }
+                    }
+
+                    composable(Routes.OTP_VERIFICATION) { backStackEntry ->
+                        val phoneNumber = backStackEntry.arguments?.getString(Arguments.PHONE) ?: ""
+                        OTPVerificationScreen(
+                            navController = navController,
+                            viewModel = loginViewModel,
+                            phoneNumber = phoneNumber
+                        )
+                    }
+                    composable(Routes.PARENT_SIGNUP) {
+                        ParentSignupScreen(
+                            navController,
+                            loginViewModel
+                        )
+                    }
+                    composable(Routes.DRIVER_SIGNUP) {
+                        DriverSignupScreen(
+                            navController,
+                            loginViewModel
+                        )
+                    }
+                    composable(Routes.PHONE_LOGIN) {
+                        PhoneLoginScreen(
+                            navController,
+                            loginViewModel
+                        )
+                    }
+                    composable(Routes.UPDATE_PASSWORD) { backStackEntry ->
+                        val phoneNumber = backStackEntry.arguments?.getString(Arguments.PHONE) ?: ""
+                        UpdatePasswordScreen(
+                            navController = navController,
+                            viewModel = loginViewModel,
+                            phoneNumber = phoneNumber
+                        )
+                    }
+                    // Drawer items
+                    composable(DrawerItem.Home.route) {
+                        MapScreen()
+                    }
+
+                    composable(DrawerItem.Profile.route) {
+                        userId?.let { id ->
+                            userRole?.let { role ->
+                                ProfileScreen(loginViewModel, id, role)
+
+                            }
+                        }
+                    }
+                    composable(DrawerItem.FindStudent.route) { FindStudentScreen(loginViewModel) }
+                    composable(DrawerItem.AssignedStudent.route) {
+                        AssignedStudentScreen(
+                            loginViewModel,
+                            userId,
+                            userRole
+                        )
+                    }
+                    composable(DrawerItem.RegisterSchool.route) {
+                        SchoolRegistrationScreen(
+                            loginViewModel
+                        )
+                    }
+                    composable(DrawerItem.ReferApp.route) { ReferAppScreen(loginViewModel) }
+                    composable(DrawerItem.FindVehicle.route) {
+                        userId?.let { it1 ->
+                            FindVehicleScreen(
+                                viewModel = loginViewModel,
+                                userId = it1,
+                                onPaymentSuccess = { paymentData ->
+                                    onPaymentSuccessCallback?.invoke(paymentData)
+                                },
+                                onPaymentFailure = { code, message ->
+                                    onPaymentFailureCallback?.invoke(code, message)
+                                }
+                            )
+                        }
+                    }
+
+                    composable(DrawerItem.VehiclePhoto.route) {
+                        userId?.let { it1 ->
+                            VehiclePhotoScreen(
+                                loginViewModel,
+                                it1
+                            )
+                        }
+                    }
+                    composable(DrawerItem.VehicleDetails.route) {
+                        VehicleDetailsScreen(
+                            loginViewModel,
+                            assignVehicleId,
+                            userRole
+                        )
+                    }
+                    composable(DrawerItem.Message.route) { MessageScreen() }
+                    composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
                 }
-                composable(DrawerItem.VehicleDetails.route) {
-                    VehicleDetailsScreen(
-                        loginViewModel,
-                        assignVehicleId,
-                        userRole
-                    )
-                }
-                composable(DrawerItem.Message.route) { MessageScreen() }
-                composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
             }
+        )
 
-            // Logout Confirmation Dialog
-            if (showLogoutDialog) {
-                AlertDialog(
-                    onDismissRequest = { showLogoutDialog = false },
-                    title = { Text(text = "Logout") },
-                    text = { Text(text = "Are you sure you want to logout?") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showLogoutDialog = false
+        // Logout Confirmation Dialog
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text(text = PlaceHolders.LOGOUT) },
+                text = { Text(text = PlaceHolders.ARE_YOU_SURE_YOU_WANT_TO_LOGOUT) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showLogoutDialog = false
 
-                                loginViewModel.resetLoginState()  // Reset the login state to avoid automatic redirection
-                                // Clear user session or token and reset login state
-                                loginViewModel.logout()
+                            // Reset the selected drawer item
+                            selectedDrawerItem =
+                                null // or drawerItems.first() if you want a default
 
-                                // Add slight delay to ensure state flows are reset
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    delay(100) // 100ms
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
+                            // Optional: reset menu title too
+                            selectedMenuTitle = Constants.MY_KID_VAN // or any default
+
+                            loginViewModel.resetLoginState()  // Reset the login state to avoid automatic redirection
+                            // Clear user session or token and reset login state
+                            loginViewModel.logout()
+
+                            // Add slight delay to ensure state flows are reset
+                            CoroutineScope(Dispatchers.Main).launch {
+                                delay(100) // 100ms
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(0) { inclusive = true }
                                 }
                             }
-                        ) {
-                            Text("Yes", color = MaterialTheme.colorScheme.primary)
                         }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showLogoutDialog = false }) {
-                            Text("No")
-                        }
+                    ) {
+                        Text(Constants.YES, color = MaterialTheme.colorScheme.primary)
                     }
-                )
-            }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text(Constants.No)
+                    }
+                }
+            )
         }
     }
+
 }
 
 
 @Composable
-fun DrawerItemRow(item: DrawerItem, onClick: () -> Unit) {
-    Card(
+fun DrawerItemRow(
+    item: DrawerItem, isSelected: Boolean,
+    onClick: (DrawerItem) -> Unit
+) {
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    else Color.Transparent
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 8.dp, vertical = 4.dp) // Outer padding around the highlight shape
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(backgroundColor, shape = RoundedCornerShape(32.dp)) // Rounded ends
+                .clickable { onClick(item) }
+                .padding(horizontal = 16.dp, vertical = 12.dp) // Inner content padding
         ) {
             Icon(
-                painter = painterResource(id = item.iconRes),
+                painter = painterResource(item.iconRes),
                 contentDescription = item.title,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                color = if (isSelected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 18.sp
             )
         }
 
     }
 }
 
-@Composable
-fun DrawerContent(drawerItems: List<DrawerItem>, onItemClicked: (DrawerItem) -> Unit) {
-    ModalDrawerSheet(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(280.dp),
-        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-        drawerContainerColor = MaterialTheme.colorScheme.background
-    ) {
-        // Gradient Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary
-                        )
-                    )
-                )
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "My Kids Van",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        drawerItems.forEach { item ->
-            DrawerItemRow(item) {
-                onItemClicked(item)
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomTopAppBar(
-    title: String = "My Kid Van",
+    title: String,
     onMenuClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+    val topBarPadding = 12.dp
+    val horizontalPadding = 12.dp
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = topBarPadding,
+                start = horizontalPadding,
+                end = horizontalPadding
             )
-        },
-        navigationIcon = {
-            IconButton(onClick = onMenuClick) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu")
-            }
-        },
-        actions = {
-            IconButton(onClick = onLogoutClick) {
-                Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+            .shadow(
+                elevation = 40.dp,
+                shape = RoundedCornerShape(48.dp),
+                clip = false
+            )
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(48.dp)
+            )
+    ) {
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            navigationIcon = {
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.menu),
+                        contentDescription = PlaceHolders.MENU,
+                        modifier = Modifier.size(40.dp).padding(start = 8.dp), // Add start padding ,
+                        tint = Color.Unspecified
+                    )
+                }
+            },
+            actions = {
+                IconButton(onClick = onLogoutClick) {
+                    Icon(Icons.Default.ExitToApp, contentDescription = PlaceHolders.LOGOUT)
+                }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = Color.Transparent
+            )
         )
-    )
+    }
 }
 
 

@@ -6,6 +6,7 @@ import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverRespons
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
+import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -32,66 +33,33 @@ import com.google.gson.annotations.SerializedName
 // Domain Layer: AuthRepository.kt
 interface AuthRepository {
 
-    suspend fun login(
-        email: String,
-        password: String
-    ): LoginResponse
+    suspend fun login(email: String, password: String): LoginResponse
 
-    suspend fun sendOtp(
-        number: String
-    ): OtpResponse
+    suspend fun sendOtp(number: String): OtpResponse
 
-    suspend fun resendOtp(
-        number: String
-    ): OtpResponse
+    suspend fun resendOtp(number: String): OtpResponse
 
-    suspend fun verifyOtp(
-        number: String,
-        otp: String
-    ): OtpVerificationResponse
+    suspend fun verifyOtp(number: String, otp: String): OtpVerificationResponse
 
-    suspend fun updatePassword(
-        number: String,
-        password: String
-    ): UpdatePasswordResponse
+    suspend fun updatePassword(number: String, password: String): UpdatePasswordResponse
 
-    suspend fun getStates(
-    ): StatesResponse
+    suspend fun getStates(): StatesResponse
 
-    suspend fun getDistricts(
-        state_id: String
-    ): DistrictsResponse
+    suspend fun getDistricts(state_id: String): DistrictsResponse
 
-    suspend fun getTalukas(
-        state_id: String,
-        district_id: String
-    ): TalukasResponse
+    suspend fun getTalukas(state_id: String, district_id: String): TalukasResponse
 
-    suspend fun getSchools(
-        state_id: String,
-        district_id: String,
-        taluka_id: String
-    ): AllSchoolResponse
+    suspend fun getSchools(state_id: String, district_id: String, taluka_id: String): AllSchoolResponse
 
-    suspend fun getDriver(
-        school_id: String
-    ): DriverResponse
+    suspend fun getDriver(school_id: String): DriverResponse
 
-    suspend fun getParent(
-        school_id: String
-    ): ParentsResponse
+    suspend fun getParent(school_id: String): ParentsResponse
 
-    suspend fun getParentProfile(
-        parentId: String
-    ): ParentsResponse
+    suspend fun getParentProfile(parentId: String): ParentsResponse
 
-    suspend fun getDriverProfile(
-        parentId: String
-    ): DriverResponse
+    suspend fun getDriverProfile(parentId: String): DriverResponse
 
-    suspend fun registerSchool(
-        schoolRegistrationRequest: SchoolRegistrationRequest
-    ): SchoolRegistrationResponse
+    suspend fun registerSchool(schoolRegistrationRequest: SchoolRegistrationRequest): SchoolRegistrationResponse
 
     suspend fun getAllSchools(): AllSchoolResponse
 
@@ -148,36 +116,20 @@ interface AuthRepository {
         refralby: String
     ): RegistrationResponse
 
-    suspend fun assignedVehicle(
-        school_id: String,
-        id: String
-    ): AssignedResponse
+    suspend fun assignedVehicle(school_id: String, id: String): AssignedResponse
 
-    suspend fun assignedStudent(
-        school_id: String,
-        id: String
-    ): AssignedResponse
+    suspend fun assignedStudent(school_id: String, id: String): AssignedResponse
 
     suspend fun getDriverByMob(mobile_no: String): DriverByMobResponse
 
     // map
-    suspend fun sendLatLong(
-        lat: String,
-        long: String,
-        id: String
-    ): SendLatLongResponse
+    suspend fun sendLatLong(lat: String, long: String, id: String): SendLatLongResponse
 
     suspend fun getLatLong(driver_id: String): GetLatLongResponse
 
-    suspend fun sendAssignRequest(
-        vehicle_id: String,
-        parent_id: String
-    ): SendRequestToDriverResponse
+    suspend fun sendAssignRequest(vehicle_id: String, parent_id: String): SendRequestToDriverResponse
 
-    suspend fun updateAssignRequest(
-        vehicle_id: String,
-        status: String
-    ): SendLatLongResponse
+    suspend fun updateAssignRequest(vehicle_id: String, status: String): SendLatLongResponse
 
     suspend fun updateProfileParent(
         id: String,
@@ -216,9 +168,7 @@ interface AuthRepository {
         assignDate: String
     ): UpdatePaymentResponse
 
-    suspend fun getVehiclePhotos(
-        driver_id: String
-    ): VehiclePhotosResponse
+    suspend fun getVehiclePhotos(driver_id: String): VehiclePhotosResponse
 
     suspend fun driverSchoolOnRegister(
         vehiclesId: String,
@@ -254,7 +204,9 @@ interface AuthRepository {
         photo_of_vehicle: String
     ): DocumentUploadResponse
 
-    suspend fun checkReferBy(
-        referby: String
-    ): ReferByResponse
+    suspend fun checkReferBy(referby: String): ReferByResponse
+
+    suspend fun getCommission(driver_id: String): CommissionResponse
+
+    suspend fun getAllParents(): ParentsResponse
 }

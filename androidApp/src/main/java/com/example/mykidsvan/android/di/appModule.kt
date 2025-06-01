@@ -1,11 +1,12 @@
 package com.example.mykidsvan.android.di
 
  import com.example.authapp.presentation.viewmodel.AuthViewModel
- import com.example.maptracking.LatLngRepository
+ import com.example.maptracking.LatLngRepositoryImpl
  import com.example.maptracking.LatLngViewModel
  import com.example.mykidsvan.android.data.AuthRepository
 import com.example.mykidsvan.android.data.AuthApi
 import com.example.mykidsvan.android.data.AuthRepositoryImpl
+ import com.example.mykidsvan.android.ui.tracking.LatLngRepository
  import com.example.mykidsvan.android.utils.Constants
 
  import com.example.mykidsvan.android.utils.UserPreferences
@@ -28,7 +29,7 @@ val appModule = module {
     // Provide UserPreferences (with proper context)
     single { UserPreferences(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }
-    single<LatLngRepository> { LatLngRepository(get()) }
+    single<LatLngRepository> { LatLngRepositoryImpl(get()) }
 
     viewModel {
         LatLngViewModel(get(),get(), androidContext())

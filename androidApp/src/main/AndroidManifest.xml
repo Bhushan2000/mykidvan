@@ -21,7 +21,7 @@
         android:label="My Kid Van"
         android:theme="@style/AppTheme">
         <service
-            android:name=".screens.tracking.LocationTrackingService"
+            android:name=".ui.tracking.LocationTrackingService"
             android:foregroundServiceType="location"
              android:exported="false" />
         <meta-data

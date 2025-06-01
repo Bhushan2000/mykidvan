@@ -16,6 +16,7 @@ import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
+import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.District
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.Driver
@@ -62,9 +63,6 @@ class AuthViewModel(
 
     private val _stateOptions = MutableStateFlow<List<State>>(emptyList())
     val stateOptions: StateFlow<List<State>> = _stateOptions
-
-    private val _schoolAllOptions = MutableStateFlow<List<School>>(emptyList())
-    val schoolAllOptions: StateFlow<List<School>> = _schoolAllOptions
 
     //////////////////////////////////////
 
@@ -188,8 +186,7 @@ class AuthViewModel(
 
 
         loadStateOptions()
-        loadAllSchools()
-    }
+     }
 
     // Function to send OTP
     fun sendOtp(phone: String) {
@@ -197,8 +194,8 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 val response = repository.sendOtp(phone)
-                if (response.status) {
-                    _otpState.value = OtpState(success = true, message = "OTP sent successfully!")
+                if (response.status == true) {
+                    _otpState.value = OtpState(success = true, message = response.message)
                     Log.d("AuthViewModel", "sendOtp: ${response.message}")
                 } else {
                     _otpState.value = OtpState(error = response.message ?: "Failed to send OTP.")
@@ -235,8 +232,8 @@ class AuthViewModel(
             _otpState.value = OtpState(isLoading = true)
             try {
                 val response = repository.resendOtp(phone)
-                _otpState.value = if (response.status) {
-                    OtpState(success = true, message = "OTP resent successfully!")
+                _otpState.value = if (response.status == true) {
+                    OtpState(success = true, message = response.message)
                 } else {
                     OtpState(error = response.message ?: "Failed to resend OTP.")
                 }
@@ -245,32 +242,6 @@ class AuthViewModel(
             }
         }
     }
-
-    /*    fun login(username: String, password: String) {
-            _loginState.value = LoginState(isLoading = true)  // Set loading state
-            viewModelScope.launch {
-                try {
-                    val response = repository.login(username, password)
-                    if (response.status) {
-                        _loginState.value = LoginState(success = true, message = "Login successful!")
-                        userPreferences.saveLoginState(true)  // Save login state on success
-                        response.role?.let {
-                            userPreferences.saveLoginUserDetails(
-                                response.id, response.driver_name,
-                                it
-                            )
-                        }
-                        Log.d("TAG", "login: ${response.message}")
-                    } else {
-                        _loginState.value = LoginState(error = response.message ?: "Login failed.")
-                        Log.d("TAG", "login: ${response.message}")
-                    }
-                } catch (e: Exception) {
-                    _loginState.value = LoginState(error = "An error occurred: ${e.localizedMessage}")
-                    Log.e("AuthViewModel", "Login failed", e)
-                }
-            }
-        }*/
 
     fun login(username: String, password: String) {
         _loginState.value = LoginState(isLoading = true)
@@ -371,8 +342,6 @@ class AuthViewModel(
             _loginState.value = LoginState()
             clearResponses()
             clearFields()
-            clearAssignSchoolMessage()
-            clearVehicleAssignMessage()
         }
     }
 
@@ -455,21 +424,6 @@ class AuthViewModel(
         }
     }
 
-    fun loadAllSchools() = viewModelScope.launch {
-        try {
-            val response = repository.getAllSchools()
-            _schoolAllOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
-                School(
-                    id = "", schoolName = "No data found", "", "", "", "", "", ""
-                )
-            )
-            Log.d("TAG", "States loaded: ${_schoolAllOptions.value}")
-        } catch (e: Exception) {
-            Log.e("LocationViewModel", "Failed to load schools", e)
-        }
-    }
-
-
     fun loadAllRequests(driver_id: String) = viewModelScope.launch {
         try {
             val response = repository.getDriverRequests(driver_id)
@@ -515,21 +469,6 @@ class AuthViewModel(
         _selectedDriverRequest.value = null
     }
 
-    fun get() = viewModelScope.launch {
-        try {
-            val response = repository.getAllSchools()
-            _schoolAllOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
-                School(
-                    id = "", schoolName = "No data found", "", "", "", "", "", ""
-                )
-            )
-            Log.d("TAG", "States loaded: ${_schoolAllOptions.value}")
-        } catch (e: Exception) {
-            Log.e("LocationViewModel", "Failed to load schools", e)
-        }
-    }
-
-
     fun loadDistrictOptions(stateId: String) = viewModelScope.launch {
         try {
             val response = repository.getDistricts(stateId)
@@ -558,22 +497,6 @@ class AuthViewModel(
         }
     }
 
-    /*  fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
-          viewModelScope.launch {
-              try {
-                  val response = repository.getSchools(stateId, districtId, talukaId)
-                  _schoolOptions.value = response.data?.takeIf { it.isNotEmpty() } ?: listOf(
-                      School(
-                          id = "", schoolName = "No data found", "", "", "", "", "", ""
-                      )
-                  )
-                  Log.d("TAG", "Schools loaded: ${_schoolOptions.value}")
-              } catch (e: Exception) {
-                  Log.e("LocationViewModel", "Failed to load schools", e)
-              }
-          }*/
-
-
     fun loadSchoolsOptions(stateId: String, districtId: String, talukaId: String) =
         viewModelScope.launch {
             try {
@@ -601,7 +524,6 @@ class AuthViewModel(
                 Log.e("LocationViewModel", "Failed to load schools", e)
             }
         }
-
 
     fun loadDriverList(schoolId: String) = viewModelScope.launch {
         try {
@@ -829,11 +751,6 @@ class AuthViewModel(
             }
         }
 
-    // password update
-    fun onCurrentPasswordChange(password: String) {
-        _state.value = _state.value.copy(currentPassword = password)
-    }
-
     fun onNewPasswordChange(password: String) {
         _state.value = _state.value.copy(newPassword = password)
     }
@@ -893,12 +810,6 @@ class AuthViewModel(
         }
     }
 
-
-    private val _profileData = MutableStateFlow<Any?>(null)
-    val profileData: StateFlow<Any?> = _profileData.asStateFlow()
-
-    var isLoading by mutableStateOf(false)
-
     fun loadProfile(userId: String, userType: String) {
         viewModelScope.launch {
             isLoading = true
@@ -911,67 +822,13 @@ class AuthViewModel(
         }
     }
 
-    private val _assignSchoolMessage = MutableStateFlow<String?>(null)
-    val assignSchoolMessage: StateFlow<String?> = _assignSchoolMessage
+    private val _profileData = MutableStateFlow<Any?>(null)
+    val profileData: StateFlow<Any?> = _profileData.asStateFlow()
+
+    var isLoading by mutableStateOf(false)
 
     private val _isAssigningSchool = MutableStateFlow(false)
     val isAssigningSchool: StateFlow<Boolean> = _isAssigningSchool
-
-
-    private val _assignVehicleMessage = MutableStateFlow<String?>(null)
-    val assignVehicleMessage: StateFlow<String?> = _assignVehicleMessage
-
-    private val _isAssigningVehicle = MutableStateFlow(false)
-    val isAssigningVehicle: StateFlow<Boolean> = _isAssigningVehicle
-
-    fun assignVehicleToParent(vehicleId: String, userId: String) {
-        viewModelScope.launch {
-            _isAssigningVehicle.value = true
-            try {
-                val response = repository.assignedVehicle(vehicleId, userId) // ← Call your API here
-
-                if (response.status == "success") {
-                    _assignVehicleMessage.value = response.message
-                } else {
-                    _assignVehicleMessage.value = response.message
-                }
-            } catch (e: Exception) {
-                _assignVehicleMessage.value = "Error: ${e.localizedMessage}"
-            } finally {
-                _isAssigningVehicle.value = false
-            }
-        }
-    }
-
-    fun clearVehicleAssignMessage() {
-        _assignVehicleMessage.value = null
-    }
-
-    fun assignSchoolToParent(schoolId: String, userId: String) {
-        viewModelScope.launch {
-            _isAssigningSchool.value = true
-            try {
-                val response = repository.assignedStudent(
-                    schoolId, userId
-                ) // ← Replace with your repository or API call
-
-                if (response.status == "success") {
-                    _assignSchoolMessage.value = response.message
-                    // optionally update something with response.updated_school_id
-                } else {
-                    _assignSchoolMessage.value = response.message
-                }
-            } catch (e: Exception) {
-                _assignSchoolMessage.value = "Error: ${e.localizedMessage}"
-            } finally {
-                _isAssigningSchool.value = false
-            }
-        }
-    }
-
-    fun clearAssignSchoolMessage() {
-        _assignSchoolMessage.value = null
-    }
 
     fun findDriverByMobile(mobile: String) {
         viewModelScope.launch {
@@ -992,66 +849,12 @@ class AuthViewModel(
     }
 
 
-    private val _sendLatLongResponse = MutableStateFlow<SendLatLongResponse?>(null)
-    val sendLatLongResponse: StateFlow<SendLatLongResponse?> = _sendLatLongResponse
-
     private val _assignRequestResponse = MutableStateFlow<SendRequestToDriverResponse?>(null)
     val assignRequestResponse: StateFlow<SendRequestToDriverResponse?> = _assignRequestResponse
 
-    private val _assignUpdateRequestResponse = MutableStateFlow<SendLatLongResponse?>(null)
-    val assignUpdateRequestResponse: StateFlow<SendLatLongResponse?> = _assignUpdateRequestResponse
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
-
-    // Get LatLong
-    private val _currentLatLng = MutableStateFlow<LatLng?>(null)
-    val currentLatLng: StateFlow<LatLng?> get() = _currentLatLng
-
-    fun sendLatLong(lat: String, long: String, id: String) {
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                val response = repository.sendLatLong(lat, long, id)
-                _sendLatLongResponse.value = response
-
-                // ✅ Log the successful request for debugging
-                Log.d(
-                    "SendLatLong", "Sent location -> lat: $lat, long: $long, userId: $id"
-                )
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
-
-                // ❌ Log the error
-                Log.e("SendLatLongError", "Failed to send location: ${e.message}", e)
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    suspend fun getLatLong(driverId: String): List<LatLng> {
-        return try {
-            val response = repository.getLatLong(driverId)
-
-            val latLngList = response.data.mapNotNull { item ->
-                val latitude = item.latitude?.toDoubleOrNull()
-                val longitude = item.longitude?.toDoubleOrNull()
-                if (latitude != null && longitude != null) {
-                    LatLng(latitude, longitude)
-                } else null
-            }
-
-            Log.d("TrackingLog", "Fetched LatLngs from server: $latLngList")
-
-            latLngList
-        } catch (e: Exception) {
-            _errorMessage.value = e.message
-            Log.e("TrackingError", "Error fetching lat-longs: ${e.message}", e)
-            emptyList()
-        }
-    }
-
 
     // Send Assign Request
     fun sendAssignRequest(vehicleId: String, parentId: String) {
@@ -1068,23 +871,7 @@ class AuthViewModel(
         }
     }
 
-    // Send Assign Request
-    fun updateAssignRequest(vehicleId: String, status: String) {
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                val response = repository.updateAssignRequest(vehicleId, status)
-                _assignUpdateRequestResponse.value = response
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
     fun clearResponses() {
-        _sendLatLongResponse.value = null
         _assignRequestResponse.value = null
         _errorMessage.value = null
     }
@@ -1473,6 +1260,22 @@ class AuthViewModel(
 
     fun clearReferByResponse() {
         _referBySuccess.value = null
+    }
+
+
+    private val _commissionSuccess = MutableStateFlow<CommissionResponse?>(null)
+    val commissionSuccess: StateFlow<CommissionResponse?> = _commissionSuccess
+
+    fun getCommission(driver_id: String){
+        viewModelScope.launch {
+            try {
+                val response = repository.getCommission(driver_id)
+                _commissionSuccess.value = response
+            } catch (e: Exception) {
+                Log.e("TAG", "Error while verifying refer code ", e)
+                _commissionSuccess.value = null // Optional: Reset on failure
+            }
+        }
     }
 }
 

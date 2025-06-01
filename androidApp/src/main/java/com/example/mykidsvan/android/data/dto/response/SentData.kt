@@ -2,8 +2,9 @@ package com.example.mykidsvan.android.data.dto.response
 
 import com.google.gson.annotations.SerializedName
 
-data class OtpResponse(
-    @SerializedName("status") var status: Boolean? = null,
+data class SentData(
+    @SerializedName("parent_id") var parentId: String? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("otp") var otp: Int? = null
+    @SerializedName("created_at") var createdAt: String? = null
+
 )

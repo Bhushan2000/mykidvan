@@ -20,6 +20,7 @@ import com.example.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.example.mykidsvan.android.data.dto.response.AssignedResponse
+import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -403,6 +404,14 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun checkReferBy(referby: String): ReferByResponse {
         val request = ReferByRequest(referby)
         return api.checkReferCode(request)
+    }
+
+    override suspend fun getCommission(driver_id: String): CommissionResponse {
+        return api.getCommission(driver_id)
+    }
+
+    override suspend fun getAllParents(): ParentsResponse {
+        return api.getAlParents()
     }
 
 }

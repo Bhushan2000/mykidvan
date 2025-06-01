@@ -1,9 +1,12 @@
 package com.example.mykidsvan.android.data.dto.response
 
+import com.example.mykidsvan.android.data.dto.request.SentData
 import com.google.gson.annotations.SerializedName
 
-data class OtpResponse(
+// all
+data class DriverMessageResponse(
     @SerializedName("status") var status: Boolean? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("otp") var otp: Int? = null
+    @SerializedName("sent_data") var sentData: ArrayList<SentData> = arrayListOf()
+
 )
