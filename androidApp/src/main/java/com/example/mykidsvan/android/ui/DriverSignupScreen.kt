@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Base64
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -59,6 +60,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -462,7 +466,12 @@ fun DropdownField(
     onValueChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     val textFieldWidth = remember { mutableStateOf(0) }
+
+    val filteredOptions = options.filterNotNull().filter {
+        it.contains(searchQuery, ignoreCase = true)
+    }
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -475,6 +484,11 @@ fun DropdownField(
         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface
     )
+    val scrollState = rememberScrollState()
+    val listItemHeight = filteredOptions.size * 48 // Approx height per item in dp
+    val containerHeightPx = with(LocalDensity.current) { 220.dp.toPx().toInt() }
+    val contentHeightPx = with(LocalDensity.current) { listItemHeight.dp.toPx().toInt() }
+
 
     Box(
         modifier = Modifier
@@ -509,34 +523,98 @@ fun DropdownField(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false },
+            onDismissRequest = {
+                expanded = false
+                searchQuery = ""
+            },
             modifier = Modifier
                 .width(with(LocalDensity.current) { textFieldWidth.value.toDp() })
-                .heightIn(max = 200.dp) // Limit max height
+                .heightIn(max = 300.dp)
         ) {
-            options.filterNotNull().forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = option,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            textAlign = TextAlign.Center // Center align text
-                        )
-                    },
-                    onClick = {
-                        onValueChange(option)
-                        expanded = false
-                    }
+            Column {
+                // 🔍 Static Search Field
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search...") },
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 )
-            }
+
+                // 🔽 Scrollable Filtered Options with Scrollbar
+                val scrollState = rememberScrollState()
+
+                Box(
+                    modifier = Modifier
+                        .heightIn(max = 220.dp)
+                        .drawVerticalScrollbar(
+                            scrollState = scrollState,
+                            contentHeight = contentHeightPx,
+                            containerHeight = containerHeightPx
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        if (filteredOptions.isEmpty()) {
+                            Text(
+                                text = "No results found",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            filteredOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = option,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    },
+                                    onClick = {
+                                        onValueChange(option)
+                                        expanded = false
+                                        searchQuery = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }            }
         }
     }
 }
 
+fun Modifier.drawVerticalScrollbar(
+    scrollState: ScrollState,
+    contentHeight: Int,
+    containerHeight: Int
+): Modifier = this.then(
+    Modifier.drawBehind {
+        val proportion = containerHeight.toFloat() / contentHeight
+        val scrollbarHeight = size.height * proportion
+        val maxScroll = (contentHeight - containerHeight).coerceAtLeast(1)
+        val scrollTop = (scrollState.value.toFloat() / maxScroll) * (size.height - scrollbarHeight)
 
+        drawRoundRect(
+            color = Color.Gray.copy(alpha = 0.5f),
+            topLeft = Offset(x = size.width - 4.dp.toPx(), y = scrollTop),
+            size = androidx.compose.ui.geometry.Size(4.dp.toPx(), scrollbarHeight),
+            cornerRadius = CornerRadius(8.dp.toPx())
+        )
+    }
+)
 @Composable
 fun FileUploadField(
     label: String, imageBase64: String, onImageUploaded: (String) -> Unit

@@ -29,7 +29,9 @@ import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
+import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
+import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
@@ -197,4 +199,9 @@ interface AuthApi {
     @POST("index.php/api/AccountsController/driver_message") // all // individual
     suspend fun sendMessageToParentFromDriver(@Body request: DriverMessageToAllParentsRequest): DriverMessageResponse
 
+    @GET("index.php/api/AccountsController/get_parent_message/{parent_id}")
+    suspend fun getParentMessage(@Path("parent_id") parent_id: String): GetParentMessagesResponse
+
+    @GET("index.php/api/AccountsController/get_driver_message/{driver_id}")
+    suspend fun getDriverMessage(@Path("driver_id") driver_id: String): GetDriverMessagesResponse
 }

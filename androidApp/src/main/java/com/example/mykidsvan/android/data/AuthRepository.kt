@@ -1,5 +1,7 @@
 package com.example.mykidsvan.android.data
 
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
+import com.example.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
@@ -10,12 +12,16 @@ import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMessageResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
+import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
+import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.example.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
@@ -49,7 +55,11 @@ interface AuthRepository {
 
     suspend fun getTalukas(state_id: String, district_id: String): TalukasResponse
 
-    suspend fun getSchools(state_id: String, district_id: String, taluka_id: String): AllSchoolResponse
+    suspend fun getSchools(
+        state_id: String,
+        district_id: String,
+        taluka_id: String
+    ): AllSchoolResponse
 
     suspend fun getDriver(school_id: String): DriverResponse
 
@@ -127,7 +137,10 @@ interface AuthRepository {
 
     suspend fun getLatLong(driver_id: String): GetLatLongResponse
 
-    suspend fun sendAssignRequest(vehicle_id: String, parent_id: String): SendRequestToDriverResponse
+    suspend fun sendAssignRequest(
+        vehicle_id: String,
+        parent_id: String
+    ): SendRequestToDriverResponse
 
     suspend fun updateAssignRequest(vehicle_id: String, status: String): SendLatLongResponse
 
@@ -172,7 +185,7 @@ interface AuthRepository {
 
     suspend fun driverSchoolOnRegister(
         vehiclesId: String,
-        schoolId:String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -184,7 +197,7 @@ interface AuthRepository {
 
     suspend fun parentSchoolOnRegister(
         parentId: String,
-        schoolId:String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -209,4 +222,14 @@ interface AuthRepository {
     suspend fun getCommission(driver_id: String): CommissionResponse
 
     suspend fun getAllParents(): ParentsResponse
+
+    suspend fun sendMessageToDriverFromParent(request: ParentMessageToDriverRequest): ParentMessageResponse
+
+    suspend fun sendMessageToParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageResponse
+
+    suspend fun getParentMessage(parent_id: String): GetParentMessagesResponse
+
+    suspend fun getDriverMessage(driver_id: String): GetDriverMessagesResponse
+
+
 }

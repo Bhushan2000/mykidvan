@@ -1,9 +1,11 @@
 package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.AssignRequest
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.example.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
+import com.example.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.example.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.PaymentUpdateRequest
@@ -24,12 +26,16 @@ import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMessageResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
+import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
+import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.OtpResponse
 import com.example.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.example.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.example.mykidsvan.android.data.dto.response.RegisterSchoolResponse
@@ -128,7 +134,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         numberOfChildren: String,
         emergencyContact: String,
         termsAccepted: String,
-        referalCode:String,
+        referalCode: String,
         referby: String
     ): RegistrationResponse {
         val registerParentRequest = ParentRegistrationRequest(
@@ -353,7 +359,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun driverSchoolOnRegister(
         vehiclesId: String,
-        schoolId:String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -362,13 +368,23 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolDriverRequest(vehiclesId,schoolId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
+        val request = RegisterSchoolDriverRequest(
+            vehiclesId,
+            schoolId,
+            schoolName,
+            contactNumber,
+            state,
+            district,
+            taluka,
+            city,
+            schoolAddress
+        )
         return api.driverSchoolOnRegister(request)
     }
 
     override suspend fun parentSchoolOnRegister(
         parentId: String,
-        schoolId:String,
+        schoolId: String,
         schoolName: String,
         contactNumber: String,
         state: String,
@@ -377,8 +393,19 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         city: String,
         schoolAddress: String
     ): RegisterSchoolResponse {
-        val request = RegisterSchoolParentRequest(parentId,schoolId,schoolName,contactNumber,state,district,taluka,city,schoolAddress)
-        return api.parentSchoolOnRegister(request)    }
+        val request = RegisterSchoolParentRequest(
+            parentId,
+            schoolId,
+            schoolName,
+            contactNumber,
+            state,
+            district,
+            taluka,
+            city,
+            schoolAddress
+        )
+        return api.parentSchoolOnRegister(request)
+    }
 
     override suspend fun uploadDocumentsToDatabase(
         id: String,
@@ -388,7 +415,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         insurance_detail: String,
         fitness_certificat: String,
         photo_of_vehicle: String
-    ): DocumentUploadResponse{
+    ): DocumentUploadResponse {
         val request = mapOf(
             "id" to id,
             "profile_picture" to profile_picture,
@@ -414,4 +441,19 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getAlParents()
     }
 
+    override suspend fun sendMessageToDriverFromParent(request: ParentMessageToDriverRequest): ParentMessageResponse {
+        return api.sendMessageToDriverFromParent(request)
+    }
+
+    override suspend fun sendMessageToParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageResponse {
+        return api.sendMessageToParentFromDriver(request = request)
+    }
+
+    override suspend fun getParentMessage(parent_id: String): GetParentMessagesResponse {
+        return api.getParentMessage(parent_id)
+    }
+
+    override suspend fun getDriverMessage(driver_id: String): GetDriverMessagesResponse {
+        return api.getDriverMessage(driver_id)
+    }
 }
