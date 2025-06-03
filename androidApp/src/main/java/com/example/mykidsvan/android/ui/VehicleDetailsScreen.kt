@@ -1,5 +1,6 @@
 package com.example.mykidsvan.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -46,6 +47,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -53,12 +55,18 @@ import coil.compose.AsyncImage
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.data.dto.response.DriverMob
 import com.example.mykidsvan.android.utils.Constants
+import com.example.mykidsvan.android.utils.PlaceHolders
 import kotlinx.coroutines.delay
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, userRole: String?) {
+fun VehicleDetailsScreen(
+    viewModel: AuthViewModel,
+    assignVehicleId: String?,
+    vehicleTrackingStatus: String?,
+    userRole: String?
+) {
     val context = LocalContext.current
     val vehicleNumber = remember { mutableStateOf("") }
     val ownerName = remember { mutableStateOf("") }
@@ -95,16 +103,49 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding( top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            .padding(top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         when {
             assignVehicleId == null -> {
-                Text(
-                    text = "No vehicle found and No student found.",
-                    modifier = Modifier.align(Alignment.Center),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(), // Fills the whole screen
+                    contentAlignment = Alignment.Center // Centers the inner content
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp) // This adds margin around the whole message
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(
+                                    Color.White.copy(alpha = 0.8f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
+                                color = Color.Red,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
             }
 
             isLoading -> {
@@ -136,7 +177,9 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         readOnly = true,
                         label = { Text("Vehicle Number") },
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth().height(64.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     )
 
                     OutlinedTextField(
@@ -145,7 +188,9 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         readOnly = true,
                         label = { Text("Owner Name") },
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth().height(64.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     )
 
                     OutlinedTextField(
@@ -155,7 +200,9 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         label = { Text("Vehicle Type") },
                         shape = RoundedCornerShape(14.dp),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
-                        modifier = Modifier.fillMaxWidth().height(64.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     )
 
                     OutlinedTextField(
@@ -164,7 +211,9 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         readOnly = true,
                         label = { Text("Vehicle Model") },
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth().height(64.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     )
 
                     OutlinedTextField(
@@ -173,7 +222,9 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
                         readOnly = true,
                         label = { Text("Registration Number") },
                         shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth().height(64.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
                     )
 
                     val photoList = vehiclePhotosState.value
@@ -219,6 +270,7 @@ fun VehicleDetailsScreen(viewModel: AuthViewModel, assignVehicleId: String?, use
         }
     }
 }
+
 @Composable
 fun ZoomableImageViewer(photoUrl: String, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {

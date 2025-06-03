@@ -12,6 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mykidsvan.android.data.AuthRepository
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
+import com.example.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.example.mykidsvan.android.data.dto.request.ReferByResponse
 import com.example.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.example.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
@@ -19,24 +22,28 @@ import com.example.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.District
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
-import com.example.mykidsvan.android.data.dto.response.Driver
 import com.example.mykidsvan.android.data.dto.response.DriverData
+import com.example.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.example.mykidsvan.android.data.dto.response.DriverMob
+import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
+import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.LoginResponse
 import com.example.mykidsvan.android.data.dto.response.Parent
 import com.example.mykidsvan.android.data.dto.response.ParentData
+import com.example.mykidsvan.android.data.dto.response.ParentMessageResponse
+import com.example.mykidsvan.android.data.dto.response.ParentsResponse
 import com.example.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.example.mykidsvan.android.data.dto.response.RequestData
 import com.example.mykidsvan.android.data.dto.response.School
-import com.example.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.State
 import com.example.mykidsvan.android.data.dto.response.Taluka
+import com.example.mykidsvan.android.utils.DriverMessageResponseWrapper
 import com.example.mykidsvan.android.utils.LoginState
 import com.example.mykidsvan.android.utils.OtpState
 import com.example.mykidsvan.android.utils.PaymentState
+import com.example.mykidsvan.android.utils.Resource
 import com.example.mykidsvan.android.utils.UpdatePasswordState
 import com.example.mykidsvan.android.utils.UserPreferences
-import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1263,20 +1270,143 @@ class AuthViewModel(
     }
 
 
-    private val _commissionSuccess = MutableStateFlow<CommissionResponse?>(null)
-    val commissionSuccess: StateFlow<CommissionResponse?> = _commissionSuccess
+    private val _commissionState = MutableStateFlow<Resource<CommissionResponse>>(Resource.Loading())
+    val commissionState: StateFlow<Resource<CommissionResponse>> = _commissionState
 
-    fun getCommission(driver_id: String){
+    fun getCommission(driver_id: String) {
         viewModelScope.launch {
+            _commissionState.value = Resource.Loading() // Emit loading state
             try {
                 val response = repository.getCommission(driver_id)
-                _commissionSuccess.value = response
+                _commissionState.value = Resource.Success(response)
             } catch (e: Exception) {
-                Log.e("TAG", "Error while verifying refer code ", e)
-                _commissionSuccess.value = null // Optional: Reset on failure
+                Log.e("TAG", "Error while fetching commission", e)
+                _commissionState.value = Resource.Error(e.message ?: "Something went wrong", e)
             }
         }
     }
+
+
+    // Parent to Driver Message
+    private val _sendMessageToDriverState = MutableStateFlow<Resource<ParentMessageResponse>>(Resource.Loading())
+    val sendMessageToDriverState: StateFlow<Resource<ParentMessageResponse>> = _sendMessageToDriverState
+
+    // Driver to Parents Message
+    private val _sendMessageToParentState = MutableStateFlow<Resource<DriverMessageResponseWrapper>>(Resource.Loading())
+    val sendMessageToParentState: StateFlow<Resource<DriverMessageResponseWrapper>> = _sendMessageToParentState
+
+    // Get Parent Messages
+    private val _parentMessagesState = MutableStateFlow<Resource<GetParentMessagesResponse>>(Resource.Loading())
+    val parentMessagesState: StateFlow<Resource<GetParentMessagesResponse>> = _parentMessagesState
+
+    // Get Driver Messages
+    private val _driverMessagesState = MutableStateFlow<Resource<GetDriverMessagesResponse>>(Resource.Loading())
+    val driverMessagesState: StateFlow<Resource<GetDriverMessagesResponse>> = _driverMessagesState
+
+    fun sendMessageToDriver(request: ParentMessageToDriverRequest) {
+        viewModelScope.launch {
+            _sendMessageToDriverState.value = Resource.Loading()
+            try {
+                val response = repository.sendMessageToDriverFromParent(request)
+                _sendMessageToDriverState.value = Resource.Success(response)
+            } catch (e: Exception) {
+                _sendMessageToDriverState.value = Resource.Error(e.message ?: "Unknown error", e)
+            }
+        }
+    }
+
+    fun sendMessageToParent(request: Any) {
+        viewModelScope.launch {
+            _sendMessageToParentState.value = Resource.Loading()
+            try {
+                val result = when (request) {
+                    is DriverMessageToAllParentsRequest -> {
+                        val response = repository.sendMessageToAllParentFromDriver(request)
+                        DriverMessageResponseWrapper.AllParentsResponse(response)
+                    }
+                    is DriverMessageToIndividualParentsRequest -> {
+                        val response = repository.sendMessageToIndividualParentFromDriver(request)
+                        DriverMessageResponseWrapper.IndividualParentResponse(response)
+                    }
+                    else -> throw IllegalArgumentException("Unknown request type")
+                }
+                _sendMessageToParentState.value = Resource.Success(result)
+            } catch (e: Exception) {
+                _sendMessageToParentState.value = Resource.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+
+    fun getParentMessages(parentId: String) {
+        viewModelScope.launch {
+            _parentMessagesState.value = Resource.Loading()
+            try {
+                val response = repository.getParentMessage(parentId)
+                _parentMessagesState.value = Resource.Success(response)
+            } catch (e: Exception) {
+                _parentMessagesState.value = Resource.Error(e.message ?: "Unknown error", e)
+            }
+        }
+    }
+
+
+    fun getDriverMessages(driverId: String) {
+        viewModelScope.launch {
+            _driverMessagesState.value = Resource.Loading()
+            try {
+                val response = repository.getDriverMessage(driverId)
+                _driverMessagesState.value = Resource.Success(response)
+            } catch (e: Exception) {
+                _driverMessagesState.value = Resource.Error(e.message ?: "Unknown error", e)
+            }
+        }
+    }
+
+    fun clearSendMessageResponse() {
+        _sendMessageToDriverState.value = Resource.Idle()
+        _sendMessageToParentState.value = Resource.Idle()
+    }
+
+
+    private val _allParentsState = MutableStateFlow<Resource<ParentsResponse>>(Resource.Loading())
+    val allParentsState: StateFlow<Resource<ParentsResponse>> = _allParentsState
+
+    val parentNamesList = MutableStateFlow<List<String>>(emptyList())
+    // New state to store name-to-ID map
+    val parentNameToIdMap = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    fun getAllParents() {
+        viewModelScope.launch {
+            _allParentsState.value = Resource.Loading()
+            try {
+                val response = repository.getAllParents()
+                _allParentsState.value = Resource.Success(response)
+
+                val parentList = response.data
+
+                // Prepare list for dropdown
+                val names = parentList.mapNotNull { it.parentName }
+                parentNamesList.value = names
+
+                // Build name-to-id map
+                val nameIdMap = parentList.mapNotNull { parent ->
+                    val name = parent.parentName
+                    val id = parent.id
+                    if (name != null && id != null) name to id else null
+                }.toMap()
+                parentNameToIdMap.value = nameIdMap
+
+            } catch (e: Exception) {
+                _allParentsState.value = Resource.Error(e.message ?: "Unknown error", e)
+            }
+        }
+    }
+
+    fun getParentIdFromName(name: String): String? {
+        return parentNameToIdMap.value[name]
+    }
+
 }
 
 

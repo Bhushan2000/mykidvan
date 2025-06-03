@@ -4,7 +4,7 @@ import com.example.mykidsvan.android.data.dto.request.SentData
 import com.google.gson.annotations.SerializedName
 
 // all
-data class DriverMessageResponse(
+data class DriverMessageAllPMsgResponse(
     @SerializedName("status") var status: Boolean? = null,
     @SerializedName("message") var message: String? = null,
     @SerializedName("sent_data") var sentData: ArrayList<SentData> = arrayListOf()

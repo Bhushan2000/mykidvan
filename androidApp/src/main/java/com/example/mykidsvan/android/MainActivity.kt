@@ -381,10 +381,11 @@ fun MyApp(
                         VehicleDetailsScreen(
                             loginViewModel,
                             assignVehicleId,
+                            requestAssignedStatus,
                             userRole
                         )
                     }
-                    composable(DrawerItem.Message.route) { MessageScreen() }
+                    composable(DrawerItem.Message.route) { MessageScreen(loginViewModel,userId,userRole,assignVehicleId) }
                     composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
                 }
             }

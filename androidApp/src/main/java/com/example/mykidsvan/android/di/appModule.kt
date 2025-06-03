@@ -11,7 +11,8 @@ import com.example.mykidsvan.android.data.AuthRepositoryImpl
 
  import com.example.mykidsvan.android.utils.UserPreferences
 import okhttp3.OkHttpClient
-import org.koin.android.ext.koin.androidContext
+ import okhttp3.logging.HttpLoggingInterceptor
+ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -19,13 +20,25 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 val appModule = module {
     single<AuthApi> {
+        // Create logging interceptor
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY // You can also use BASIC or HEADERS
+        }
+
+        // Build OkHttpClient with the logging interceptor
+        val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
+
+        // Build Retrofit instance
         Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
-            .client(OkHttpClient.Builder().build())
+            .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(AuthApi::class.java)
     }
+
     // Provide UserPreferences (with proper context)
     single { UserPreferences(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }

@@ -85,6 +85,7 @@ fun FindVehicleScreen(
     val expireDate = currentDate.plusYears(1).format(DateTimeFormatter.ISO_DATE)
     // Razorpay Callbacks Setup
     LaunchedEffect(Unit) {
+        viewModel.loadStateOptions()
         activity?.onPaymentSuccessCallback = { paymentData ->
             onPaymentSuccess(paymentData)
             selectedDriverId.value?.let { driverId ->

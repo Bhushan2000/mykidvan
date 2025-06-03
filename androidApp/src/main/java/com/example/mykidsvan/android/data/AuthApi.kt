@@ -2,7 +2,8 @@ package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.AssignRequest
 import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
-import com.example.mykidsvan.android.data.dto.response.DriverMessageResponse
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
+import com.example.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.example.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
@@ -27,6 +28,7 @@ import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
 import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
@@ -197,7 +199,10 @@ interface AuthApi {
     suspend fun sendMessageToDriverFromParent(@Body request: ParentMessageToDriverRequest): ParentMessageResponse
 
     @POST("index.php/api/AccountsController/driver_message") // all // individual
-    suspend fun sendMessageToParentFromDriver(@Body request: DriverMessageToAllParentsRequest): DriverMessageResponse
+    suspend fun sendMessageToAllParentFromDriver(@Body request: DriverMessageToAllParentsRequest): DriverMessageAllPMsgResponse
+
+    @POST("index.php/api/AccountsController/driver_message") // all // individual
+    suspend fun sendMessageToIndividualParentFromDriver(@Body request: DriverMessageToIndividualParentsRequest): DriverMessageIndividualPMsgResponse
 
     @GET("index.php/api/AccountsController/get_parent_message/{parent_id}")
     suspend fun getParentMessage(@Path("parent_id") parent_id: String): GetParentMessagesResponse

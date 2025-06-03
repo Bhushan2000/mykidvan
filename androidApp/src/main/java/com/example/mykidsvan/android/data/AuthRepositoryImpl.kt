@@ -2,6 +2,7 @@ package com.example.mykidsvan.android.data
 
 import com.example.mykidsvan.android.data.dto.request.AssignRequest
 import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
+import com.example.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
 import com.example.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.example.mykidsvan.android.data.dto.request.OtpRequest
 import com.example.mykidsvan.android.data.dto.request.OtpVerificationRequest
@@ -26,7 +27,8 @@ import com.example.mykidsvan.android.data.dto.response.CommissionResponse
 import com.example.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.example.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
-import com.example.mykidsvan.android.data.dto.response.DriverMessageResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
+import com.example.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
 import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
@@ -445,8 +447,12 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.sendMessageToDriverFromParent(request)
     }
 
-    override suspend fun sendMessageToParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageResponse {
-        return api.sendMessageToParentFromDriver(request = request)
+    override suspend fun sendMessageToAllParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageAllPMsgResponse {
+        return api.sendMessageToAllParentFromDriver(request = request)
+    }
+
+    override suspend fun sendMessageToIndividualParentFromDriver(request: DriverMessageToIndividualParentsRequest): DriverMessageIndividualPMsgResponse {
+        return api.sendMessageToIndividualParentFromDriver(request = request)
     }
 
     override suspend fun getParentMessage(parent_id: String): GetParentMessagesResponse {
