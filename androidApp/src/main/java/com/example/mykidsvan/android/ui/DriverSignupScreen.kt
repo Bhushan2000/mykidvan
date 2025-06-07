@@ -86,6 +86,7 @@ fun DriverSignupScreen(
     // Form field values
     var ownerName by remember { mutableStateOf("") }
     var contactNumber by remember { mutableStateOf("") }
+    val otpState by viewModel.otpState.collectAsState()
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var city by remember { mutableStateOf("") }
@@ -157,16 +158,35 @@ fun DriverSignupScreen(
                     .height(64.dp)
             )
 
-            OutlinedTextField(
-                value = contactNumber,
-                onValueChange = { if (it.length <= 10) contactNumber = it },
-                label = { Text("Contact Number") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
+//            OutlinedTextField(
+//                value = contactNumber,
+//                onValueChange = { if (it.length <= 10) contactNumber = it },
+//                label = { Text("Contact Number") },
+//                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+//                shape = RoundedCornerShape(14.dp),
+//                colors = textFieldColors,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(64.dp)
+//            )
+
+            // Contact Number Input
+            ContactWithOtpSection(
+                color = textFieldColors, // or use your custom `textFieldColors`
+                contactNumber = contactNumber,
+                onContactChange = {
+                    contactNumber = it
+                },
+                otpState = otpState,
+                onSendOtp = { phone ->
+                    viewModel.sendOtp(phone)
+                },
+                onVerifyOtp = { phone, otp ->
+                    viewModel.verifyOtp(phone, otp)
+                },
+                onResendOtp = { phone ->
+                    viewModel.resendOtp(phone)
+                }
             )
 
             OutlinedTextField(
@@ -591,7 +611,8 @@ fun DropdownField(
                             }
                         }
                     }
-                }            }
+                }
+            }
         }
     }
 }
@@ -615,6 +636,7 @@ fun Modifier.drawVerticalScrollbar(
         )
     }
 )
+
 @Composable
 fun FileUploadField(
     label: String, imageBase64: String, onImageUploaded: (String) -> Unit
@@ -658,10 +680,13 @@ fun FileUploadField(
 }
 
 fun uriToBase64(context: Context, uri: Uri): String {
-    val inputStream = context.contentResolver.openInputStream(uri)
-    val bytes = inputStream?.readBytes()
-    inputStream?.close()
-    return if (bytes != null) Base64.encodeToString(bytes, Base64.NO_WRAP) else ""
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val bytes = inputStream?.readBytes() ?: return ""
+        Base64.encodeToString(bytes, Base64.NO_WRAP)
+    } catch (e: Exception) {
+        ""
+    }
 }
 
 

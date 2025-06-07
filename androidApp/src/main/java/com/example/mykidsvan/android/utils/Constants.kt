@@ -69,4 +69,22 @@ object Constants {
     // refer app
 
 
+    // support app
+    const val HELP_SCREEN_SEARCH_HINT = "Search for help..."
+    const val ACCOUNT_ISSUES_TITLE = "Account Issues"
+    const val ACCOUNT_ISSUES_DESCRIPTION = "Find solutions to account-related problems like password reset, login issues, and more."
+    const val PAYMENT_HELP_TITLE = "💳 Payment Help"
+    const val PAYMENT_HELP_DESCRIPTION = "Resolve issues with payments and transactions."
+    const val APP_USAGE_TITLE = "📱 App Usage"
+    const val APP_USAGE_DESCRIPTION = "Learn how to use different features of the app."
+    const val PRIVACY_SECURITY_TITLE = "🔒 Privacy & Security"
+    const val PRIVACY_SECURITY_DESCRIPTION = "Understand your data rights and privacy settings."
+    const val OPENING_CHAT_TOAST = "Opening chat..."
+    const val SEARCH_ICON_DESCRIPTION = "Search"
+    const val CHAT_ICON_DESCRIPTION = "Chat"
+
+    // chat type
+    const val GROUP_CHAT = "all"
+    const val INDIVIDUAL_CHAT = "individual"
+
 }

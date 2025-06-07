@@ -3,6 +3,7 @@ package com.example.mykidsvan.android.ui
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -119,35 +120,40 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     }
 
     LaunchedEffect(profileData) {
-        delay(300)
-        visible = true
+        try {
+            delay(300)
+            visible = true
 
-        profileData?.let { data ->
-            when (data) {
-                is Parent -> {
-                    name = data.parentName.orEmpty()
-                    contact = data.contactNumber.orEmpty()
-                    address = data.parentAddress.orEmpty()
-                    childName = data.childName.orEmpty()
-                    state = data.state.orEmpty()
-                    district = data.district.orEmpty()
-                    taluka = data.taluka.orEmpty()
-                    city = data.city.orEmpty()
-                    schoolName = data.schoolId.orEmpty()
-                }
+            profileData?.let { data ->
+                when (data) {
+                    is Parent -> {
+                        name = data.parentName.orEmpty()
+                        contact = data.contactNumber.orEmpty()
+                        address = data.parentAddress.orEmpty()
+                        childName = data.childName.orEmpty()
+                        state = data.state.orEmpty()
+                        district = data.district.orEmpty()
+                        taluka = data.taluka.orEmpty()
+                        city = data.city.orEmpty()
+                        schoolName = data.schoolId.orEmpty()
+                    }
 
-                is DriverMob -> {
-                    name = data.driverName.orEmpty()
-                    mobileNumber = data.number.orEmpty()
-                    vehicleNumber = data.vehicleNumber.orEmpty()
-                    state = data.state.orEmpty()
-                    district = data.district.orEmpty()
-                    taluka = data.taluka.orEmpty()
-                    city = data.city.orEmpty()
-                    schoolName = data.schoolId.orEmpty()
+                    is DriverMob -> {
+                        name = data.driverName.orEmpty()
+                        mobileNumber = data.number.orEmpty()
+                        vehicleNumber = data.vehicleNumber.orEmpty()
+                        state = data.state.orEmpty()
+                        district = data.district.orEmpty()
+                        taluka = data.taluka.orEmpty()
+                        city = data.city.orEmpty()
+                        schoolName = data.schoolId.orEmpty()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e("TAG", "ProfileScreen: $e")
         }
+
     }
     LaunchedEffect(stateOptions, districtOptions, talukaOptions, schoolOptions) {
         if (stateOptions.isNotEmpty() && selectedState == null) {
@@ -176,7 +182,11 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     }
 
 
-    Box(modifier = Modifier.fillMaxSize().padding(top = 80.dp)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 80.dp)
+    ) {
         if (viewModel.isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
@@ -312,12 +322,16 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                     when (data) {
                                         is Parent -> {
                                             if (isEditing) {
-                                                EditableField("Parent Name", name) { name = it }
-                                                EditableField("Contact Number", contact) {
+                                                EditableField(true, "Parent Name", name) {
+                                                    name = it
+                                                }
+                                                EditableField(true, "Contact Number", contact) {
                                                     contact = it
                                                 }
-                                                EditableField("Address", address) { address = it }
-                                                EditableField("Child Name", childName) {
+                                                EditableField(true, "Address", address) {
+                                                    address = it
+                                                }
+                                                EditableField(true, "Child Name", childName) {
                                                     childName = it
                                                 }
                                                 /*  EditableField(
@@ -363,17 +377,23 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                     }
                                                 )
 
-                                                DropdownField(
-                                                    label = "Select School",
-                                                    selectedValue = selectedSchool?.schoolName.orEmpty(),
-                                                    options = schoolOptions.map { it.schoolName },
-                                                    onValueChange = { name ->
-                                                        schoolOptions.find { it.schoolName == name }
-                                                            ?.let {
-                                                                viewModel.onSchoolSelected(it)
-                                                            }
-                                                    }
-                                                )
+                                                /*          DropdownField(
+                                                              label = "Select School",
+                                                              selectedValue = selectedSchool?.schoolName.orEmpty(),
+                                                              options = schoolOptions.map { it.schoolName },
+                                                              onValueChange = { name ->
+                                                                  schoolOptions.find { it.schoolName == name }
+                                                                      ?.let {
+                                                                          viewModel.onSchoolSelected(it)
+                                                                      }
+                                                              }
+                                                          )*/
+
+                                                EditableField(
+                                                    false,
+                                                    "School Name",
+                                                    schoolName
+                                                ) { schoolName = it }
 
                                             } else {
                                                 ProfileDetailRow("Parent Name", name)
@@ -386,12 +406,16 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
 
                                         is DriverMob -> {
                                             if (isEditing) {
-                                                EditableField("Driver Name", name) { name = it }
+                                                EditableField(true, "Driver Name", name) {
+                                                    name = it
+                                                }
                                                 EditableField(
+                                                    true,
                                                     "Mobile Number",
                                                     mobileNumber
                                                 ) { mobileNumber = it }
                                                 EditableField(
+                                                    true,
                                                     "Vehicle Number",
                                                     vehicleNumber
                                                 ) { vehicleNumber = it }
@@ -436,20 +460,23 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                     }
                                                 )
 
-                                                DropdownField(
-                                                    label = "Select School",
-                                                    selectedValue = selectedSchool?.schoolName.orEmpty(),
-                                                    options = schoolOptions.map { it.schoolName },
-                                                    onValueChange = { name ->
-                                                        schoolOptions.find { it.schoolName == name }
-                                                            ?.let {
-                                                                viewModel.onSchoolSelected(it)
-                                                            }
-                                                    }
-                                                )
-                                                EditableField("City", city) { city = it }
-
-
+//                                                DropdownField(
+//                                                    label = "Select School",
+//                                                    selectedValue = selectedSchool?.schoolName.orEmpty(),
+//                                                    options = schoolOptions.map { it.schoolName },
+//                                                    onValueChange = { name ->
+//                                                        schoolOptions.find { it.schoolName == name }
+//                                                            ?.let {
+//                                                                viewModel.onSchoolSelected(it)
+//                                                            }
+//                                                    }
+//                                                )
+                                                EditableField(
+                                                    false,
+                                                    "School Name",
+                                                    schoolName
+                                                ) { schoolName = it }
+                                                EditableField(true, "City", city) { city = it }
                                             } else {
                                                 ProfileDetailRow("Driver Name", name)
                                                 ProfileDetailRow("Mobile Number", mobileNumber)
@@ -495,12 +522,18 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
 
 
 @Composable
-fun EditableField(label: String, value: String, onValueChange: (String) -> Unit) {
+fun EditableField(
+    enabled: Boolean = true,
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
+        enabled = enabled, // <-- use it here
         shape = RoundedCornerShape(14.dp),
     )
 }

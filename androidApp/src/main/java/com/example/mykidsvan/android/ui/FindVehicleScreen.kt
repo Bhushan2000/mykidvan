@@ -70,6 +70,7 @@ import androidx.compose.runtime.DisposableEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindVehicleScreen(
+    assignVehicleId: String?,
     viewModel: AuthViewModel,
     userId: String,
     onPaymentSuccess: (PaymentData) -> Unit,
@@ -92,7 +93,7 @@ fun FindVehicleScreen(
                 viewModel.updatePaymentStatus(
                     id = userId.toInt(),
                     transactionId = paymentData.paymentId ?: "TXN",
-                    amount = paymentAmountInPaise.toString(),
+                    amount = (paymentAmountInPaise/100).toString(),
                     paymentStatus = "Paid",
                     expireDate = expireDate,
                     paymentDate = paymentDate,
@@ -138,6 +139,7 @@ fun FindVehicleScreen(
             // Tab Content
             when (selectedTabIndex) {
                 0 -> FindBySchoolSection(
+                    assignVehicleId,
                     paymentAmountInPaise,
                     currentDate,
                     expireDate,
@@ -155,6 +157,7 @@ fun FindVehicleScreen(
                 )
 
                 1 -> FindByMobileSection(
+                    assignVehicleId,
                     paymentAmountInPaise,
                     currentDate,
                     expireDate,
@@ -178,6 +181,7 @@ fun FindVehicleScreen(
 
 @Composable
 fun FindByMobileSection(
+    assignVehicleId: String?,
     paymentAmountInPaise: Int,
     currentDate: LocalDate,
     expireDate: String,
@@ -258,6 +262,7 @@ fun FindByMobileSection(
             }
         } else if (foundDriver?.id != null) {
             DriverCard(
+                assignVehicleId = assignVehicleId,
                 paymentAmountInPaise,
                 currentDate,
                 expireDate,
@@ -274,7 +279,7 @@ fun FindByMobileSection(
         assignResponse?.let { response ->
             Toast.makeText(
                 context,
-                response.message ?: "Request Sent",
+                "Assigned Request Sent Successfully",
                 Toast.LENGTH_SHORT
             ).show()
             viewModel.clearResponses()
@@ -289,6 +294,7 @@ fun FindByMobileSection(
 
 @Composable
 fun FindBySchoolSection(
+    assignVehicleId: String?,
     paymentAmountInPaise: Int,
     currentDate: LocalDate,
     expireDate: String,
@@ -413,6 +419,7 @@ fun FindBySchoolSection(
                         }
                     } else {
                         DriverCard(
+                            assignVehicleId,
                             paymentAmountInPaise,
                             currentDate,
                             expireDate,
@@ -552,6 +559,7 @@ fun DriverCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverCard(
+    assignVehicleId: String?,
     paymentAmountInPaise: Int,
     currentDate: LocalDate,
     expireDate: String,
@@ -668,7 +676,14 @@ fun DriverCard(
                 // Send Request Button
                 Button(
                     onClick = {
-                        showSheet.value = true
+                        if (assignVehicleId == null)
+                            showSheet.value = true
+                        else
+                            Toast.makeText(
+                                context,
+                                "Already Vehicle Owner Assigned",
+                                Toast.LENGTH_SHORT
+                            ).show()
                     },
                     enabled = !isLoading,
                     modifier = Modifier.weight(1f),

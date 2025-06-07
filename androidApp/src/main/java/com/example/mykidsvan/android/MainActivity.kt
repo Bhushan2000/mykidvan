@@ -46,17 +46,16 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.ui.AssignedStudentScreen
+import com.example.mykidsvan.android.ui.ChatScreen
 import com.example.mykidsvan.android.ui.DriverSignupScreen
 import com.example.mykidsvan.android.ui.FindStudentScreen
 import com.example.mykidsvan.android.ui.FindVehicleScreen
@@ -117,7 +116,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             put("description", Constants.PAYMENT_DESCRIPTION)
             put("currency", Constants.PAYMENT_CURRENCY)
             put("amount", amountInPaise) // e.g., 100000 = ₹1000
-
             put("prefill", JSONObject().apply {
                 put("email", Constants.PREFILL_EMAIL)
                 put("contact", Constants.PREFILL_CONTACT)
@@ -268,7 +266,7 @@ fun MyApp(
                     startDestination = Routes.SPLASH,
                     modifier = Modifier.padding(contentPadding)
                 ) {
-                    composable(Routes.SPLASH) { SplashScreen(navController) }
+                    composable(Routes.SPLASH) { SplashScreen(navController,loginViewModel.loginState.collectAsState()) }
                     composable(Routes.LOGIN) { LoginScreen(navController, loginViewModel) }
                     composable(
                         route = Routes.SCHOOL_ON_REGISTRATION,
@@ -357,6 +355,7 @@ fun MyApp(
                     composable(DrawerItem.FindVehicle.route) {
                         userId?.let { it1 ->
                             FindVehicleScreen(
+                                assignVehicleId = assignVehicleId,
                                 viewModel = loginViewModel,
                                 userId = it1,
                                 onPaymentSuccess = { paymentData ->
@@ -385,7 +384,18 @@ fun MyApp(
                             userRole
                         )
                     }
-                    composable(DrawerItem.Message.route) { MessageScreen(loginViewModel,userId,userRole,assignVehicleId) }
+                    composable(DrawerItem.Message.route) { MessageScreen(navController,loginViewModel,userId,userRole,assignVehicleId) }
+                    composable("chat/{chatTarget}") { backStackEntry ->
+                        val chatTarget = backStackEntry.arguments?.getString("chatTarget")
+
+                        ChatScreen(
+                            parentIdOrName = if (chatTarget == "all") null else chatTarget,
+                            viewModel = loginViewModel,
+                            navController = navController,
+                            assignVehicleId = assignVehicleId,
+                            userId = userId
+                        )
+                    }
                     composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
                 }
             }
@@ -517,7 +527,7 @@ fun CustomTopAppBar(
                     Icon(
                         painter = painterResource(R.drawable.menu),
                         contentDescription = PlaceHolders.MENU,
-                        modifier = Modifier.size(40.dp).padding(start = 8.dp), // Add start padding ,
+                        modifier = Modifier.size(48.dp).padding(start = 8.dp), // Add start padding ,
                         tint = Color.Unspecified
                     )
                 }
@@ -532,11 +542,4 @@ fun CustomTopAppBar(
             )
         )
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun SplashPreview() {
-    SplashScreen(navController = rememberNavController())
 }

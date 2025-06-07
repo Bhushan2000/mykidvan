@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,72 +45,55 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.mykidsvan.android.utils.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupportHelpScreen() {
-    val faqExpanded = remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val colors = MaterialTheme.colorScheme // To access current theme colors
+    val colors = MaterialTheme.colorScheme
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    Toast.makeText(context, "Opening chat...", Toast.LENGTH_SHORT).show()
-                },
-                containerColor = colors.primary, // Adapt to primary color based on theme
-                shape = CircleShape,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Email, contentDescription = "Chat")
-            }
-        }
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding( top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Search Bar
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { Text("Search for help...") },
-                modifier = Modifier
-                    .fillMaxWidth(),
-                leadingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = colors.onSurface) // Adjust icon color
-                },
+            // 📞 Contact Section (Phone + Email)
+            Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colors.primary, // Primary color for focused state
-                    unfocusedBorderColor = colors.onSurface.copy(alpha = 0.5f), // Subtle border color for unfocused state
-                    cursorColor = colors.onSurface
-                )
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Expandable FAQ Section
-            ExpandableSupportCard(
-                title = "Account Issues",
-                description = "Find solutions to account-related problems like password reset, login issues, and more.",
-                expanded = faqExpanded.value,
-                onClick = { faqExpanded.value = !faqExpanded.value }
-            )
-            
-            // More Support Categories
-            SupportCategoryCard("💳 Payment Help", "Resolve issues with payments and transactions.")
-            Spacer(modifier = Modifier.height(16.dp))
-            SupportCategoryCard("📱 App Usage", "Learn how to use different features of the app.")
-            Spacer(modifier = Modifier.height(16.dp))
-            SupportCategoryCard("🔒 Privacy & Security", "Understand your data rights and privacy settings.")
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Need Help?",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = colors.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Phone, contentDescription = "Phone", tint = colors.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "7276888566", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Email, contentDescription = "Email", tint = colors.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "support@mykidvan.com", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
         }
     }
 }

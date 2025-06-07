@@ -70,6 +70,7 @@ fun ParentSignupScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     val parentName = remember { mutableStateOf("") }
     val contactNumber = remember { mutableStateOf("") }
+    val otpState by viewModel.otpState.collectAsState()
     val state = remember { mutableStateOf("") }
     val district = remember { mutableStateOf("") }
     val taluka = remember { mutableStateOf("") }
@@ -139,18 +140,37 @@ fun ParentSignupScreen(
                     .fillMaxWidth()
                     .height(64.dp)
             )
-            OutlinedTextField(
-                value = contactNumber.value,
-                onValueChange = { if (it.length <= 10) contactNumber.value = it },
-                label = { Text("Contact Number") },
-                shape = RoundedCornerShape(14.dp),
-                colors = textFieldColors,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+
+//            OutlinedTextField(
+//                value = contactNumber.value,
+//                onValueChange = { if (it.length <= 10) contactNumber.value = it },
+//                label = { Text("Contact Number") },
+//                shape = RoundedCornerShape(14.dp),
+//                colors = textFieldColors,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(64.dp),
+//                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
+//            )
+
+            ContactWithOtpSection(
+                color = textFieldColors, // or use your custom `textFieldColors`
+                contactNumber = contactNumber.value,
+                onContactChange = {
+                    contactNumber.value = it
+                },
+                otpState = otpState,
+                onSendOtp = { phone ->
+                    viewModel.sendOtp(phone)
+                },
+                onVerifyOtp = { phone, otp ->
+                    viewModel.verifyOtp(phone, otp)
+                },
+                onResendOtp = { phone ->
+                    viewModel.resendOtp(phone)
+                }
             )
-            OutlinedTextField(
+             OutlinedTextField(
                 value = password,
                 onValueChange = { if (it.length <= 8) password = it },
                 label = { Text("Password") },

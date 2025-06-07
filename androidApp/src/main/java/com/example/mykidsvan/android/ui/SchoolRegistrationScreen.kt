@@ -233,7 +233,7 @@ fun TitleWithAsterisk(text: String) {
 fun TitleWithOutAsterisk(text: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "  ",
+            text = "",
             color = Color.Red,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodyLarge

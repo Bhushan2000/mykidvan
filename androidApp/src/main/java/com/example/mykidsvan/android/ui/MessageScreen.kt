@@ -1,39 +1,44 @@
 package com.example.mykidsvan.android.ui
 
-import androidx.compose.foundation.lazy.items
-import java.text.SimpleDateFormat
-import java.util.*
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -46,31 +51,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.example.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
 import com.example.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
+import com.example.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.example.mykidsvan.android.utils.Constants
-import com.example.mykidsvan.android.utils.DriverMessageResponseWrapper
 import com.example.mykidsvan.android.utils.PlaceHolders
-
 import com.example.mykidsvan.android.utils.Resource
+import com.example.mykidsvan.android.utils.UnifiedMessage
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageScreen(
+    navController: NavHostController,
     viewModel: AuthViewModel,
     userId: String?,
     userRole: String?,
@@ -79,13 +85,12 @@ fun MessageScreen(
     val context = LocalContext.current
 
     var selectedFilter by remember { mutableStateOf("All Parents") }
-    val filterOptions = listOf("All Parents", "By Name")
     var specificSelection by remember { mutableStateOf("") }
     var messageText by remember { mutableStateOf("") }
 
     val parentList by viewModel.parentNamesList.collectAsState()
-    val sendStateP by viewModel.sendMessageToParentState.collectAsState()
-    val sendStateD by viewModel.sendMessageToDriverState.collectAsState()
+    val sendStateP by viewModel.sendMessageToParentState.collectAsState() // driver n send kele l state aahe
+    val sendStateD by viewModel.sendMessageToDriverState.collectAsState() // parent n send kele l state aahe
     val parentMessagesState by viewModel.parentMessagesState.collectAsState()
     val driverMessageState by viewModel.driverMessagesState.collectAsState()
     val vehicleTrackingStatus by viewModel.vehicleStatus.collectAsState()
@@ -93,10 +98,19 @@ fun MessageScreen(
     // Fetch parent list on launch
     LaunchedEffect(Unit) {
         viewModel.getAllParents()
-        if (Constants.USER_PARENT.equals(userRole))
-            viewModel.getParentMessages(userId.toString()) // Fetch messages for assigned vehicle/driver
-        else
-            viewModel.getDriverMessages(userId.toString())
+        if (Constants.USER_PARENT.equals(userRole)) {
+            viewModel.getParentMessages(userId.toString())
+            viewModel.getDriverMessagesForIndividual(assignVehicleId.toString(),userId.toString())
+        } else {
+            // driver
+            // load messages of assigned parents
+            parentList.forEach { parent ->
+                val parentId = viewModel.getParentIdFromName(parent)
+                viewModel.getParentMessages(parentId.toString())
+            }
+            viewModel.getDriverMessages(userId.toString()) //
+            viewModel.getDriverMessagesAll(userId.toString())
+        }
     }
 
     // Handle send message response state
@@ -106,7 +120,8 @@ fun MessageScreen(
                 Toast.makeText(context, "Message sent successfully!", Toast.LENGTH_SHORT).show()
                 messageText = ""
                 // Refresh messages after sending
-                viewModel.getParentMessages(userId.toString())
+                viewModel.getDriverMessages(userId.toString())
+                viewModel.getDriverMessagesForAllAssignedParents()
             }
 
             is Resource.Error -> {
@@ -120,13 +135,16 @@ fun MessageScreen(
             is Resource.Idle<*> -> {}
         }
     }
+
     LaunchedEffect(sendStateD) {
         when (sendStateD) {
             is Resource.Success -> {
                 Toast.makeText(context, "Message sent successfully!", Toast.LENGTH_SHORT).show()
                 messageText = ""
                 // Refresh messages after sending
-                viewModel.getDriverMessages(assignVehicleId.toString())
+                // parent case  send message to driver from parent
+                viewModel.getParentMessages(userId.toString())
+                viewModel.getDriverMessagesForIndividual(assignVehicleId.toString(),userId.toString())
             }
 
             is Resource.Error -> {
@@ -150,8 +168,10 @@ fun MessageScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
             .verticalScroll(rememberScrollState())
+            .imePadding() // pushes the UI up when keyboard appears
+
     ) {
 
         // 🚫 Parent – show driver not assigned message
@@ -161,8 +181,7 @@ fun MessageScreen(
         ) {
 
             Box(
-                modifier = Modifier
-                    .fillMaxSize(), // Fills the whole screen
+                modifier = Modifier.fillMaxSize(), // Fills the whole screen
                 contentAlignment = Alignment.Center // Centers the inner content
             ) {
                 Box(
@@ -174,8 +193,7 @@ fun MessageScreen(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .background(
-                                Color.White.copy(alpha = 0.8f),
-                                RoundedCornerShape(12.dp)
+                                Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp)
                             )
                             .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -200,74 +218,199 @@ fun MessageScreen(
             }
         } else {
 
+            // choose to chat
             if (Constants.USER_DRIVER.equals(userRole)) {
-                // Filter Dropdown
-                DropdownSelector(
-                    label = "Select Filter",
-                    options = filterOptions,
-                    selectedOption = selectedFilter,
-                    onOptionSelected = {
-                        selectedFilter = it
-                        specificSelection = ""
-                    }
+                Text(
+                    text = "Choose Parent to Chat",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Show selection dropdown or input based on selected filter
-                when (selectedFilter) {
-                    "By Name" -> {
-                        DropdownSelector(
-                            label = "Select Parent",
-                            options = parentList,
-                            selectedOption = specificSelection,
-                            onOptionSelected = { specificSelection = it }
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp) // ✅ Use fixed or dynamic height
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // First Option: All Parents
+                    item {
+                        ChatListItem(
+                            name = "All Parents",
+                            onClick = {
+                                selectedFilter = "All"
+                                onParentSelected("all", navController, null)
+                            }
                         )
                     }
 
-                    "Individual Parent" -> {
-                        OutlinedTextField(
-                            value = specificSelection,
-                            onValueChange = { specificSelection = it },
-                            label = { Text("Enter Parent Mobile or ID") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFF1E88E5),
-                                unfocusedBorderColor = Color.Gray,
-                                containerColor = Color.White
-                            )
+                    // List of individual parents
+                    items(parentList) { parentName ->
+                        ChatListItem(
+                            name = parentName,
+                            onClick = {
+                                selectedFilter = "Individual"
+                                specificSelection = parentName
+                                val parentId = viewModel.getParentIdFromName(specificSelection)
+                                onParentSelected("individual", navController, parentId)
+                            }
                         )
                     }
                 }
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Message Box
-            RoundedMessageTextField(
-                value = messageText,
-                onValueChange = { messageText = it },
-                label = "Type your message"
-            )
+            // group messages
 
-            Spacer(modifier = Modifier.height(16.dp))
+            val backgroundColorP = Color(0xFFDFF6FF) // light blue // For parent
+            val backgroundColorD = Color(0xFFFFF3CD) // light yellow // for driver
+            val parentMessages =
+                (parentMessagesState as? Resource.Success<GetParentMessagesResponse>)?.data?.data?.map {
+                    val firstDriver = it.drivers.firstOrNull()
+                    UnifiedMessage(
+                        it.message,
+                        it.createdAt ?: "",
+                        firstDriver?.driverName.orEmpty(),
+                        Constants.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
+                        Constants.USER_PARENT
+                    )
+                } ?: emptyList()
+            val driverMessages =
+                (driverMessageState as? Resource.Success<GetDriverMessagesResponse>)?.data?.data?.flatMap { driverMessage ->
+                    driverMessage.parents.map { parent ->
+                        UnifiedMessage(
+                            driverMessage.message,
+                            driverMessage.createdAt.orEmpty(),
+                            parent.parentName.orEmpty(),
+                            Constants.BASE_URL + parent.profilePicture.orEmpty(),
+                            Constants.USER_DRIVER
+                        )
+                    }
+                } ?: emptyList()
 
-            // Send Button
-            Button(
-                onClick = {
+            val allMessages = parentMessages + driverMessages
+            // Sort messages if needed by date
+            val sortedMessages = allMessages.sortedBy { it.createdAt }
+            val listState = rememberLazyListState()
+            LaunchedEffect(sortedMessages.size) {
+                if (sortedMessages.isNotEmpty()) {
+                    listState.animateScrollToItem(sortedMessages.lastIndex)
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                items(sortedMessages) { message ->
+                    val isParent = message.senderType == Constants.USER_PARENT
+                    val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
+                    val bubbleShape = if (isParent) {
+                        RoundedCornerShape(14.dp, 14.dp, 14.dp, 0.dp)
+                    } else {
+                        RoundedCornerShape(14.dp, 14.dp, 0.dp, 14.dp)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = if (isParent) Arrangement.Start else Arrangement.End,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        if (isParent) {
+
+
+                            // Profile Image on Left
+                            AsyncImage(
+                                model = message.profileUrl
+                                    ?: "https://i.pravatar.cc/150?img=5", // fallback if null
+                                contentDescription = "Parent Avatar",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, Color.Gray, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+
+                        // Message Bubble
+                        Card(
+                            shape = bubbleShape,
+                            colors = CardDefaults.cardColors(containerColor = bubbleColor),
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            modifier = Modifier.widthIn(max = 280.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(
+                                    text = message.name ?: "",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = message.message ?: "",
+                                    fontSize = 14.sp,
+                                    color = Color.Black
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                val (date, time) = formatDateTime(message.createdAt)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = date, fontSize = 10.sp, color = Color.DarkGray
+                                    )
+                                    Text(
+                                        text = time, fontSize = 10.sp, color = Color.DarkGray
+                                    )
+                                }
+                            }
+                        }
+
+                        if (!isParent) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            // Profile Image on Right
+                            AsyncImage(
+                                model = message.profileUrl ?: "https://i.pravatar.cc/150?img=15",
+                                contentDescription = "Driver Avatar",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, Color.Gray, CircleShape)
+                            )
+                        }
+                    }
+                }
+            }
+            WhatsAppStyleMessageInput(
+                messageText = messageText,
+                onMessageChange = { messageText = it },
+                onSendClick = {
                     if (messageText.isBlank()) {
                         Toast.makeText(context, "Message cannot be empty", Toast.LENGTH_SHORT)
                             .show()
-                        return@Button
+                        return@WhatsAppStyleMessageInput
                     }
                     if (Constants.USER_DRIVER.equals(userRole)) {
                         // driver case
                         when (selectedFilter) {
                             "All Parents" -> {
                                 val request = DriverMessageToAllParentsRequest(
-                                    searchSpecific = "all",
-                                    driverId = userId, // login user
+                                    searchSpecific = Constants.GROUP_CHAT, driverId = userId, // login user
                                     message = messageText
                                 )
                                 viewModel.sendMessageToParent(request)
@@ -277,229 +420,26 @@ fun MessageScreen(
                                 val parentId =
                                     viewModel.getParentIdFromName(specificSelection) ?: "0"
                                 val request = DriverMessageToIndividualParentsRequest(
-                                    parentId = parentId,
-                                    message = messageText
+                                    searchSpecific = Constants.INDIVIDUAL_CHAT,
+                                    vehiclesId = userId,
+                                    parentId = parentId, message = messageText
                                 )
                                 viewModel.sendMessageToParent(request)
                             }
                         }
                     } else {
-                        // parent case
+                        // parent case  send message to driver from parent
                         val request = ParentMessageToDriverRequest(
-                            vehiclesId = assignVehicleId.toString(), // login user
+                            vehiclesId = assignVehicleId, // login user
+                            parentId = userId,
                             message = messageText
                         )
                         viewModel.sendMessageToDriver(request)
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text(
-                    text = "Send Message",
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- Messages List from Parents ---
-
-            Text(
-                text = "Messages",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            if (Constants.USER_PARENT.equals(userRole))
-                when (parentMessagesState) {
-                    is Resource.Loading -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-
-                    is Resource.Error -> {
-                        Text(
-                            text = "Error loading messages",
-                            color = Color.Red,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        val messages =
-                            (parentMessagesState as Resource.Success<GetParentMessagesResponse>).data.data
-
-                        if (messages.isEmpty()) {
-                            Text(
-                                text = "No messages available.",
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                color = Color.Gray
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn(
-                                modifier = Modifier
-                                    .weight(1f) // gives proper height to LazyColumn
-                                    .fillMaxWidth()
-                            ) {
-                                if (messages.isEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "No messages available.",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            color = Color.Gray
-                                        )
-                                    }
-                                } else {
-                                    items(messages) { message ->
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(8.dp)
-                                                .background(
-                                                    color = MaterialTheme.colorScheme.surface,
-                                                    shape = RoundedCornerShape(12.dp)
-                                                )
-                                        ) {
-                                            Text(
-                                                text = message.message ?: "",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-
-                                            Spacer(modifier = Modifier.height(4.dp))
-
-                                            val input = message.createdAt.toString()
-                                            val (date, time) = formatDateTime(input)
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = date,
-                                                    fontSize = 12.sp,
-                                                    color = Color.DarkGray
-                                                )
-                                                Text(
-                                                    text = time,
-                                                    fontSize = 12.sp,
-                                                    color = Color.DarkGray
-                                                )
-                                            }
-
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    is Resource.Idle<*> -> {}
-
-                }
-            else
-                when (driverMessageState) {
-                    is Resource.Loading -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-
-                    is Resource.Error -> {
-                        Text(
-                            text = "Error loading messages",
-                            color = Color.Red,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
-                    }
-
-                    is Resource.Success -> {
-                        val messages =
-                            (driverMessageState as Resource.Success<GetDriverMessagesResponse>).data.data
-
-                        if (messages.isEmpty()) {
-                            Text(
-                                text = "No messages available.",
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                color = Color.Gray
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LazyColumn(
-                                modifier = Modifier
-                                    .weight(1f) // gives proper height to LazyColumn
-                                    .fillMaxWidth()
-                            ) {
-                                if (messages.isEmpty()) {
-                                    item {
-                                        Text(
-                                            text = "No messages available.",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            color = Color.Gray
-                                        )
-                                    }
-                                } else {
-                                    items(messages) { message ->
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(8.dp)
-                                                .background(
-                                                    color = MaterialTheme.colorScheme.surface,
-                                                    shape = RoundedCornerShape(12.dp)
-                                                )
-                                        ) {
-                                            Text(
-                                                text = message.message ?: "",
-                                                fontSize = 14.sp
-                                            )
-
-                                            Spacer(modifier = Modifier.height(4.dp))
-
-                                            val input = message.createdAt.toString()
-                                            val (date, time) = formatDateTime(input)
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = date,
-                                                    fontSize = 12.sp,
-                                                    color = Color.DarkGray
-                                                )
-                                                Text(
-                                                    text = time,
-                                                    fontSize = 12.sp,
-                                                    color = Color.DarkGray
-                                                )
-                                            }
-
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    is Resource.Idle<*> -> {}
-
-                }
+                })
         }
     }
 }
-
 
 fun formatDateTime(input: String): Pair<String, String> {
     val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -514,112 +454,76 @@ fun formatDateTime(input: String): Pair<String, String> {
     return Pair(formattedDate, formattedTime)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownSelector(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit
+fun WhatsAppStyleMessageInput(
+    messageText: String, onMessageChange: (String) -> Unit, onSendClick: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val colorScheme = MaterialTheme.colorScheme
+    val scrollState = rememberScrollState()
 
-    var textFieldWidth by remember { mutableStateOf(0) }
-
-    Column {
-        Text(text = label, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentSize(Alignment.TopStart)
+                .weight(1f)
+                .heightIn(min = 48.dp, max = 150.dp)
+                .border(
+                    width = 1.dp, color = colorScheme.outline, shape = RoundedCornerShape(24.dp)
+                )
+                .background(colorScheme.surface, shape = RoundedCornerShape(20.dp))
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
-            // Use a clickable Box wrapping the OutlinedTextField to avoid conflicts
-            Box(
+            // Scrollable and multiline text box
+            BasicTextField(
+                value = messageText,
+                onValueChange = onMessageChange,
+                textStyle = TextStyle(fontSize = 16.sp, color = colorScheme.onSurface),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onGloballyPositioned { coordinates ->
-                        textFieldWidth = coordinates.size.width
-                    }
-                    .clickable { expanded = true }
-            ) {
-                OutlinedTextField(
-                    value = selectedOption,
-                    onValueChange = {},
-                    readOnly = true,
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = false, // disable text input to avoid focus issues
-                    trailingIcon = {
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                    },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = colorScheme.primary,
-                        unfocusedBorderColor = colorScheme.outline,
-                        containerColor = colorScheme.surface,
-                        focusedTextColor = colorScheme.onSurface,
-                        unfocusedTextColor = colorScheme.onSurface,
-                        cursorColor = colorScheme.primary
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 8.dp, vertical = 6.dp) // <-- Inner padding added here
+
+            )
+
+            // Placeholder
+            if (messageText.isEmpty()) {
+                Text(
+                    text = "Type your message",
+                    color = colorScheme.onSurfaceVariant,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(
+                        horizontal = 8.dp, vertical = 6.dp
+                    ) // <-- same padding
                 )
             }
+        }
 
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .width(with(LocalDensity.current) { textFieldWidth.toDp() })
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colorScheme.surface),
-                offset = DpOffset(x = 0.dp, y = 0.dp)
-            ) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option, color = colorScheme.onSurface) },
-                        onClick = {
-                            onOptionSelected(option)
-                            expanded = false
-                        }
-                    )
-                }
-            }
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Send button
+        IconButton(
+            onClick = onSendClick,
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(0xFF1E88E5), shape = CircleShape)
+                .clip(CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RoundedMessageTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    height: Dp = 150.dp
+fun onParentSelected(
+    type: String,
+    navController: NavHostController,
+    parentIdOrName: String?
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, color = colorScheme.onSurfaceVariant) },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-            .clip(RoundedCornerShape(16.dp)),
-        maxLines = 5,
-        shape = RoundedCornerShape(16.dp),
-        textStyle = TextStyle(fontSize = 16.sp, color = colorScheme.onSurface),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = colorScheme.primary,
-            unfocusedBorderColor = colorScheme.outline,
-            containerColor = colorScheme.surface,
-            focusedTextColor = colorScheme.onSurface,
-            unfocusedTextColor = colorScheme.onSurface,
-            cursorColor = colorScheme.primary
-        )
-
-    )
+    val argument = parentIdOrName ?: type // e.g., type = "all"
+    navController.navigate("chat/$argument")
 }
-

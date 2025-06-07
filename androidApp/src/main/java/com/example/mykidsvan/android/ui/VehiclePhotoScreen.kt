@@ -63,14 +63,6 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
         viewModel.getVehiclePhotos()
     }
 
-    // Upload success toast
-//    LaunchedEffect(isUploading) {
-//        if (wasUploading && !isUploading) {
-//            Toast.makeText(context, "✅ Upload successful! Thank you 🎉", Toast.LENGTH_LONG).show()
-//        }
-//        wasUploading = isUploading
-//    }
-
     // Image pickers
     val frontPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->

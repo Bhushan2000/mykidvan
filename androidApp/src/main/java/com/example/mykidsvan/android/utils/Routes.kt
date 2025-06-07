@@ -1,6 +1,7 @@
 package com.example.mykidsvan.android.utils
 
 object Routes {
+    const val HOME = "home"
     const val LOGIN = "login"
     const val PHONE_LOGIN = "phone_login"
     const val PARENT_SIGNUP = "parent_signup"

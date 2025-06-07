@@ -176,7 +176,6 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
 
             if (lastPoint == latLngList.lastOrNull()) {
                 isDriverInactive.value = true
-                snackbarHostState.showSnackbar(PlaceHolders.MSG_TRACKING_NOT_STARTED)
             }
         }
     }
@@ -319,43 +318,28 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
         } else null // Default Google Map Light style
     }
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) {
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, floatingActionButton = {
+            if (userRole == Constants.USER_DRIVER)
+                CurrentLocationFab(
+                    viewModel = viewModel,
+                    cameraPositionState = cameraPositionState,
+                    currentLocation = currentLocation,
+                    context = context
+                )
+        }
+    ) {
         Box(Modifier.fillMaxSize()) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 uiSettings = MapUiSettings(zoomControlsEnabled = false),
                 properties = MapProperties(
-                    isMyLocationEnabled = locationPermissionState.status.isGranted,
+                    isMyLocationEnabled = locationPermissionState.status.isGranted && shouldShowBlueDot(
+                        userRole.toString()
+                    ),
                     mapStyleOptions = mapStyleOptions
                 )
-            )/* GoogleMap(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(16.dp)), // Optional map with rounded corners
-
-            cameraPositionState = cameraPositionState,
-
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = true,
-                compassEnabled = true,
-                myLocationButtonEnabled = true,
-                mapToolbarEnabled = false, // Hide default toolbar on markers
-                rotationGesturesEnabled = true,
-                tiltGesturesEnabled = false,
-                scrollGesturesEnabled = true
-            ),
-
-            properties = MapProperties(
-                isMyLocationEnabled = locationPermissionState.status.isGranted,
-                mapType = MapType.NORMAL, // Options: NORMAL, SATELLITE, HYBRID, TERRAIN, NONE
-                isTrafficEnabled = true,
-                isBuildingEnabled = true,
-                isIndoorEnabled = false,
-                mapStyleOptions = mapStyleOptions // Load from assets or raw
-            )
-        )*/
-            {
+            ) {
                 if (latLngList.isNotEmpty()) {
                     Polyline(
                         points = latLngList,
@@ -379,6 +363,25 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                         rotation = bearing,
                         anchor = Offset(0.5f, 0.5f),
                         flat = true
+                    )
+                }
+            }
+
+            if (isDriverInactive.value && !assignedVehicleId.isNullOrBlank() &&
+                vehicleTrackingStatus.equals(PlaceHolders.ACCEPTED, ignoreCase = true)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAA000000)) // semi-transparent black
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = PlaceHolders.MSG_TRACKING_NOT_STARTED,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -425,56 +428,57 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                 }
 
 
-                FloatingActionButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            val location = viewModel.getLastKnownLocation()
-                            location?.let {
-                                val latLng = LatLng(it.latitude, it.longitude)
-                                currentLocation.value = latLng
-                                cameraPositionState.animate(
-                                    CameraUpdateFactory.newCameraPosition(
-                                        CameraPosition.builder()
-                                            .target(latLng)
-                                            .zoom(18f)
-                                            .tilt(45f)
-                                            .bearing(0f)
-                                            .build()
-                                    ),
-                                    durationMs = 1000
-                                )
-                            } ?: run {
-                                Toast.makeText(
-                                    context,
-                                    PlaceHolders.MSG_LOCATION_NOT_AVAILABLE,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .size(56.dp), // Standard FAB size
-                    shape = CircleShape, // Ensure it's round
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = greenColor,
-                    elevation =  FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 8.dp,
-                        pressedElevation = 12.dp,
-                        focusedElevation = 10.dp,
-                        hoveredElevation = 10.dp
-                    )
+                /*                FloatingActionButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val location = viewModel.getLastKnownLocation()
+                                            location?.let {
+                                                val latLng = LatLng(it.latitude, it.longitude)
+                                                currentLocation.value = latLng
+                                                cameraPositionState.animate(
+                                                    CameraUpdateFactory.newCameraPosition(
+                                                        CameraPosition.builder()
+                                                            .target(latLng)
+                                                            .zoom(18f)
+                                                            .tilt(45f)
+                                                            .bearing(0f)
+                                                            .build()
+                                                    ),
+                                                    durationMs = 1000
+                                                )
+                                            } ?: run {
+                                                Toast.makeText(
+                                                    context,
+                                                    PlaceHolders.MSG_LOCATION_NOT_AVAILABLE,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp)
+                                        .size(56.dp), // Standard FAB size
+                                    shape = CircleShape, // Ensure it's round
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = greenColor,
+                                    elevation =  FloatingActionButtonDefaults.elevation(
+                                        defaultElevation = 8.dp,
+                                        pressedElevation = 12.dp,
+                                        focusedElevation = 10.dp,
+                                        hoveredElevation = 10.dp
+                                    )
 
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.menu),
-                        contentDescription = PlaceHolders.MSG_CURRENT_LOCATION,
-                        modifier = Modifier.size(40.dp), // Increased size
-                        tint = Color.Unspecified // <--- This disables the default black tint
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.menu),
+                                        contentDescription = PlaceHolders.MSG_CURRENT_LOCATION,
+                                        modifier = Modifier.size(40.dp), // Increased size
+                                        tint = Color.Unspecified // <--- This disables the default black tint
 
-                    )
-                }
+                                    )
+                                }*/
+
             }
 
             // 🚫 Parent – show driver not assigned message
@@ -541,4 +545,93 @@ fun isLocationPermissionGranted(context: android.content.Context): Boolean {
     return ActivityCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
+}
+
+@Composable
+fun CurrentLocationFab(
+    viewModel: LatLngViewModel,
+    cameraPositionState: CameraPositionState,
+    currentLocation: MutableState<LatLng?>,
+    context: Context
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var isCompassMode by remember { mutableStateOf(false) }
+
+    FloatingActionButton(
+        onClick = {
+            coroutineScope.launch {
+                val location = viewModel.getLastKnownLocation()
+                location?.let {
+                    val latLng = LatLng(it.latitude, it.longitude)
+                    currentLocation.value = latLng
+
+                    // Toggle icon mode and adjust camera behavior
+                    if (isCompassMode) {
+                        // Compass mode (tilted + bearing follows movement)
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.builder()
+                                    .target(latLng)
+                                    .zoom(18f)
+                                    .tilt(45f)
+                                    .bearing(90f) // You can dynamically fetch device orientation
+                                    .build()
+                            ),
+                            durationMs = 1000
+                        )
+                    } else {
+                        // Standard mode (zoom to current location)
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newCameraPosition(
+                                CameraPosition.builder()
+                                    .target(latLng)
+                                    .zoom(18f)
+                                    .tilt(0f)
+                                    .bearing(0f)
+                                    .build()
+                            ),
+                            durationMs = 1000
+                        )
+                    }
+
+                    // Toggle mode
+                    isCompassMode = !isCompassMode
+                } ?: run {
+                    Toast.makeText(
+                        context,
+                        PlaceHolders.MSG_LOCATION_NOT_AVAILABLE,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        },
+        modifier = Modifier
+            .padding(16.dp)
+            .size(56.dp),
+        shape = CircleShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = Color(0xFF4CAF50),
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 8.dp,
+            pressedElevation = 12.dp,
+            focusedElevation = 10.dp,
+            hoveredElevation = 10.dp
+        )
+    ) {
+        Icon(
+            painter = painterResource(
+                id = if (isCompassMode) R.drawable.ic_compass else R.drawable.ic_current_location
+            ),
+            contentDescription = if (isCompassMode)
+                "Compass Mode"
+            else
+                "Current Location",
+            modifier = Modifier.size(30.dp),
+            tint = Color.Unspecified
+        )
+    }
+}
+
+fun shouldShowBlueDot(userType: String): Boolean {
+    return userType.lowercase() in listOf(Constants.USER_DRIVER)
 }

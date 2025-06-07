@@ -31,6 +31,7 @@ import com.example.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.example.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
+import com.example.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
@@ -209,4 +210,8 @@ interface AuthApi {
 
     @GET("index.php/api/AccountsController/get_driver_message/{driver_id}")
     suspend fun getDriverMessage(@Path("driver_id") driver_id: String): GetDriverMessagesResponse
+
+    @GET("index.php/api/AccountsController/get_all_message/{driver_id}")
+    suspend fun getDriverAllMessage(@Path("driver_id") driver_id: String): GetDriverAllMessagesResponse
+
 }

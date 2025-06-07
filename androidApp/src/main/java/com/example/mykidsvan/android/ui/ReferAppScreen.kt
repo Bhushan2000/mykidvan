@@ -200,14 +200,16 @@ fun ReferAppScreen(viewModel: AuthViewModel) {
                 is Resource.Error -> {
                     val message = (commissionState as Resource.Error).message
                     Text(
-                        text = "Failed to load commission",
+                        text = "No commission available",
                         color = Color.Red,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
 
-                is Resource.Idle<*> -> {}
+                is Resource.Idle<*> -> {
+
+                }
 
             }
 

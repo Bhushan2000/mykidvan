@@ -31,6 +31,7 @@ import com.example.mykidsvan.android.data.dto.response.DriverMessageIndividualPM
 import com.example.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.example.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.example.mykidsvan.android.data.dto.response.DriverResponse
+import com.example.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.example.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.example.mykidsvan.android.data.dto.response.GetParentMessagesResponse
@@ -461,5 +462,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun getDriverMessage(driver_id: String): GetDriverMessagesResponse {
         return api.getDriverMessage(driver_id)
+    }
+
+    override suspend fun getDriverAllMessage(driver_id: String): GetDriverAllMessagesResponse {
+       return api.getDriverAllMessage(driver_id)
     }
 }

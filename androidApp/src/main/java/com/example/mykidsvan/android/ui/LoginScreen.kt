@@ -62,6 +62,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.mykidsvan.android.R
+import com.example.mykidsvan.android.utils.Routes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +135,7 @@ fun LoginScreen(
         LaunchedEffect(Unit) {
             Toast.makeText(context, loginState.message ?: "Welcome back!", Toast.LENGTH_SHORT)
                 .show()
-            navController.navigate("home") {
+            navController.navigate(Routes.HOME) {
                 popUpTo(0) { inclusive = true }
             }
         }
