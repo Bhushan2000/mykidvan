@@ -1,0 +1,17 @@
+package com.example.maptracking
+
+
+import com.vihaanshika.mykidsvan.android.data.AuthApi
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
+import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
+
+class LatLngRepositoryImpl(private val api: AuthApi) : LatLngRepository {
+
+    override suspend fun sendLatLong(request: SendLatLongRequest): SendLatLongResponse =
+        api.sendLatLong(request)
+
+    override suspend fun getLatLong(driverId: String): GetLatLongResponse =
+        api.getLatLong(driverId)
+}
