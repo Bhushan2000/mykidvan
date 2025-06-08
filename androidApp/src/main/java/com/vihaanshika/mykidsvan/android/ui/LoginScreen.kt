@@ -226,7 +226,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .height(64.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Forgot Password?",

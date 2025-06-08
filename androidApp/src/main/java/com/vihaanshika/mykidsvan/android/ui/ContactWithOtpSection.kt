@@ -38,52 +38,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vihaanshika.mykidsvan.android.utils.OtpState
 import kotlinx.coroutines.delay
-
 @Composable
 fun ContactWithOtpSection(
     color: TextFieldColors,
     contactNumber: String,
     onContactChange: (String) -> Unit,
+    otp: String,
+    onOtpChange: (String) -> Unit,
+    timerSeconds: Int,
+    showOtpField: Boolean,
+    isVerified: Boolean,
     otpState: OtpState,
     onSendOtp: (String) -> Unit,
     onVerifyOtp: (String, String) -> Unit,
-    onResendOtp: (String) -> Unit,
+    onResendOtp: (String) -> Unit
 ) {
-    var otp by remember { mutableStateOf("") }
-    var timerSeconds by remember { mutableStateOf(0) }
-    var showOtpField by remember { mutableStateOf(false) }
-    var isVerifiedInternal by remember { mutableStateOf(false) }
-
-    // Trigger OTP UI & timer after message says "sent"
-    LaunchedEffect(otpState.message) {
-        if (otpState.message?.contains("sent", true) == true) {
-            showOtpField = true
-            timerSeconds = 60
-            while (timerSeconds > 0 && !isVerifiedInternal) {
-                delay(1_000)
-                timerSeconds--
-            }
-        }
-    }
-
-    // Auto-verify OTP
-    LaunchedEffect(otp) {
-        if (otp.length == 4 && !otpState.isLoading && !isVerifiedInternal) {
-            onVerifyOtp(contactNumber, otp)
-        }
-    }
-
-    // Lock after success
-    LaunchedEffect(otpState.message) {
-        if (otpState.message?.contains("verified", ignoreCase = true) == true) {
-            isVerifiedInternal = true
-            showOtpField = false
-        }
-    }
-
     Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(8.dp))
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -91,9 +61,7 @@ fun ContactWithOtpSection(
             OutlinedTextField(
                 value = contactNumber,
                 onValueChange = {
-                    if (!isVerifiedInternal && it.length <= 10) {
-                        onContactChange(it)
-                    }
+                    if (!isVerified && it.length <= 10) onContactChange(it)
                 },
                 label = { Text("Contact Number") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -101,7 +69,7 @@ fun ContactWithOtpSection(
                     .weight(1f)
                     .height(64.dp),
                 trailingIcon = {
-                    if (isVerifiedInternal) {
+                    if (isVerified) {
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = "Verified",
@@ -110,7 +78,7 @@ fun ContactWithOtpSection(
                     }
                 },
                 shape = RoundedCornerShape(14.dp),
-                enabled = !isVerifiedInternal,
+                enabled = !isVerified,
                 colors = color
             )
 
@@ -118,26 +86,24 @@ fun ContactWithOtpSection(
 
             IconButton(
                 onClick = { onSendOtp(contactNumber) },
-                enabled = contactNumber.length == 10 && !isVerifiedInternal
+                enabled = contactNumber.length == 10 && !isVerified
             ) {
                 Icon(
                     Icons.Default.Send,
                     contentDescription = "Send OTP",
-                    tint = if (contactNumber.length == 10 && !isVerifiedInternal)
+                    tint = if (contactNumber.length == 10 && !isVerified)
                         MaterialTheme.colorScheme.primary else Color.Gray
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        if (showOtpField && !isVerified) {
+            Spacer(modifier = Modifier.height(8.dp))
 
-        if (showOtpField && !isVerifiedInternal) {
             OutlinedTextField(
                 value = otp,
                 onValueChange = {
-                    if (it.length <= 4 && it.all { char -> char.isDigit() }) {
-                        otp = it
-                    }
+                    if (it.length <= 4 && it.all(Char::isDigit)) onOtpChange(it)
                 },
                 label = { Text("OTP") },
                 singleLine = true,
@@ -193,10 +159,10 @@ fun ContactWithOtpSection(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             } else {
-                TextButton(onClick = {
-                    onResendOtp(contactNumber)
-                    timerSeconds = 60
-                }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                TextButton(
+                    onClick = { onResendOtp(contactNumber) },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
                     Text("Resend OTP")
                 }
             }

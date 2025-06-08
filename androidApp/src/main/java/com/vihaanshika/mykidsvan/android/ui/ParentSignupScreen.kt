@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.R
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -69,8 +70,6 @@ fun ParentSignupScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val parentName = remember { mutableStateOf("") }
-    val contactNumber = remember { mutableStateOf("") }
-    val otpState by viewModel.otpState.collectAsState()
     val state = remember { mutableStateOf("") }
     val district = remember { mutableStateOf("") }
     val taluka = remember { mutableStateOf("") }
@@ -118,6 +117,42 @@ fun ParentSignupScreen(
         focusedLabelColor = MaterialTheme.colorScheme.primary,
         unfocusedLabelColor = Color.Gray
     )
+
+    var contactNumber by remember { mutableStateOf("") }
+    var otp by remember { mutableStateOf("") }
+    var timer by remember { mutableStateOf(0) }
+    var isVerified by remember { mutableStateOf(false) }
+    var showOtpField by remember { mutableStateOf(false) }
+
+    val otpState = viewModel.otpState.collectAsState().value
+
+    // Show OTP field and start timer on success message
+    LaunchedEffect(otpState.message) {
+        if (otpState.message?.contains("sent", ignoreCase = true) == true) {
+            showOtpField = true
+            timer = 60
+            while (timer > 0 && !isVerified) {
+                delay(1000)
+                timer--
+            }
+        }
+    }
+
+    // Auto-verify OTP
+    LaunchedEffect(otp) {
+        if (otp.length == 4 && !otpState.isLoading && !isVerified) {
+            viewModel.verifyOtp(contactNumber, otp)
+        }
+    }
+
+    // Handle verification success
+    LaunchedEffect(otpState.message) {
+        if (otpState.message?.contains("verified", ignoreCase = true) == true) {
+            isVerified = true
+            showOtpField = false
+        }
+    }
+
     Scaffold(topBar = { TopAppBar(title = { Text("Parents Registration Form") }) }) { padding ->
         Column(
             modifier = Modifier
@@ -154,23 +189,24 @@ fun ParentSignupScreen(
 //            )
 
             ContactWithOtpSection(
-                color = textFieldColors, // or use your custom `textFieldColors`
-                contactNumber = contactNumber.value,
-                onContactChange = {
-                    contactNumber.value = it
-                },
+                color = textFieldColors,
+                contactNumber = contactNumber,
+                onContactChange = { contactNumber = it },
+                otp = otp,
+                onOtpChange = { otp = it },
+                timerSeconds = timer,
+                showOtpField = showOtpField,
+                isVerified = isVerified,
                 otpState = otpState,
-                onSendOtp = { phone ->
-                    viewModel.sendOtp(phone)
-                },
-                onVerifyOtp = { phone, otp ->
-                    viewModel.verifyOtp(phone, otp)
-                },
-                onResendOtp = { phone ->
-                    viewModel.resendOtp(phone)
+                onSendOtp = { viewModel.sendOtp(it) },
+                onVerifyOtp = { number, code -> viewModel.verifyOtp(number, code) },
+                onResendOtp = {
+                    viewModel.resendOtp(it)
+                    timer = 60
                 }
             )
-             OutlinedTextField(
+
+            OutlinedTextField(
                 value = password,
                 onValueChange = { if (it.length <= 8) password = it },
                 label = { Text("Password") },
@@ -379,7 +415,6 @@ fun ParentSignupScreen(
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone)
             )
             // Referral Code UI
-            Spacer(modifier = Modifier.height(16.dp))
 
             /*          Text(
                           "Your Referral Code: ${referralCode.value}",
@@ -387,7 +422,6 @@ fun ParentSignupScreen(
                           fontWeight = FontWeight.Bold
                       )
           */
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Row for Referral Code input and Apply button
             ReferralRow(
@@ -396,26 +430,32 @@ fun ParentSignupScreen(
                 isReferralCodeApplied = isReferralCodeApplied
             )
 
-            Row(
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                Checkbox(
-                    checked = termsAccepted.value,
-                    onCheckedChange = { termsAccepted.value = it })
+            /*            Row(
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Checkbox(
+                                checked = termsAccepted.value,
+                                onCheckedChange = { termsAccepted.value = it })
 
-                Spacer(modifier = Modifier.width(8.dp)) // Horizontal space between checkbox and text
+                            Spacer(modifier = Modifier.width(8.dp)) // Horizontal space between checkbox and text
 
-                Text(
-                    text = "I agree to the Terms & Conditions",
-                    modifier = Modifier.weight(1f) // Push the text if needed or adjust for larger space.
-                )
-            }
+                            Text(
+                                text = "I agree to the Terms & Conditions",
+                                modifier = Modifier.weight(1f) // Push the text if needed or adjust for larger space.
+                            )
+                        }*/
+            Spacer(modifier = Modifier.height(8.dp))
 
+            TermsAndPrivacyRow(
+                termsAccepted = termsAccepted.value,
+                onCheckedChange = { termsAccepted.value = it }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
-                    if (parentName.value.isBlank() || contactNumber.value.isBlank() || !termsAccepted.value) {
+                    if (parentName.value.isBlank() || contactNumber.isBlank() || !termsAccepted.value) {
                         Toast.makeText(
                             context,
                             "Please fill mandatory fields and accept the terms.",
@@ -425,7 +465,7 @@ fun ParentSignupScreen(
                         isLoading = true  // Start loading when the button is clicked
                         viewModel.registerParent(
                             parentName.value,
-                            contactNumber.value,
+                            contactNumber,
                             password,
                             selectedState?.id ?: "",
                             selectedDistrict?.id ?: "",
@@ -471,7 +511,7 @@ fun ParentSignupScreen(
                     if (result.status == true) {
                         // Reset form fields
                         parentName.value = ""
-                        contactNumber.value = ""
+                        contactNumber = ""
                         state.value = ""
                         district.value = ""
                         taluka.value = ""
@@ -511,6 +551,14 @@ fun ParentSignupScreen(
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()
             viewModel.resetDriverRegistrationResult()
+            viewModel.resetOtpState()
+//          reset the fields
+// ...................................
+            contactNumber = ""
+            otp = ""
+            timer = 0
+            isVerified = false
+            showOtpField = false
         }
     }
 }

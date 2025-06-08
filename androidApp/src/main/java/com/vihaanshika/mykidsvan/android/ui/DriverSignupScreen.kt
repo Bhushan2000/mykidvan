@@ -73,6 +73,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.R
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,8 +86,6 @@ fun DriverSignupScreen(
 
     // Form field values
     var ownerName by remember { mutableStateOf("") }
-    var contactNumber by remember { mutableStateOf("") }
-    val otpState by viewModel.otpState.collectAsState()
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var city by remember { mutableStateOf("") }
@@ -134,6 +133,42 @@ fun DriverSignupScreen(
         unfocusedLabelColor = Color.Gray
     )
 
+
+    var contactNumber by remember { mutableStateOf("") }
+    var otp by remember { mutableStateOf("") }
+    var timer by remember { mutableStateOf(0) }
+    var isVerified by remember { mutableStateOf(false) }
+    var showOtpField by remember { mutableStateOf(false) }
+
+    val otpState = viewModel.otpState.collectAsState().value
+
+    // Show OTP field and start timer on success message
+    LaunchedEffect(otpState.message) {
+        if (otpState.message?.contains("sent", ignoreCase = true) == true) {
+            showOtpField = true
+            timer = 60
+            while (timer > 0 && !isVerified) {
+                delay(1000)
+                timer--
+            }
+        }
+    }
+
+    // Auto-verify OTP
+    LaunchedEffect(otp) {
+        if (otp.length == 4 && !otpState.isLoading && !isVerified) {
+            viewModel.verifyOtp(contactNumber, otp)
+        }
+    }
+
+    // Handle verification success
+    LaunchedEffect(otpState.message) {
+        if (otpState.message?.contains("verified", ignoreCase = true) == true) {
+            isVerified = true
+            showOtpField = false
+        }
+    }
+
     Scaffold(topBar = {
         TopAppBar(title = { Text("Driver Registration Form") })
     }) { padding ->
@@ -171,21 +206,22 @@ fun DriverSignupScreen(
 //            )
 
             // Contact Number Input
+
             ContactWithOtpSection(
-                color = textFieldColors, // or use your custom `textFieldColors`
+                color = textFieldColors,
                 contactNumber = contactNumber,
-                onContactChange = {
-                    contactNumber = it
-                },
+                onContactChange = { contactNumber = it },
+                otp = otp,
+                onOtpChange = { otp = it },
+                timerSeconds = timer,
+                showOtpField = showOtpField,
+                isVerified = isVerified,
                 otpState = otpState,
-                onSendOtp = { phone ->
-                    viewModel.sendOtp(phone)
-                },
-                onVerifyOtp = { phone, otp ->
-                    viewModel.verifyOtp(phone, otp)
-                },
-                onResendOtp = { phone ->
-                    viewModel.resendOtp(phone)
+                onSendOtp = { viewModel.sendOtp(it) },
+                onVerifyOtp = { number, code -> viewModel.verifyOtp(number, code) },
+                onResendOtp = {
+                    viewModel.resendOtp(it)
+                    timer = 60
                 }
             )
 
@@ -358,15 +394,11 @@ fun DriverSignupScreen(
             )
 
             // Referral Code UI
-            Spacer(modifier = Modifier.height(16.dp))
-
 //            Text(
 //                "Your Referral Code: ${referralCode.value}",
 //                fontSize = 16.sp,
 //                fontWeight = FontWeight.Bold
 //            )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Row for Referral Code input and Apply button
             ReferralRow(
@@ -375,12 +407,20 @@ fun DriverSignupScreen(
                 isReferralCodeApplied = isReferralCodeApplied
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
-                Text("Accept Terms and Conditions", fontSize = 14.sp)
-            }
+            // terms and conditions
+            /*            Row(
+                            modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it })
+                            Text("Accept Terms and Conditions", fontSize = 14.sp)
+                        }*/
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TermsAndPrivacyRow(
+                termsAccepted = termsAccepted,
+                onCheckedChange = { termsAccepted = it }
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -460,6 +500,14 @@ fun DriverSignupScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()
+            viewModel.resetOtpState()
+//          reset the fields
+// ...................................
+            contactNumber = ""
+            otp = ""
+            timer = 0
+            isVerified = false
+            showOtpField = false
         }
     }
 }

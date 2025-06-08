@@ -82,6 +82,12 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
     val userRole by viewModel.userRole.collectAsState()
     val assignedVehicleId by viewModel.assignedVehicleId.collectAsState()
     val vehicleTrackingStatus by viewModel.vehicleTrackingStatus.collectAsState()
+
+    // counter
+    val timer = remember { mutableStateOf(1) }
+    // Track changes to last LatLng
+    var lastKnownPoint by remember { mutableStateOf(latLngList.lastOrNull()) }
+
     DisposableEffect(Unit) {
         viewModel.registerLocationBroadcastReceiver(context)
         onDispose {
@@ -169,16 +175,30 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
 
     LaunchedEffect(latLngList.lastOrNull()) {
         if (userRole == Constants.USER_PARENT) {
-            isDriverInactive.value = false // Reset inactivity
-
-            delay(40_000) // Wait 40 seconds
-            val lastPoint = latLngList.lastOrNull()
-
-            if (lastPoint == latLngList.lastOrNull()) {
-                isDriverInactive.value = true
+            val currentPoint = latLngList.lastOrNull()
+            if (currentPoint != lastKnownPoint) {
+                // Movement detected — reset timer and inactivity flag
+                timer.value = 0
+                isDriverInactive.value = false
+                lastKnownPoint = currentPoint
             }
         }
     }
+
+    // Timer loop
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            if (userRole == Constants.USER_PARENT) {
+                if (timer.value < 40) {
+                    timer.value++
+                } else {
+                    isDriverInactive.value = true
+                }
+            }
+        }
+    }
+
 
     // 🔁 Auto-start/stop tracking for parent based on assignedVehicleId and status
     LaunchedEffect(userRole, assignedVehicleId, vehicleTrackingStatus) {
@@ -368,7 +388,8 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             }
 
             if (isDriverInactive.value && !assignedVehicleId.isNullOrBlank() &&
-                vehicleTrackingStatus.equals(PlaceHolders.ACCEPTED, ignoreCase = true)) {
+                vehicleTrackingStatus.equals(PlaceHolders.ACCEPTED, ignoreCase = true)
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -385,6 +406,9 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                     )
                 }
             }
+
+            // Timer display on map
+            RadarTimerWithProgress(timer = timer.value, isDriverInactive = isDriverInactive.value)
 
             // 🟢 Driver-only Start/Stop button
             if (userRole == Constants.USER_DRIVER) {
