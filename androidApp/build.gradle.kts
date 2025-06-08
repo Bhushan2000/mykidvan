@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mykidsvan.android"
+    namespace = "com.vihaanshika.mykidsvan.android"
     compileSdk = 34
     defaultConfig {
-        applicationId = "com.example.mykidsvan.android"
+        applicationId = "com.vihaanshika.mykidsvan.android"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -78,8 +78,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0") // for AsyncImage
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.0.0")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
-
-    implementation("com.google.accompanist:accompanist-pager:0.34.0") // Pager (optional)
+    // Pager (optional)
+    implementation("com.google.accompanist:accompanist-pager:0.34.0")
     // Compose Material 3
     implementation("androidx.compose.material3:material3:1.2.0")
 
