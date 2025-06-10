@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import android.util.Base64
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -73,6 +71,9 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.R
+import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
+import com.vihaanshika.mykidsvan.android.utils.OtpState
+import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,34 +140,72 @@ fun DriverSignupScreen(
     var timer by remember { mutableStateOf(0) }
     var isVerified by remember { mutableStateOf(false) }
     var showOtpField by remember { mutableStateOf(false) }
+    var isVerifying by remember { mutableStateOf(false) }
 
-    val otpState = viewModel.otpState.collectAsState().value
+    val sendOtpState = viewModel.sendOtpState.collectAsState().value
+    val verifyOtpState = viewModel.verifyOtp.collectAsState().value
 
     // Show OTP field and start timer on success message
-    LaunchedEffect(otpState.message) {
-        if (otpState.message?.contains("sent", ignoreCase = true) == true) {
-            showOtpField = true
-            timer = 60
-            while (timer > 0 && !isVerified) {
-                delay(1000)
-                timer--
+    LaunchedEffect(sendOtpState) {
+        if (sendOtpState is Resource.Success) {
+            val msg = sendOtpState.data.toString()
+            if (msg.contains("sent", ignoreCase = true)) {
+                showOtpField = true
+                timer = 60
+                while (timer > 0 && !isVerified) {
+                    delay(1000)
+                    timer--
+                }
             }
+        } else if (sendOtpState is Resource.Error) {
+            Toast.makeText(context, sendOtpState.message, Toast.LENGTH_SHORT).show()
         }
     }
 
+
     // Auto-verify OTP
     LaunchedEffect(otp) {
-        if (otp.length == 4 && !otpState.isLoading && !isVerified) {
+        if (
+            otp.length == 4 &&
+            !isVerified &&
+            !isVerifying &&
+            verifyOtpState !is Resource.Loading
+        ) {
+            isVerifying = true
             viewModel.verifyOtp(contactNumber, otp)
+
+            // Enforce 5 seconds cooldown
+            delay(5000)
+            isVerifying = false
         }
     }
 
     // Handle verification success
-    LaunchedEffect(otpState.message) {
-        if (otpState.message?.contains("verified", ignoreCase = true) == true) {
-            isVerified = true
-            showOtpField = false
+    LaunchedEffect(verifyOtpState) {
+        when (verifyOtpState) {
+            is Resource.Success -> {
+                isVerified = true
+                showOtpField = false
+                isVerifying = false
+            }
+            is Resource.Error -> {
+                Toast.makeText(context, verifyOtpState.message, Toast.LENGTH_SHORT).show()
+                isVerifying = false
+            }
+            is Resource.Loading -> {
+                // keep `isVerifying = true`
+            }
+            is Resource.Idle -> {
+                isVerifying = false
+            }
         }
+    }
+
+    val otpUiState = when (sendOtpState) {
+        is Resource.Loading -> OtpState(isLoading = true)
+        is Resource.Success -> OtpState(message = (sendOtpState as Resource.Success<OtpResponse>).data.message)
+        is Resource.Error -> OtpState(error = (sendOtpState as Resource.Error).message)
+        else -> OtpState()
     }
 
     Scaffold(topBar = {
@@ -216,7 +255,7 @@ fun DriverSignupScreen(
                 timerSeconds = timer,
                 showOtpField = showOtpField,
                 isVerified = isVerified,
-                otpState = otpState,
+                otpState = otpUiState,  // ✅ Fixed
                 onSendOtp = { viewModel.sendOtp(it) },
                 onVerifyOtp = { number, code -> viewModel.verifyOtp(number, code) },
                 onResendOtp = {
@@ -500,7 +539,8 @@ fun DriverSignupScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetSchoolRegistrationDropDowns()
-            viewModel.resetOtpState()
+            viewModel.resetSendOtpState()
+            viewModel.resetVerifyOtpState()
 //          reset the fields
 // ...................................
             contactNumber = ""

@@ -19,10 +19,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <receiver android:name=".utils.NotificationActionReceiver" />
         <service
             android:name=".ui.tracking.LocationTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <service
+            android:name=".utils.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAFDOC21jOwNmm4xASd_mL7AoA1xXOWdyY" />

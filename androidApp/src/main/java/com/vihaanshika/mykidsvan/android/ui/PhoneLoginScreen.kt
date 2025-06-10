@@ -1,5 +1,6 @@
 package com.vihaanshika.mykidsvan.android.ui
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,13 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.utils.Resource
 
 @Composable
 fun PhoneLoginScreen(navController: NavController, viewModel: AuthViewModel) {
-
     var phone by remember { mutableStateOf("") }
-
-    val otpState by viewModel.otpState.collectAsState()
+    val otpState by viewModel.sendOtpState.collectAsState()
     val context = LocalContext.current
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -79,15 +80,9 @@ fun PhoneLoginScreen(navController: NavController, viewModel: AuthViewModel) {
                     phone = input
                 }
             },
-            label = {
-                Text("Phone Number")
-            },
+            label = { Text("Phone Number") },
             leadingIcon = {
-                Icon(
-                    Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = Color.Gray
-                )
+                Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Gray)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,52 +98,78 @@ fun PhoneLoginScreen(navController: NavController, viewModel: AuthViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (otpState.isLoading) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        } else {
-            Button(
-                onClick = {
-                    if (phone.length == 10) {
-                        viewModel.sendOtp(phone)
-                        navController.navigate("otp_verification/$phone")
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Please enter a valid 10-digit phone number",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = ButtonDefaults.buttonElevation(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
+        when (val state = otpState) {
+            is Resource.Loading -> {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+
+            is Resource.Success -> {
+                // Navigate only once after success
+                LaunchedEffect(Unit) {
+                    Toast.makeText(context, state.data.message ?: "OTP sent!", Toast.LENGTH_SHORT)
+                        .show()
+                    navController.navigate("otp_verification/$phone")
+
+                    // Reset state after navigating
+                    viewModel.resetSendOtpState()
+                }
+            }
+
+            is Resource.Error -> {
+                Button(
+                    onClick = {
+                        if (phone.length == 10) {
+                            viewModel.sendOtp(phone)
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Please enter a valid 10-digit phone number",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Send", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Send",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
+                    text = state.message,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        otpState.error?.let { error ->
-            Text(
-                text = error,
-                color = Color.Red,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-    }
-
-    otpState.message?.let { message ->
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        if (otpState.success) {
-            navController.navigate("otp_verification/$phone")
+            else -> {
+                Button(
+                    onClick = {
+                        if (phone.length == 10) {
+                            viewModel.sendOtp(phone)
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Please enter a valid 10-digit phone number",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Send", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
     }
 }

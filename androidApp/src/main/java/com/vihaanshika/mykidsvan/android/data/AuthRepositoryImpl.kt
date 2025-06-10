@@ -17,6 +17,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.RegisterSchoolParentRe
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
@@ -27,8 +28,6 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
@@ -36,6 +35,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResp
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
@@ -53,8 +53,8 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 
 
 class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
-    override suspend fun login(username: String, password: String): LoginResponse {
-        return api.login(mapOf("number" to username, "password" to password))
+    override suspend fun login(username: String, password: String, token: String): LoginResponse {
+        return api.login(mapOf("number" to username, "password" to password, "device_token" to token))
     }
 
     override suspend fun registerDriver(
@@ -444,16 +444,12 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getAlParents()
     }
 
-    override suspend fun sendMessageToDriverFromParent(request: ParentMessageToDriverRequest): ParentMessageResponse {
+    override suspend fun sendMessageToDriverFromParent(request: SendMessageRequest): MessageResponse {
         return api.sendMessageToDriverFromParent(request)
     }
 
-    override suspend fun sendMessageToAllParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageAllPMsgResponse {
-        return api.sendMessageToAllParentFromDriver(request = request)
-    }
-
-    override suspend fun sendMessageToIndividualParentFromDriver(request: DriverMessageToIndividualParentsRequest): DriverMessageIndividualPMsgResponse {
-        return api.sendMessageToIndividualParentFromDriver(request = request)
+    override suspend fun sendMessageToParentFromDriver(request: SendMessageRequest): MessageResponse {
+        return api.sendMessageToParentFromDriver(request = request)
     }
 
     override suspend fun getParentMessage(parent_id: String): GetParentMessagesResponse {
@@ -465,6 +461,6 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun getDriverAllMessage(driver_id: String): GetDriverAllMessagesResponse {
-       return api.getDriverAllMessage(driver_id)
+        return api.getDriverAllMessage(driver_id)
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +31,8 @@ import coil.compose.AsyncImage
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -43,7 +46,8 @@ fun ChatScreen(
     viewModel: AuthViewModel, // or use Koin or your DI
     navController: NavController,
     assignVehicleId: String?,
-    userId: String?
+    userId: String?,
+    userRole: String?
 ) {
     var messageText by remember { mutableStateOf("") }
     val parentMessagesState by viewModel.parentMessagesState.collectAsState()
@@ -63,11 +67,13 @@ fun ChatScreen(
             ) // Fetch messages for assigned vehicle/driver
         } else {
             // one to many group
+            // issue with this loop
             parentList.forEach { parent ->
                 val parentId = viewModel.getParentIdFromName(parent)
                 viewModel.getParentMessages(parentId.toString())
             }
-            viewModel.getDriverMessages(userId.toString()) // Fetch messages for assigned vehicle/driver
+            viewModel.getDriverMessages(userId.toString()) // loads parent messages
+            viewModel.getDriverMessagesAll(userId.toString())  // load driver message for group
         }
     }
     // Handle send message response state
@@ -95,7 +101,7 @@ fun ChatScreen(
     LaunchedEffect(sendStateD) {
         when (sendStateD) {
             is Resource.Success -> {
-                Toast.makeText(context, "Message sent successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Message sent successfully! by parent", Toast.LENGTH_SHORT).show()
                 messageText = ""
                 // parent case  send message to driver from parent
                 viewModel.getParentMessages(userId.toString())
@@ -227,8 +233,11 @@ fun ChatScreen(
                                 contentDescription = "Parent Avatar",
                                 modifier = Modifier
                                     .size(36.dp)
+                                    .shadow(16.dp, shape = CircleShape, clip = false)
                                     .clip(CircleShape)
-                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .border(1.dp, Color.Gray, CircleShape),
+
+
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
@@ -237,7 +246,7 @@ fun ChatScreen(
                         Card(
                             shape = bubbleShape,
                             colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                            elevation = CardDefaults.cardElevation(4.dp),
+                            elevation = CardDefaults.cardElevation(16.dp),
                             modifier = Modifier.widthIn(max = 280.dp)
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
@@ -287,6 +296,7 @@ fun ChatScreen(
                                 contentDescription = "Driver Avatar",
                                 modifier = Modifier
                                     .size(36.dp)
+                                    .shadow(16.dp, shape = CircleShape, clip = false)
                                     .clip(CircleShape)
                                     .border(1.dp, Color.Gray, CircleShape)
                             )
@@ -323,21 +333,33 @@ fun ChatScreen(
                         return@IconButton
                     }
 //                    all
-                    if (parentIdOrName != null) {
-                        val request = DriverMessageToIndividualParentsRequest(
+                    if (parentIdOrName != null && Constants.USER_DRIVER.equals(userRole)) {
+                        val request = SendMessageRequest(
                             searchSpecific = Constants.INDIVIDUAL_CHAT,
                             vehiclesId = userId,
                             parentId = parentIdOrName,
                             message = messageText
                         )
                         viewModel.sendMessageToParent(request)
-                    } else {
-                        val request = DriverMessageToAllParentsRequest(
+                    } else if (parentIdOrName == null && Constants.USER_DRIVER.equals(userRole)) {
+                        val request = SendMessageRequest(
                             searchSpecific = Constants.GROUP_CHAT,
-                            driverId = userId, // login user
+                            vehiclesId  = userId, // login user
+                            parentId = "",
                             message = messageText
                         )
                         viewModel.sendMessageToParent(request)
+                    }
+
+                    if (parentIdOrName == null && Constants.USER_PARENT.equals(userRole)) {
+                        // parent case  send message to driver from parent
+                        val request = SendMessageRequest(
+                            searchSpecific = Constants.GROUP_CHAT,
+                            vehiclesId = assignVehicleId, // login user
+                            parentId = userId,
+                            message = messageText
+                        )
+                        viewModel.sendMessageToDriver(request)
                     }
                 }) {
                     Icon(

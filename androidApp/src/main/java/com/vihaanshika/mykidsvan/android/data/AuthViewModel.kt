@@ -1,5 +1,6 @@
 package com.example.authapp.presentation.viewmodel
 
+import com.google.auth.oauth2.GoogleCredentials
 
 import android.content.Context
 import android.net.Uri
@@ -11,10 +12,8 @@ import androidx.compose.runtime.setValue
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.vihaanshika.mykidsvan.android.data.AuthRepository
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.PhotoOfVehicle
 import com.vihaanshika.mykidsvan.android.data.dto.request.ReferByResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
@@ -32,29 +31,30 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResp
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.Parent
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentData
-import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RequestData
 import com.vihaanshika.mykidsvan.android.data.dto.response.School
 import com.vihaanshika.mykidsvan.android.data.dto.response.State
 import com.vihaanshika.mykidsvan.android.data.dto.response.Taluka
-import com.vihaanshika.mykidsvan.android.utils.Constants
-import com.vihaanshika.mykidsvan.android.utils.DriverMessageResponseWrapper
 import com.vihaanshika.mykidsvan.android.utils.LoginState
-import com.vihaanshika.mykidsvan.android.utils.OtpState
 import com.vihaanshika.mykidsvan.android.utils.PaymentState
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Resource
-import com.vihaanshika.mykidsvan.android.utils.UnifiedMessage
 import com.vihaanshika.mykidsvan.android.utils.UpdatePasswordState
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.gson.Gson
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
+import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.net.UnknownHostException
 
@@ -138,8 +138,12 @@ class AuthViewModel(
     val schoolRegistrationSuccess: StateFlow<Boolean> = _schoolRegistrationSuccess
 
     // StateFlow to manage OTP states
-    private val _otpState = MutableStateFlow(OtpState())
-    val otpState: StateFlow<OtpState> = _otpState
+    private val _sendOtpState = MutableStateFlow<Resource<OtpResponse>>(Resource.Idle())
+    val sendOtpState: StateFlow<Resource<OtpResponse>> = _sendOtpState
+
+    // StateFlow to verify OTP
+    private val _verifyOtp = MutableStateFlow<Resource<OtpVerificationResponse>>(Resource.Idle())
+    val verifyOtp: StateFlow<Resource<OtpVerificationResponse>> = _verifyOtp
 
     // update Password
     private val _state = MutableStateFlow(UpdatePasswordState())
@@ -201,20 +205,32 @@ class AuthViewModel(
         loadStateOptions()
     }
 
+    private val _navigateToMessageScreen = MutableStateFlow(false)
+    val navigateToMessageScreen = _navigateToMessageScreen.asStateFlow()
+
+    fun triggerMessageScreenNavigation() {
+        _navigateToMessageScreen.value = true
+    }
+
+    fun consumeNavigationFlag() {
+        _navigateToMessageScreen.value = false
+    }
+
     // Function to send OTP
     fun sendOtp(phone: String) {
-        _otpState.value = OtpState(isLoading = true)  // Set loading state
+        _sendOtpState.value = Resource.Loading()
+
         viewModelScope.launch {
             try {
                 val response = repository.sendOtp(phone)
                 if (response.status == true) {
-                    _otpState.value = OtpState(success = true, message = response.message)
+                    _sendOtpState.value = Resource.Success(response)
                     Log.d("AuthViewModel", "sendOtp: ${response.message}")
                 } else {
-                    _otpState.value = OtpState(error = response.message ?: "Failed to send OTP.")
+                    _sendOtpState.value = Resource.Error(response.message ?: "Failed to send OTP.")
                 }
             } catch (e: Exception) {
-                _otpState.value = OtpState(error = "An error occurred: ${e.localizedMessage}")
+                _sendOtpState.value = Resource.Error("An error occurred: ${e.localizedMessage}", e)
                 Log.e("AuthViewModel", "Failed to send OTP", e)
             }
         }
@@ -222,19 +238,19 @@ class AuthViewModel(
 
     // Function to verify OTP
     fun verifyOtp(phone: String, otp: String) {
-        _otpState.value = OtpState(isLoading = true)  // Set loading state
+        _verifyOtp.value = Resource.Loading()
+
         viewModelScope.launch {
             try {
                 val response = repository.verifyOtp(phone, otp)
                 if (response.status) {
-                    _otpState.value =
-                        OtpState(success = true, message = "OTP verified successfully!")
+                    _verifyOtp.value = Resource.Success(response)
                     Log.d("AuthViewModel", "verifyOtp: ${response.message}")
                 } else {
-                    _otpState.value = OtpState(error = response.message ?: "Failed to verify OTP.")
+                    _verifyOtp.value = Resource.Error(response.message ?: "Failed to verify OTP.")
                 }
             } catch (e: Exception) {
-                _otpState.value = OtpState(error = "An error occurred: ${e.localizedMessage}")
+                _verifyOtp.value = Resource.Error("An error occurred: ${e.localizedMessage}", e)
                 Log.e("AuthViewModel", "Failed to verify OTP", e)
             }
         }
@@ -244,101 +260,148 @@ class AuthViewModel(
         sendOtp(phone)
     }
 
-    fun resetOtpState() {
-        _otpState.value = OtpState()
+    fun resetSendOtpState() {
+        _sendOtpState.value = Resource.Idle()
+    }
+    fun resetVerifyOtpState(){
+        _verifyOtp.value = Resource.Idle()
     }
 
     fun login(username: String, password: String) {
         _loginState.value = LoginState(isLoading = true)
-        viewModelScope.launch {
-            try {
-                val response = repository.login(username, password)
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                // send `token` to your server using an API
+                viewModelScope.launch {
+                    try {
+                        val response = repository.login(username, password,token)
 
-                if (response.status == true) {
-                    val role = when {
-                        response.message?.contains("vehicle", ignoreCase = true) == true -> "driver"
-                        response.message?.contains("parent", ignoreCase = true) == true -> "parent"
-                        else -> null
-                    }
+                        if (response.status == true) {
+                            val role = when {
+                                response.message?.contains(
+                                    "vehicle",
+                                    ignoreCase = true
+                                ) == true -> "driver"
 
-                    role?.let {
-                        when (it) {
-                            "driver" -> {
-                                val driverData =
-                                    Gson().fromJson(response.data, DriverData::class.java)
-                                _loginState.value = LoginState(
-                                    success = true,
-                                    message = "Vehicle Owner login success",
-                                    driver = driverData
-                                )
-                                userPreferences.saveLoginState(true)  // Save login state
+                                response.message?.contains(
+                                    "parent",
+                                    ignoreCase = true
+                                ) == true -> "parent"
 
-                                userPreferences.saveLoginUserDetails(
-                                    driverData.id,
-                                    driverData.driver_name,
-                                    it,
-                                    driverData.refer_id.toString()
-                                )
+                                else -> null
                             }
 
-                            "parent" -> {
-                                val parentData =
-                                    Gson().fromJson(response.data, ParentData::class.java)
-                                _loginState.value = LoginState(
-                                    success = true,
-                                    message = "Parent login success",
-                                    parent = parentData
-                                )
-                                userPreferences.saveLoginState(true)  // Save login state
+                            role?.let {
+                                when (it) {
+                                    "driver" -> {
+                                        Log.d("TAG", "login driver Token - $token")
+                                        val driverData =
+                                            Gson().fromJson(response.data, DriverData::class.java)
+                                        _loginState.value = LoginState(
+                                            success = true,
+                                            message = "Vehicle Owner login success",
+                                            driver = driverData
+                                        )
+                                        userPreferences.saveLoginState(true)  // Save login state
 
-                                parentData.id?.let { it1 ->
-                                    parentData.parentName?.let { it2 ->
-                                        parentData.referId?.let { refer_code ->
-                                            userPreferences.saveLoginUserDetails(
-                                                it1, it2, it, refer_code
-                                            )
-                                        }
-                                    }
-                                }
-                                parentData.vehicleId?.let { it1 ->
-                                    parentData.status?.let { it2 ->
-                                        userPreferences.updateVehicleDetails(
-                                            it1, it2
+                                        userPreferences.saveLoginUserDetails(
+                                            driverData.id,
+                                            driverData.driver_name,
+                                            it,
+                                            driverData.refer_id.toString()
                                         )
                                     }
+
+                                    "parent" -> {
+                                        Log.d("TAG", "login parent Token - $token")
+
+                                        val parentData =
+                                            Gson().fromJson(response.data, ParentData::class.java)
+                                        _loginState.value = LoginState(
+                                            success = true,
+                                            message = "Parent login success",
+                                            parent = parentData
+                                        )
+                                        userPreferences.saveLoginState(true)  // Save login state
+
+                                        parentData.id?.let { it1 ->
+                                            parentData.parentName?.let { it2 ->
+                                                parentData.referId?.let { refer_code ->
+                                                    userPreferences.saveLoginUserDetails(
+                                                        it1, it2, it, refer_code
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        parentData.vehicleId?.let { it1 ->
+                                            parentData.status?.let { it2 ->
+                                                userPreferences.updateVehicleDetails(
+                                                    it1, it2
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    else -> {}
+                                }
+                            } ?: run {
+                                _loginState.value = LoginState(error = "Unknown user type")
+                            }
+
+                        } else {
+                            _loginState.value =
+                                LoginState(error = response.message ?: "Login failed.")
+                        }
+
+
+                    } catch (e: Exception) {
+                        val errorMessage = when (e) {
+                            is HttpException -> {
+                                try {
+                                    val errorBody = e.response()?.errorBody()?.string()
+                                    val errorResponse =
+                                        Gson().fromJson(errorBody, LoginResponse::class.java)
+                                    errorResponse?.message ?: "Login failed with code ${e.code()}"
+                                } catch (ex: Exception) {
+                                    "Login failed with code ${e.code()}"
                                 }
                             }
 
-                            else -> {}
+                            else -> "Something went wrong: ${e.localizedMessage}"
                         }
-                    } ?: run {
-                        _loginState.value = LoginState(error = "Unknown user type")
-                    }
 
-                } else {
-                    _loginState.value = LoginState(error = response.message ?: "Login failed.")
-                }
-            } catch (e: Exception) {
-                val errorMessage = when (e) {
-                    is HttpException -> {
-                        try {
-                            val errorBody = e.response()?.errorBody()?.string()
-                            val errorResponse =
-                                Gson().fromJson(errorBody, LoginResponse::class.java)
-                            errorResponse?.message ?: "Login failed with code ${e.code()}"
-                        } catch (ex: Exception) {
-                            "Login failed with code ${e.code()}"
-                        }
+                        _loginState.value = LoginState(error = errorMessage)
+                        Log.e("LoginViewModel", "Login error", e)
                     }
-
-                    else -> "Something went wrong: ${e.localizedMessage}"
                 }
 
-                _loginState.value = LoginState(error = errorMessage)
-                Log.e("LoginViewModel", "Login error", e)
+            }else{
+                _loginState.value = LoginState(error = "Unable to generate device token")
             }
         }
     }
+    fun generateAccessTokenFromServiceAccount(context: Context, onResult: (String?) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val inputStream = context.assets.open("serviceAccountKey.json")
+                val credentials = GoogleCredentials.fromStream(inputStream)
+                    .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
+                credentials.refreshIfExpired()
+                val token = credentials.accessToken.tokenValue
+
+                withContext(Dispatchers.Main) {
+                    onResult(token)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    onResult(null)
+                }
+            }
+        }
+    }
+
 
     fun logout() {
         viewModelScope.launch {
@@ -1316,14 +1379,14 @@ class AuthViewModel(
 
     // Parent to Driver Message
     private val _sendMessageToDriverState =
-        MutableStateFlow<Resource<ParentMessageResponse>>(Resource.Loading())
-    val sendMessageToDriverState: StateFlow<Resource<ParentMessageResponse>> =
+        MutableStateFlow<Resource<MessageResponse>>(Resource.Loading())
+    val sendMessageToDriverState: StateFlow<Resource<MessageResponse>> =
         _sendMessageToDriverState
 
     // Driver to Parents Message
     private val _sendMessageToParentState =
-        MutableStateFlow<Resource<DriverMessageResponseWrapper>>(Resource.Loading())
-    val sendMessageToParentState: StateFlow<Resource<DriverMessageResponseWrapper>> =
+        MutableStateFlow<Resource<MessageResponse>>(Resource.Loading())
+    val sendMessageToParentState: StateFlow<Resource<MessageResponse>> =
         _sendMessageToParentState
 
     // Get Parent Messages
@@ -1340,7 +1403,12 @@ class AuthViewModel(
 //    private val _driverMessagesState = MutableStateFlow<Resource<List<UnifiedMessage>>>(Resource.Idle())
 //    val driverMessagesState: StateFlow<Resource<List<UnifiedMessage>>> = _driverMessagesState
 
-    fun sendMessageToDriver(request: ParentMessageToDriverRequest) {
+    fun resetSendMessages(){
+        _sendMessageToParentState.value = Resource.Idle()
+        _sendMessageToDriverState.value = Resource.Idle()
+    }
+
+    fun sendMessageToDriver(request: SendMessageRequest) {
         viewModelScope.launch {
             _sendMessageToDriverState.value = Resource.Loading()
             try {
@@ -1352,30 +1420,17 @@ class AuthViewModel(
         }
     }
 
-    fun sendMessageToParent(request: Any) {
+    fun sendMessageToParent(request: SendMessageRequest) {
         viewModelScope.launch {
             _sendMessageToParentState.value = Resource.Loading()
             try {
-                val result = when (request) {
-                    is DriverMessageToAllParentsRequest -> {
-                        val response = repository.sendMessageToAllParentFromDriver(request)
-                        DriverMessageResponseWrapper.AllParentsResponse(response)
-                    }
-
-                    is DriverMessageToIndividualParentsRequest -> {
-                        val response = repository.sendMessageToIndividualParentFromDriver(request)
-                        DriverMessageResponseWrapper.IndividualParentResponse(response)
-                    }
-
-                    else -> throw IllegalArgumentException("Unknown request type")
-                }
-                _sendMessageToParentState.value = Resource.Success(result)
+                val response = repository.sendMessageToDriverFromParent(request)
+                _sendMessageToParentState.value = Resource.Success(response)
             } catch (e: Exception) {
                 _sendMessageToParentState.value = Resource.Error(e.message ?: "Unknown error")
             }
         }
     }
-
 
     fun getParentMessages(parentId: String) {
         viewModelScope.launch {
@@ -1435,8 +1490,10 @@ class AuthViewModel(
         }
     }
 
-    private val _allDriverMessagesState = MutableStateFlow<Resource<GetDriverAllMessagesResponse>>(Resource.Loading())
-    val allDriverMessagesState: StateFlow<Resource<GetDriverAllMessagesResponse>> = _allDriverMessagesState
+    private val _allDriverMessagesState =
+        MutableStateFlow<Resource<GetDriverAllMessagesResponse>>(Resource.Loading())
+    val allDriverMessagesState: StateFlow<Resource<GetDriverAllMessagesResponse>> =
+        _allDriverMessagesState
 
     fun getDriverMessagesAll(driverId: String) {
         viewModelScope.launch {

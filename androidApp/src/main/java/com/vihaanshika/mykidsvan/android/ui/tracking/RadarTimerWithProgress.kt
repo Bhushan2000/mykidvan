@@ -29,8 +29,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
     if (!isDriverInactive) {
+        val cycleTime = timer % 40
+
+        val targetProgress = when {
+            cycleTime <= 10 -> 1f - (cycleTime / 10f)
+            else -> 1f - ((cycleTime - 10) / 30f)
+        }
+
         val animatedProgress by animateFloatAsState(
-            targetValue = 1f - (timer / 40f),
+            targetValue = targetProgress.coerceIn(0f, 1f),
             animationSpec = tween(durationMillis = 1000),
             label = "progress"
         )
@@ -45,7 +52,6 @@ fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
             )
         )
 
-        // Fade out when timer reaches 0
         val alpha by animateFloatAsState(
             targetValue = if (timer == 0) 0f else 1f,
             animationSpec = tween(durationMillis = 1000),
@@ -85,7 +91,7 @@ fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
                 modifier = Modifier.size(72.dp)
             ) {
                 CircularProgressIndicator(
-                    progress = animatedProgress.coerceIn(0f, 1f),
+                    progress = animatedProgress,
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(alpha),
@@ -94,7 +100,7 @@ fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
                 )
 
                 Text(
-                    text = "$timer s",
+                    text = "${cycleTime}s",
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = Color.White,
                         fontWeight = FontWeight.Bold

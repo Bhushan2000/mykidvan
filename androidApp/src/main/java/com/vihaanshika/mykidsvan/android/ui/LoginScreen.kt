@@ -3,6 +3,7 @@ package com.vihaanshika.mykidsvan.android.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.compose.material3.*
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -247,6 +248,14 @@ fun LoginScreen(
                         .show()
                 } else {
                     viewModel.login(username, password)
+                    viewModel.generateAccessTokenFromServiceAccount(context) { token ->
+                        if (token != null) {
+                            Log.d("AccessToken", "Token: $token")
+                            // Use token
+                        } else {
+                            Toast.makeText(context, "Failed to generate token", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             },
             modifier = Modifier
@@ -406,42 +415,3 @@ fun LoginScreen(
 
 }
 
-@Composable
-fun SocialLoginButtons() {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()
-    ) {
-        SocialSignInButton(
-            iconRes = R.drawable.google, text = "Continue with Google", color = Color.White
-        )
-        SocialSignInButton(
-            iconRes = R.drawable.apple, text = "Continue with Apple", color = Color.Black
-        )
-    }
-}
-
-@Composable
-fun SocialSignInButton(iconRes: Int, text: String, color: Color) {
-    Button(
-        onClick = { /* Handle social login */ },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = color),
-        elevation = ButtonDefaults.buttonElevation(6.dp)
-    ) {
-        Icon(
-            painter = painterResource(id = iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = if (color == Color.White) Color.Unspecified else Color.White
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            color = if (color == Color.White) Color.Black else Color.White,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}

@@ -3,7 +3,6 @@ package com.vihaanshika.mykidsvan.android.data
 import com.vihaanshika.mykidsvan.android.data.dto.request.AssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpVerificationRequest
@@ -18,6 +17,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.RegisterSchoolParentRe
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
@@ -28,7 +28,6 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
@@ -36,6 +35,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResp
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
@@ -196,19 +196,16 @@ interface AuthApi {
     @GET("index.php/api/AccountsController/get_all_parents")
     suspend fun getAlParents(): ParentsResponse
 
-    @POST("index.php/api/AccountsController/parent_message")
-    suspend fun sendMessageToDriverFromParent(@Body request: ParentMessageToDriverRequest): ParentMessageResponse
+    @POST("index.php/api/AccountsController/parent_message") // all // individual
+    suspend fun sendMessageToDriverFromParent(@Body request: SendMessageRequest): MessageResponse
 
     @POST("index.php/api/AccountsController/driver_message") // all // individual
-    suspend fun sendMessageToAllParentFromDriver(@Body request: DriverMessageToAllParentsRequest): DriverMessageAllPMsgResponse
+    suspend fun sendMessageToParentFromDriver(@Body request: SendMessageRequest): MessageResponse
 
-    @POST("index.php/api/AccountsController/driver_message") // all // individual
-    suspend fun sendMessageToIndividualParentFromDriver(@Body request: DriverMessageToIndividualParentsRequest): DriverMessageIndividualPMsgResponse
-
-    @GET("index.php/api/AccountsController/get_parent_message/{parent_id}")
+    @GET("index.php/api/AccountsController/get_parent_message/{parent_id}") // driver cha table madhun yete messages parent id sathi
     suspend fun getParentMessage(@Path("parent_id") parent_id: String): GetParentMessagesResponse
 
-    @GET("index.php/api/AccountsController/get_driver_message/{driver_id}")
+    @GET("index.php/api/AccountsController/get_driver_message/{driver_id}") // parent cha table madhun yete messages
     suspend fun getDriverMessage(@Path("driver_id") driver_id: String): GetDriverMessagesResponse
 
     @GET("index.php/api/AccountsController/get_all_message/{driver_id}")

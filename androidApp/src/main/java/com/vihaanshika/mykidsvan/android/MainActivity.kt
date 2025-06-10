@@ -90,18 +90,25 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     var onPaymentSuccessCallback: ((PaymentData) -> Unit)? = null
     var onPaymentFailureCallback: ((Int, String?) -> Unit)? = null
+    val loginViewModel: AuthViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Checkout.preload(applicationContext)
         setContent {
             MyApplicationTheme {
+                // Capture intent data
+                val openMessageScreen = intent?.getBooleanExtra("openMessageScreen", false) == true
+                if (openMessageScreen) {
+                    loginViewModel.triggerMessageScreenNavigation()
+                }
                 MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
             }
         }
@@ -140,7 +147,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 @Composable
 fun MyApp(
     onPaymentSuccessCallback: ((PaymentData) -> Unit)?,
-    onPaymentFailureCallback: ((Int, String?) -> Unit)?
+    onPaymentFailureCallback: ((Int, String?) -> Unit)?,
 ) {
     val navController = rememberAnimatedNavController() // Use Animated NavController
 
@@ -160,6 +167,8 @@ fun MyApp(
     var selectedMenuTitle by remember { mutableStateOf("My Kids Van") } // Initial title
     var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
 
+// Collect your flag
+    val openMessageScreen by loginViewModel.navigateToMessageScreen.collectAsState()
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -167,6 +176,17 @@ fun MyApp(
                 "UserID",
                 "Logged-in user ID: $userId & user role - $userRole assigned vehicle id - $assignVehicleId  assign status - $requestAssignedStatus"
             )
+        }
+    }
+    // Navigate only once after launch if needed
+
+    LaunchedEffect(openMessageScreen) {
+        if (openMessageScreen) {
+            navController.navigate(Constants.ROUTE_MESSAGES) {
+                popUpTo("home") { inclusive = true } // or splash/home
+                launchSingleTop = true
+            }
+            loginViewModel.consumeNavigationFlag()
         }
     }
 
@@ -266,7 +286,12 @@ fun MyApp(
                     startDestination = Routes.SPLASH,
                     modifier = Modifier.padding(contentPadding)
                 ) {
-                    composable(Routes.SPLASH) { SplashScreen(navController,loginViewModel.loginState.collectAsState()) }
+                    composable(Routes.SPLASH) {
+                        SplashScreen(
+                            navController,
+                            loginViewModel.loginState.collectAsState()
+                        )
+                    }
                     composable(Routes.LOGIN) { LoginScreen(navController, loginViewModel) }
                     composable(
                         route = Routes.SCHOOL_ON_REGISTRATION,
@@ -384,7 +409,15 @@ fun MyApp(
                             userRole
                         )
                     }
-                    composable(DrawerItem.Message.route) { MessageScreen(navController,loginViewModel,userId,userRole,assignVehicleId) }
+                    composable(DrawerItem.Message.route) {
+                        MessageScreen(
+                            navController,
+                            loginViewModel,
+                            userId,
+                            userRole,
+                            assignVehicleId
+                        )
+                    }
                     composable("chat/{chatTarget}") { backStackEntry ->
                         val chatTarget = backStackEntry.arguments?.getString("chatTarget")
 
@@ -393,7 +426,8 @@ fun MyApp(
                             viewModel = loginViewModel,
                             navController = navController,
                             assignVehicleId = assignVehicleId,
-                            userId = userId
+                            userId = userId,
+                            userRole = userRole
                         )
                     }
                     composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
@@ -527,7 +561,9 @@ fun CustomTopAppBar(
                     Icon(
                         painter = painterResource(R.drawable.menu),
                         contentDescription = PlaceHolders.MENU,
-                        modifier = Modifier.size(48.dp).padding(start = 8.dp), // Add start padding ,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(start = 8.dp), // Add start padding ,
                         tint = Color.Unspecified
                     )
                 }

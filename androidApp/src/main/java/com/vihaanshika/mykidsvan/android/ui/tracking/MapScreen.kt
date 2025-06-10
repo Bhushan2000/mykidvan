@@ -408,7 +408,11 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             }
 
             // Timer display on map
-            RadarTimerWithProgress(timer = timer.value, isDriverInactive = isDriverInactive.value)
+            if (userRole == Constants.USER_PARENT)
+                RadarTimerWithProgress(
+                    timer = timer.value,
+                    isDriverInactive = isDriverInactive.value
+                )
 
             // 🟢 Driver-only Start/Stop button
             if (userRole == Constants.USER_DRIVER) {

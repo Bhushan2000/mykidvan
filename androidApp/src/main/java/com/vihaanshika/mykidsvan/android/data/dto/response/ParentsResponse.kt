@@ -40,6 +40,8 @@ data class Parent(
     @SerializedName("status") var status: String? = null,
     @SerializedName("refer_id") var referId: String? = null,
     @SerializedName("refer_by") var referBy: String? = null,
-    @SerializedName("profile_picture") var profilePicture: String? = null
-
+    @SerializedName("profile_picture") var profilePicture: String? = null,
+    @SerializedName("school_state") var schoolState: String? = null,
+    @SerializedName("school_district") var schoolDistrict: String? = null,
+    @SerializedName("school_taluka") var schoolTaluka: String? = null
 )

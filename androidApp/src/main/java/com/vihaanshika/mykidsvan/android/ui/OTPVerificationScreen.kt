@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 
 @Composable
@@ -50,24 +52,44 @@ fun OTPVerificationScreen(
     viewModel: AuthViewModel,
     phoneNumber: String
 ) {
-    val otpState by viewModel.otpState.collectAsState()
+    val verifyOtpState by viewModel.verifyOtp.collectAsState()
     val otpLength = 4
     val otpValues = remember { List(otpLength) { mutableStateOf("") } }
     val context = LocalContext.current
 
-    // Timer State: 60-second countdown for resend button
+    // Timer State: 30-second countdown for resend button
     val initialTimerValue = 30
     var timerValue by remember { mutableStateOf(initialTimerValue) }
     var isTimerRunning by remember { mutableStateOf(true) }
 
-    // Timer Logic (only if isTimerRunning is true)
+    // Timer countdown logic
     LaunchedEffect(isTimerRunning) {
         while (timerValue > 0 && isTimerRunning) {
             delay(1000L)
             timerValue--
-            if (timerValue == 0) break
         }
-        isTimerRunning = false  // Stop timer when it reaches 0
+        isTimerRunning = false
+    }
+
+    // Handle success side effects
+    LaunchedEffect(verifyOtpState) {
+        when (verifyOtpState) {
+            is Resource.Success -> {
+                val message =
+                    (verifyOtpState as Resource.Success<OtpVerificationResponse>).data.message
+                Toast.makeText(context, message ?: "OTP verified!", Toast.LENGTH_SHORT).show()
+                navController.navigate("update_password/$phoneNumber")
+                viewModel.resetVerifyOtpState()
+            }
+
+            is Resource.Error -> {
+                val error = (verifyOtpState as Resource.Error).message
+                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                viewModel.resetVerifyOtpState()
+            }
+
+            else -> Unit
+        }
     }
 
     Column(
@@ -91,7 +113,6 @@ fun OTPVerificationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // OTP Input Fields
         OTPTextField(otpValues)
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -101,7 +122,7 @@ fun OTPVerificationScreen(
             Spacer(modifier = Modifier.width(8.dp))
             if (isTimerRunning) {
                 Text(
-                    "Resend Code (${timerValue}s left)",
+                    "Resend Code (${timerValue}s)",
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
@@ -111,8 +132,8 @@ fun OTPVerificationScreen(
                     color = Color.Red,
                     fontSize = 14.sp,
                     modifier = Modifier.clickable {
-                        viewModel.resendOtp(phoneNumber)  // Resend OTP
-                        timerValue = initialTimerValue  // Restart timer
+                        viewModel.resendOtp(phoneNumber)
+                        timerValue = initialTimerValue
                         isTimerRunning = true
                         Toast.makeText(context, "OTP resent", Toast.LENGTH_SHORT).show()
                     }
@@ -122,15 +143,14 @@ fun OTPVerificationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Verify Button with Loading State
-        if (otpState.isLoading) {
+        if (verifyOtpState is Resource.Loading) {
             CircularProgressIndicator()
         } else {
             Button(
                 onClick = {
                     val otpEntered = otpValues.joinToString("") { it.value }
                     if (otpEntered.length == otpLength) {
-                        viewModel.verifyOtp(phoneNumber, otpEntered)  // Verify OTP
+                        viewModel.verifyOtp(phoneNumber, otpEntered)
                     } else {
                         Toast.makeText(context, "Please enter the complete OTP", Toast.LENGTH_SHORT)
                             .show()
@@ -139,30 +159,14 @@ fun OTPVerificationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = ButtonDefaults.buttonElevation(8.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text(text = "Verify Now", color = Color.White)
-            }
-        }
-
-        // Show error or success messages
-        otpState.error?.let { error ->
-            Text(
-                text = error,
-                color = Color.Red,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
-
-        otpState.message?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            if (otpState.success) {
-                navController.navigate("update_password/$phoneNumber")  // Navigate with phone number
+                Text("Verify Now", color = Color.White)
             }
         }
     }
 }
+
 
 @Composable
 fun OTPTextField(otpValues: List<MutableState<String>>) {

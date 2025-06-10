@@ -38,7 +38,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -63,6 +66,7 @@ import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
@@ -91,6 +95,7 @@ fun MessageScreen(
     val parentList by viewModel.parentNamesList.collectAsState()
     val sendStateP by viewModel.sendMessageToParentState.collectAsState() // driver n send kele l state aahe
     val sendStateD by viewModel.sendMessageToDriverState.collectAsState() // parent n send kele l state aahe
+    val getDriverGrpMessage by viewModel.allDriverMessagesState.collectAsState()
     val parentMessagesState by viewModel.parentMessagesState.collectAsState()
     val driverMessageState by viewModel.driverMessagesState.collectAsState()
     val vehicleTrackingStatus by viewModel.vehicleStatus.collectAsState()
@@ -100,16 +105,17 @@ fun MessageScreen(
         viewModel.getAllParents()
         if (Constants.USER_PARENT.equals(userRole)) {
             viewModel.getParentMessages(userId.toString())
-            viewModel.getDriverMessagesForIndividual(assignVehicleId.toString(),userId.toString())
+            viewModel.getDriverMessagesForIndividual(assignVehicleId.toString(), userId.toString())
         } else {
             // driver
-            // load messages of assigned parents
+            // issue with this loop
             parentList.forEach { parent ->
                 val parentId = viewModel.getParentIdFromName(parent)
-                viewModel.getParentMessages(parentId.toString())
+                viewModel.getParentMessages(parentId.toString()) // loads the driver messages for individual
             }
-            viewModel.getDriverMessages(userId.toString()) //
-            viewModel.getDriverMessagesAll(userId.toString())
+
+            viewModel.getDriverMessages(userId.toString()) // loads parent messages
+            viewModel.getDriverMessagesAll(userId.toString())  // load driver message for group
         }
     }
 
@@ -120,6 +126,7 @@ fun MessageScreen(
                 Toast.makeText(context, "Message sent successfully!", Toast.LENGTH_SHORT).show()
                 messageText = ""
                 // Refresh messages after sending
+                // driver case // send message to parent from driver
                 viewModel.getDriverMessages(userId.toString())
                 viewModel.getDriverMessagesForAllAssignedParents()
             }
@@ -142,9 +149,29 @@ fun MessageScreen(
                 Toast.makeText(context, "Message sent successfully!", Toast.LENGTH_SHORT).show()
                 messageText = ""
                 // Refresh messages after sending
-                // parent case  send message to driver from parent
+                // parent case // send message to driver from parent
                 viewModel.getParentMessages(userId.toString())
-                viewModel.getDriverMessagesForIndividual(assignVehicleId.toString(),userId.toString())
+                viewModel.getDriverMessagesForIndividual(
+                    assignVehicleId.toString(), userId.toString()
+                )
+            }
+
+            is Resource.Error -> {
+                val error = (sendStateD as Resource.Error).message
+                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+            }
+
+            is Resource.Loading -> { /* optional loading UI */
+            }
+
+            is Resource.Idle<*> -> {}
+        }
+    }
+
+    LaunchedEffect(getDriverGrpMessage) {
+        when (getDriverGrpMessage) {
+            is Resource.Success -> {
+
             }
 
             is Resource.Error -> {
@@ -237,25 +264,48 @@ fun MessageScreen(
                     // First Option: All Parents
                     item {
                         ChatListItem(
-                            name = "All Parents",
-                            onClick = {
+                            name = "All Parents", onClick = {
                                 selectedFilter = "All"
                                 onParentSelected("all", navController, null)
-                            }
-                        )
+                            })
                     }
 
                     // List of individual parents
                     items(parentList) { parentName ->
                         ChatListItem(
-                            name = parentName,
-                            onClick = {
+                            name = parentName, onClick = {
                                 selectedFilter = "Individual"
                                 specificSelection = parentName
                                 val parentId = viewModel.getParentIdFromName(specificSelection)
                                 onParentSelected("individual", navController, parentId)
-                            }
-                        )
+                            })
+                    }
+                }
+
+            } else {
+
+                // parent
+
+                Text(
+                    text = "Select group to group chat.",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+                )
+
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp) // ✅ Use fixed or dynamic height
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // First Option: All Parents
+                    item {
+                        ChatListItem(
+                            name = "Group", onClick = {
+                                onParentSelected("all", navController, null)
+                            })
                     }
                 }
 
@@ -264,7 +314,6 @@ fun MessageScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // group messages
-
             val backgroundColorP = Color(0xFFDFF6FF) // light blue // For parent
             val backgroundColorD = Color(0xFFFFF3CD) // light yellow // for driver
             val parentMessages =
@@ -291,7 +340,17 @@ fun MessageScreen(
                     }
                 } ?: emptyList()
 
-            val allMessages = parentMessages + driverMessages
+            val driverGrpMsg =
+                (getDriverGrpMessage as? Resource.Success<GetDriverAllMessagesResponse>)?.data?.data?.map {
+                    UnifiedMessage(
+                        it.message,
+                        it.createdAt ?: "",
+                        "",
+                        "",
+                        Constants.USER_PARENT
+                    )
+                } ?: emptyList()
+            val allMessages = parentMessages + driverMessages + driverGrpMsg
             // Sort messages if needed by date
             val sortedMessages = allMessages.sortedBy { it.createdAt }
             val listState = rememberLazyListState()
@@ -333,6 +392,7 @@ fun MessageScreen(
                                 contentDescription = "Parent Avatar",
                                 modifier = Modifier
                                     .size(36.dp)
+                                    .shadow(16.dp, shape = CircleShape, clip = false)
                                     .clip(CircleShape)
                                     .border(1.dp, Color.Gray, CircleShape)
                             )
@@ -343,7 +403,7 @@ fun MessageScreen(
                         Card(
                             shape = bubbleShape,
                             colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                            elevation = CardDefaults.cardElevation(4.dp),
+                            elevation = CardDefaults.cardElevation(16.dp),
                             modifier = Modifier.widthIn(max = 280.dp)
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
@@ -389,6 +449,7 @@ fun MessageScreen(
                                 contentDescription = "Driver Avatar",
                                 modifier = Modifier
                                     .size(36.dp)
+                                    .shadow(16.dp, shape = CircleShape, clip = false)
                                     .clip(CircleShape)
                                     .border(1.dp, Color.Gray, CircleShape)
                             )
@@ -396,6 +457,7 @@ fun MessageScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
             WhatsAppStyleMessageInput(
                 messageText = messageText,
                 onMessageChange = { messageText = it },
@@ -409,9 +471,11 @@ fun MessageScreen(
                         // driver case
                         when (selectedFilter) {
                             "All Parents" -> {
-                                val request = DriverMessageToAllParentsRequest(
-                                    searchSpecific = Constants.GROUP_CHAT, driverId = userId, // login user
-                                    message = messageText
+                                val request = SendMessageRequest(
+                                    searchSpecific = Constants.GROUP_CHAT,
+                                    vehiclesId = userId, // login user
+                                    message = messageText,
+                                    parentId = ""
                                 )
                                 viewModel.sendMessageToParent(request)
                             }
@@ -419,20 +483,22 @@ fun MessageScreen(
                             "By Name" -> {
                                 val parentId =
                                     viewModel.getParentIdFromName(specificSelection) ?: "0"
-                                val request = DriverMessageToIndividualParentsRequest(
+                                val request = SendMessageRequest(
                                     searchSpecific = Constants.INDIVIDUAL_CHAT,
                                     vehiclesId = userId,
-                                    parentId = parentId, message = messageText
+                                    parentId = parentId,
+                                    message = messageText
                                 )
                                 viewModel.sendMessageToParent(request)
                             }
                         }
                     } else {
                         // parent case  send message to driver from parent
-                        val request = ParentMessageToDriverRequest(
+                        val request = SendMessageRequest(
                             vehiclesId = assignVehicleId, // login user
                             parentId = userId,
-                            message = messageText
+                            message = messageText,
+                            searchSpecific = Constants.INDIVIDUAL_CHAT,
                         )
                         viewModel.sendMessageToDriver(request)
                     }
@@ -454,75 +520,45 @@ fun formatDateTime(input: String): Pair<String, String> {
     return Pair(formattedDate, formattedTime)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsAppStyleMessageInput(
     messageText: String, onMessageChange: (String) -> Unit, onSendClick: () -> Unit
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val scrollState = rememberScrollState()
-
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.Bottom
+        modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
+        OutlinedTextField(
+            value = messageText,
+            onValueChange = onMessageChange,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 48.dp, max = 150.dp)
-                .border(
-                    width = 1.dp, color = colorScheme.outline, shape = RoundedCornerShape(24.dp)
-                )
-                .background(colorScheme.surface, shape = RoundedCornerShape(20.dp))
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            // Scrollable and multiline text box
-            BasicTextField(
-                value = messageText,
-                onValueChange = onMessageChange,
-                textStyle = TextStyle(fontSize = 16.sp, color = colorScheme.onSurface),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 8.dp, vertical = 6.dp) // <-- Inner padding added here
-
+                .heightIn(min = 56.dp, max = 150.dp), // ✅ Sets a max height
+            placeholder = { Text("Type a message…") },
+            shape = RoundedCornerShape(20.dp),
+            maxLines = 5, // ✅ Allows internal scrolling after 5 lines
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                unfocusedBorderColor = Color.LightGray, focusedBorderColor = Color(0xFF1E88E5)
             )
-
-            // Placeholder
-            if (messageText.isEmpty()) {
-                Text(
-                    text = "Type your message",
-                    color = colorScheme.onSurfaceVariant,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(
-                        horizontal = 8.dp, vertical = 6.dp
-                    ) // <-- same padding
-                )
-            }
-        }
+        )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Send button
         IconButton(
-            onClick = onSendClick,
-            modifier = Modifier
-                .size(48.dp)
-                .background(Color(0xFF1E88E5), shape = CircleShape)
-                .clip(CircleShape)
+            onClick = onSendClick
         ) {
             Icon(
-                imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White
+                imageVector = Icons.Default.Send,
+                contentDescription = "Send",
+                tint = Color(0xFF1E88E5)
             )
         }
     }
 }
 
+
 fun onParentSelected(
-    type: String,
-    navController: NavHostController,
-    parentIdOrName: String?
+    type: String, navController: NavHostController, parentIdOrName: String?
 ) {
     val argument = parentIdOrName ?: type // e.g., type = "all"
     navController.navigate("chat/$argument")

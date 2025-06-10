@@ -43,7 +43,13 @@ data class Driver(
     val username: String?,
     val password: String,
     val status: String,
-    val school_id: String
+    val school_id: String,
+    var refer_id: String? = null,
+    var refer_by: String? = null,
+    var amount: String? = null,
+    var school_state: String? = null,
+    var school_district: String? = null,
+    var school_taluka: String? = null
 )
 
 

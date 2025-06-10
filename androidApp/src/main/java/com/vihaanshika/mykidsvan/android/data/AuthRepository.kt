@@ -5,6 +5,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndivid
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ReferByResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
@@ -13,8 +14,6 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageIndividualPMsgResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessageAllPMsgResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
@@ -22,6 +21,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResp
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
@@ -41,7 +41,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 // Domain Layer: AuthRepository.kt
 interface AuthRepository {
 
-    suspend fun login(email: String, password: String): LoginResponse
+    suspend fun login(email: String, password: String,token: String): LoginResponse
 
     suspend fun sendOtp(number: String): OtpResponse
 
@@ -225,11 +225,9 @@ interface AuthRepository {
 
     suspend fun getAllParents(): ParentsResponse
 
-    suspend fun sendMessageToDriverFromParent(request: ParentMessageToDriverRequest): ParentMessageResponse
+    suspend fun sendMessageToDriverFromParent(request: SendMessageRequest): MessageResponse
 
-    suspend fun sendMessageToAllParentFromDriver(request: DriverMessageToAllParentsRequest): DriverMessageAllPMsgResponse
-
-    suspend fun sendMessageToIndividualParentFromDriver(request: DriverMessageToIndividualParentsRequest): DriverMessageIndividualPMsgResponse
+    suspend fun sendMessageToParentFromDriver(request: SendMessageRequest): MessageResponse
 
     suspend fun getParentMessage(parent_id: String): GetParentMessagesResponse
 

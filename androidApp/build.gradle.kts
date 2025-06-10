@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -19,7 +20,18 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/INDEX.LIST",
+                "mozilla/public-suffix-list.txt"
+            )
         }
     }
     buildTypes {
@@ -83,4 +95,11 @@ dependencies {
     // Compose Material 3
     implementation("androidx.compose.material3:material3:1.2.0")
 
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
+
+    // BOM: Bill of Materials to manage versions of related libraries
+    implementation(platform("com.google.auth:google-auth-library-bom:1.30.1"))
+
+    // OAuth2 + HTTP support (for GoogleCredentials)
+    implementation("com.google.auth:google-auth-library-oauth2-http")
 }
