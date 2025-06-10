@@ -41,11 +41,9 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 // Domain Layer: AuthRepository.kt
 interface AuthRepository {
 
-    suspend fun login(email: String, password: String,token: String): LoginResponse
+    suspend fun login(email: String, password: String, token: String): LoginResponse
 
-    suspend fun sendOtp(number: String): OtpResponse
-
-    suspend fun resendOtp(number: String): OtpResponse
+    suspend fun sendOtp(number: String, purpose: String): OtpResponse
 
     suspend fun verifyOtp(number: String, otp: String): OtpVerificationResponse
 

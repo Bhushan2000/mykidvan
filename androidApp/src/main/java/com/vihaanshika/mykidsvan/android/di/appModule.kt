@@ -1,18 +1,19 @@
 package com.vihaanshika.mykidsvan.android.di
 
- import com.example.authapp.presentation.viewmodel.AuthViewModel
- import com.example.maptracking.LatLngRepositoryImpl
- import com.example.maptracking.LatLngViewModel
- import com.vihaanshika.mykidsvan.android.data.AuthRepository
+import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.example.maptracking.LatLngRepositoryImpl
+import com.example.maptracking.LatLngViewModel
+import com.vihaanshika.mykidsvan.android.data.AuthRepository
 import com.vihaanshika.mykidsvan.android.data.AuthApi
 import com.vihaanshika.mykidsvan.android.data.AuthRepositoryImpl
- import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
- import com.vihaanshika.mykidsvan.android.utils.Constants
+import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
+import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
+import com.vihaanshika.mykidsvan.android.utils.Constants
 
- import com.vihaanshika.mykidsvan.android.utils.UserPreferences
+import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import okhttp3.OkHttpClient
- import okhttp3.logging.HttpLoggingInterceptor
- import org.koin.android.ext.koin.androidContext
+import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -45,8 +46,8 @@ val appModule = module {
     single<LatLngRepository> { LatLngRepositoryImpl(get()) }
 
     viewModel {
-        LatLngViewModel(get(),get(), androidContext())
+        LatLngViewModel(get(), get(), androidContext())
     }
     viewModel { AuthViewModel(get(), get()) }
-
+    viewModel { MessagesViewModel(get()) }
 }

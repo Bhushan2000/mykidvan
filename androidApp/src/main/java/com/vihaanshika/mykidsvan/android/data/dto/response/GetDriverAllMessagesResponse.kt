@@ -15,5 +15,7 @@ data class GroupMessagesDriver(
     @SerializedName("parent_id") var parentId: String? = null,
     @SerializedName("vehicles_id") var vehiclesId: String? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("created_at") var createdAt: String? = null
+    @SerializedName("created_at") var createdAt: String? = null,
+    @SerializedName("name") var name: String? = null,
+    @SerializedName("profile_picture") var profilePicture: String? = null
 )

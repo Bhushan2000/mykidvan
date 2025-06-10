@@ -178,13 +178,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getDriverByMobNo(mobile_no)
     }
 
-    override suspend fun sendOtp(mobile_number: String): OtpResponse {
-        val otpRequest = OtpRequest(mobile_number)  // Create an OtpRequest object
-        return api.sendOtp(otpRequest) // Pass the OtpRequest object
-    }
-
-    override suspend fun resendOtp(mobile_number: String): OtpResponse {
-        val otpRequest = OtpRequest(mobile_number)  // Create an OtpRequest object
+    override suspend fun sendOtp(mobile_number: String,purpose: String): OtpResponse {
+        val otpRequest = OtpRequest(mobile_number,purpose)  // Create an OtpRequest object
         return api.sendOtp(otpRequest) // Pass the OtpRequest object
     }
 

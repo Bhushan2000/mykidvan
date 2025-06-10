@@ -72,6 +72,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.R
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
+import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.OtpState
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
@@ -256,10 +257,10 @@ fun DriverSignupScreen(
                 showOtpField = showOtpField,
                 isVerified = isVerified,
                 otpState = otpUiState,  // ✅ Fixed
-                onSendOtp = { viewModel.sendOtp(it) },
+                onSendOtp = { viewModel.sendOtp(it, Constants.REGISTER_OTP) },
                 onVerifyOtp = { number, code -> viewModel.verifyOtp(number, code) },
                 onResendOtp = {
-                    viewModel.resendOtp(it)
+                    viewModel.resendOtp(it, Constants.REGISTER_OTP)
                     timer = 60
                 }
             )

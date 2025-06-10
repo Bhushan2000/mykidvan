@@ -1,6 +1,5 @@
 package com.vihaanshika.mykidsvan.android.ui
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.Resource
 
 @Composable
@@ -119,7 +119,7 @@ fun PhoneLoginScreen(navController: NavController, viewModel: AuthViewModel) {
                 Button(
                     onClick = {
                         if (phone.length == 10) {
-                            viewModel.sendOtp(phone)
+                            viewModel.sendOtp(phone, Constants.FORGOT_OTP)
                         } else {
                             Toast.makeText(
                                 context,
@@ -151,7 +151,7 @@ fun PhoneLoginScreen(navController: NavController, viewModel: AuthViewModel) {
                 Button(
                     onClick = {
                         if (phone.length == 10) {
-                            viewModel.sendOtp(phone)
+                            viewModel.sendOtp(phone, Constants.FORGOT_OTP)
                         } else {
                             Toast.makeText(
                                 context,

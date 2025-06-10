@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 
@@ -132,7 +133,7 @@ fun OTPVerificationScreen(
                     color = Color.Red,
                     fontSize = 14.sp,
                     modifier = Modifier.clickable {
-                        viewModel.resendOtp(phoneNumber)
+                        viewModel.resendOtp(phoneNumber, Constants.FORGOT_OTP)
                         timerValue = initialTimerValue
                         isTimerRunning = true
                         Toast.makeText(context, "OTP resent", Toast.LENGTH_SHORT).show()

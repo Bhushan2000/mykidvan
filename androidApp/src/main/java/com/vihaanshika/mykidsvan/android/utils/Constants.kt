@@ -75,4 +75,8 @@ object Constants {
     const val GROUP_CHAT = "all"
     const val INDIVIDUAL_CHAT = "individual"
 
+    // otp type
+    const val REGISTER_OTP = "register"
+    const val FORGOT_OTP = "forget"
+
 }

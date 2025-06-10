@@ -84,6 +84,7 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.razorpay.Checkout
 import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
+import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -152,6 +153,7 @@ fun MyApp(
     val navController = rememberAnimatedNavController() // Use Animated NavController
 
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
+    val messagesViewModel : MessagesViewModel = getViewModel()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -412,10 +414,11 @@ fun MyApp(
                     composable(DrawerItem.Message.route) {
                         MessageScreen(
                             navController,
-                            loginViewModel,
+                            messagesViewModel,
                             userId,
                             userRole,
-                            assignVehicleId
+                            assignVehicleId,
+                            requestAssignedStatus
                         )
                     }
                     composable("chat/{chatTarget}") { backStackEntry ->
@@ -423,7 +426,7 @@ fun MyApp(
 
                         ChatScreen(
                             parentIdOrName = if (chatTarget == "all") null else chatTarget,
-                            viewModel = loginViewModel,
+                            viewModel = messagesViewModel,
                             navController = navController,
                             assignVehicleId = assignVehicleId,
                             userId = userId,
