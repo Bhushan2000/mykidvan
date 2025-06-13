@@ -54,6 +54,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMob
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import kotlinx.coroutines.delay
@@ -244,7 +245,7 @@ fun VehicleDetailsScreen(
 
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(photoList) { photoPath ->
-                                val url = "${Constants.BASE_URL}$photoPath"
+                                val url = "${APIEndpoints.BASE_URL}$photoPath"
                                 AsyncImage(
                                     model = url,
                                     contentDescription = "Vehicle Photo",

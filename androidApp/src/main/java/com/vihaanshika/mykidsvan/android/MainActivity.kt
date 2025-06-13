@@ -54,6 +54,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.razorpay.Checkout
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
+import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
 import com.vihaanshika.mykidsvan.android.ui.AssignedStudentScreen
 import com.vihaanshika.mykidsvan.android.ui.ChatScreen
 import com.vihaanshika.mykidsvan.android.ui.DriverSignupScreen
@@ -80,11 +85,6 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.DrawerItem
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Routes
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
-import com.razorpay.Checkout
-import com.razorpay.PaymentData
-import com.razorpay.PaymentResultWithDataListener
-import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -115,15 +115,23 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         }
     }
 
-    fun startPayment(amountInPaise: Int) {
+    fun startPayment(amountInPaise: Int?, orderId: String?) {
         val checkout = Checkout()
-        checkout.setKeyID(Constants.RAZORPAY_TEST_KEY) // 🔐 Replace with your real key
+//        checkout.setKeyID(Constants.RAZORPAY_TEST_KEY) // 🔐 Replace with your real key
+        checkout.setKeyID(Constants.RAZORPAY_LIVE_KEY) // 🔐 Replace with your real key
 
         val options = JSONObject().apply {
             put("name", Constants.PAYMENT_NAME)
             put("description", Constants.PAYMENT_DESCRIPTION)
             put("currency", Constants.PAYMENT_CURRENCY)
             put("amount", amountInPaise) // e.g., 100000 = ₹1000
+            put("order_id", orderId) // 🔐 Add order ID received from server here
+
+            put("retry", JSONObject().apply {
+                put("enabled", true)
+                put("max_count", 4)
+            })
+
             put("prefill", JSONObject().apply {
                 put("email", Constants.PREFILL_EMAIL)
                 put("contact", Constants.PREFILL_CONTACT)
@@ -133,8 +141,10 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         checkout.open(this, options)
     }
 
-    override fun onPaymentSuccess(p0: String?, p1: PaymentData?) {
-        Log.d("Razorpay", "Success: $p0")
+    override fun onPaymentSuccess(razorpayPaymentId: String?, p1: PaymentData?) {
+        Log.d("Razorpay", "onPaymentSuccess: PaymentId $razorpayPaymentId")
+        Log.d("Razorpay", "onPaymentSuccess: OrderID ${p1?.orderId}")
+        Log.d("Razorpay", "onPaymentSuccess: Signature ${p1?.signature}")
         p1?.let { onPaymentSuccessCallback?.invoke(it) }
     }
 
@@ -153,7 +163,7 @@ fun MyApp(
     val navController = rememberAnimatedNavController() // Use Animated NavController
 
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
-    val messagesViewModel : MessagesViewModel = getViewModel()
+    val messagesViewModel: MessagesViewModel = getViewModel()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -166,7 +176,7 @@ fun MyApp(
     val requestAssignedStatus by loginViewModel.vehicleStatus.collectAsState()
     val userRole by loginViewModel.userRole.collectAsState()
 
-    var selectedMenuTitle by remember { mutableStateOf("My Kids Van") } // Initial title
+    var selectedMenuTitle by remember { mutableStateOf(Constants.MY_KID_VAN) } // Initial title
     var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
 
 // Collect your flag
@@ -354,7 +364,9 @@ fun MyApp(
                     }
                     // Drawer items
                     composable(DrawerItem.Home.route) {
-                        MapScreen()
+                        MapScreen(
+                            userRole = userRole.toString()
+                        )
                     }
 
                     composable(DrawerItem.Profile.route) {
@@ -378,7 +390,12 @@ fun MyApp(
                             loginViewModel
                         )
                     }
-                    composable(DrawerItem.ReferApp.route) { ReferAppScreen(loginViewModel) }
+                    composable(DrawerItem.ReferApp.route) {
+                        ReferAppScreen(
+                            loginViewModel,
+                            userRole.toString()
+                        )
+                    }
                     composable(DrawerItem.FindVehicle.route) {
                         userId?.let { it1 ->
                             FindVehicleScreen(
@@ -421,11 +438,11 @@ fun MyApp(
                             requestAssignedStatus
                         )
                     }
-                    composable("chat/{chatTarget}") { backStackEntry ->
-                        val chatTarget = backStackEntry.arguments?.getString("chatTarget")
+                    composable(Routes.CHAT) { backStackEntry ->
+                        val chatTarget = backStackEntry.arguments?.getString(Arguments.CHAT_TYPE)
 
                         ChatScreen(
-                            parentIdOrName = if (chatTarget == "all") null else chatTarget,
+                            parentIdOrName = if (chatTarget == Constants.GROUP_CHAT) null else chatTarget,
                             viewModel = messagesViewModel,
                             navController = navController,
                             assignVehicleId = assignVehicleId,

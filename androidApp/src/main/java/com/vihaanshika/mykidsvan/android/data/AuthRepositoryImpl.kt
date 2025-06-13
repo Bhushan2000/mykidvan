@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
@@ -41,6 +42,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationRespon
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
@@ -330,23 +332,27 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun updatePaymentStatus(
         id: Int,
-        transactionId: String,
+        paymentId: String,
         amount: String,
         paymentStatus: String,
         expireDate: String,
         paymentDate: String,
         assignStatus: String,
-        assignDate: String
+        assignDate: String,
+        signature: String,
+        orderId: String
     ): UpdatePaymentResponse {
         val request = PaymentUpdateRequest(
             id,
-            transactionId,
+            paymentId,
             amount,
             paymentStatus,
             expireDate,
             paymentDate,
             assignStatus,
-            assignDate
+            assignDate,
+            signature,
+            orderId
         )
         return api.updatePayment(request)
     }
@@ -435,6 +441,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getCommission(driver_id)
     }
 
+    override suspend fun getCommissionParent(parent_id: String): CommissionParentResponse {
+        return api.getCommissionParent(parent_id)
+    }
     override suspend fun getAllParents(): ParentsResponse {
         return api.getAlParents()
     }
@@ -457,5 +466,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun getDriverAllMessage(driver_id: String): GetDriverAllMessagesResponse {
         return api.getDriverAllMessage(driver_id)
+    }
+
+    override suspend fun getOrderId(): RazorpayOrderCreationResponse {
+        return api.getOrderId()
     }
 }

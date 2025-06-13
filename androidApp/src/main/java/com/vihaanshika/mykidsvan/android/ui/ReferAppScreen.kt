@@ -37,12 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 
 @Composable
-fun ReferAppScreen(viewModel: AuthViewModel) {
+fun ReferAppScreen(viewModel: AuthViewModel,userRole: String) {
     val context = LocalContext.current
 
     val referCode by viewModel.referCode.collectAsState()
@@ -93,10 +95,11 @@ fun ReferAppScreen(viewModel: AuthViewModel) {
     LaunchedEffect(Unit) {
         val driverId = if (viewModel.userRole.value == Constants.USER_PARENT) {
             viewModel.assignedVehicleId.value.toString()
+
         } else {
             viewModel.userId.value.toString()
         }
-        viewModel.getCommission(driverId)
+        viewModel.getCommission(driverId, userRole = userRole)
     }
 
     Box(
@@ -173,27 +176,46 @@ fun ReferAppScreen(viewModel: AuthViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Commission State UI
-            when (commissionState) {
+            when (val state = commissionState) {
                 is Resource.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
 
                 is Resource.Success -> {
-                    val commissions = (commissionState as Resource.Success).data.data
-                    if (commissions.isNotEmpty()) {
-                        val totalAmount = commissions.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
-                        Text(
-                            text = "Total Commission Earned: ₹%.2f".format(totalAmount),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF2E7D32),
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "No commissions yet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                    if (userRole == Constants.USER_DRIVER) {
+                        val commissions = (state.data as CommissionResponse).data
+                        if (commissions.isNotEmpty()) {
+                            val totalAmount = commissions.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                            Text(
+                                text = "Total Commission Earned: ₹%.2f".format(totalAmount),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF2E7D32),
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "No commissions yet.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    } else if (userRole == Constants.USER_PARENT) {
+                        val commissionsP = (state.data as CommissionParentResponse).data
+                        if (commissionsP.isNotEmpty()) {
+                            val totalAmountP = commissionsP.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                            Text(
+                                text = "Total Commission Earned: ₹%.2f".format(totalAmountP),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF1565C0),
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "No commission records available.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
                     }
                 }
 

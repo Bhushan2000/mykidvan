@@ -1,8 +1,6 @@
 package com.vihaanshika.mykidsvan.android.utils
 
 object Constants {
-    // api
-    const val BASE_URL = "https://avschoolerp.com/"
 
     // terms and conditions and privacy policy
     const val TERMS_AND_CONDITIONS = "https://mykidvan.com/terms-and-conditions/"
@@ -10,20 +8,26 @@ object Constants {
 
     // location service
     const val LOCATION_BROADCAST_ACTION = "LOCATION_UPDATE"
+    const val SERVER_LOCATION_BROADCAST_ACTION = "SERVER_LOCATION_UPDATE"
+
     const val CHANNEL_ID = "location_channel"
     const val CHANNEL_NAME = "Location Tracking"
 
     // razorpay
     const val AMOUNT_IN_PAISE = 10000 // ₹100
+//    const val AMOUNT_IN_PAISE = 100 // ₹1
     const val RAZORPAY_TEST_KEY = "rzp_test_BVJygtmA6ljXBB"
+    const val RAZORPAY_LIVE_KEY = "rzp_live_0I5r5310Og6W21"
+
     const val PAYMENT_NAME = "Assign Driver"
     const val PAYMENT_DESCRIPTION = "Driver Assignment"
     const val PAYMENT_CURRENCY = "INR"
     const val PREFILL_EMAIL = "example@example.com"
     const val PREFILL_CONTACT = "9876543210"
+    const val ORDER_ID = "order_QgKr8AhpkWq63A" // Used
 
     // app name
-    const val MY_KID_VAN = "My Kids Van"
+    const val MY_KID_VAN = "My Kid Van"
 
     // screens and routes for DrawerItem
     const val TITLE_HOME = "Home"
@@ -78,5 +82,4 @@ object Constants {
     // otp type
     const val REGISTER_OTP = "register"
     const val FORGOT_OTP = "forget"
-
 }

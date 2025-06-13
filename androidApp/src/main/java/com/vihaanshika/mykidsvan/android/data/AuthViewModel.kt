@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Constraints
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,15 +24,10 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.District
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverData
-import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMessage
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMob
-import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.Parent
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentData
-import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RequestData
 import com.vihaanshika.mykidsvan.android.data.dto.response.School
@@ -39,15 +35,15 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.State
 import com.vihaanshika.mykidsvan.android.data.dto.response.Taluka
 import com.vihaanshika.mykidsvan.android.utils.LoginState
 import com.vihaanshika.mykidsvan.android.utils.PaymentState
-import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import com.vihaanshika.mykidsvan.android.utils.UpdatePasswordState
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.gson.Gson
-import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
-import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
+import com.vihaanshika.mykidsvan.android.utils.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -217,12 +213,12 @@ class AuthViewModel(
     }
 
     // Function to send OTP
-    fun sendOtp(phone: String,purpose: String) {
+    fun sendOtp(phone: String, purpose: String) {
         _sendOtpState.value = Resource.Loading()
 
         viewModelScope.launch {
             try {
-                val response = repository.sendOtp(phone,purpose)
+                val response = repository.sendOtp(phone, purpose)
                 if (response.status == true) {
                     _sendOtpState.value = Resource.Success(response)
                     Log.d("AuthViewModel", "sendOtp: ${response.message}")
@@ -256,14 +252,15 @@ class AuthViewModel(
         }
     }
 
-    fun resendOtp(phone: String,purpose: String) {
-        sendOtp(phone,purpose)
+    fun resendOtp(phone: String, purpose: String) {
+        sendOtp(phone, purpose)
     }
 
     fun resetSendOtpState() {
         _sendOtpState.value = Resource.Idle()
     }
-    fun resetVerifyOtpState(){
+
+    fun resetVerifyOtpState() {
         _verifyOtp.value = Resource.Idle()
     }
 
@@ -275,7 +272,7 @@ class AuthViewModel(
                 // send `token` to your server using an API
                 viewModelScope.launch {
                     try {
-                        val response = repository.login(username, password,token)
+                        val response = repository.login(username, password, token)
 
                         if (response.status == true) {
                             val role = when {
@@ -376,11 +373,12 @@ class AuthViewModel(
                     }
                 }
 
-            }else{
+            } else {
                 _loginState.value = LoginState(error = "Unable to generate device token")
             }
         }
     }
+
     fun generateAccessTokenFromServiceAccount(context: Context, onResult: (String?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -1076,26 +1074,30 @@ class AuthViewModel(
 
     fun updatePaymentStatus(
         id: Int,
-        transactionId: String,
+        paymentId: String,
         amount: String,
         paymentStatus: String,
         expireDate: String,
         paymentDate: String,
         assignStatus: String,
-        assignDate: String
+        assignDate: String,
+        signature: String,
+        orderId: String
     ) {
         viewModelScope.launch {
             _paymentStatusState.value = PaymentState.Loading
             try {
                 val response = repository.updatePaymentStatus(
                     id,
-                    transactionId,
+                    paymentId,
                     amount,
                     paymentStatus,
                     expireDate,
                     paymentDate,
                     assignStatus,
-                    assignDate
+                    assignDate,
+                    signature,
+                    orderId
                 )
                 if (response.status == "success") {
                     _paymentStatusState.value = PaymentState.Success(response.message)
@@ -1123,7 +1125,7 @@ class AuthViewModel(
                     // Clean and normalize URLs
                     val baseUrl = "https://avschoolerp.com/"
                     val formattedPhotos = response.photos.map { photo ->
-                        if (photo.startsWith("http")) photo else baseUrl + photo
+                        if (photo.startsWith("http")) photo else APIEndpoints.BASE_URL + photo
                     }
                     _vehiclePhotos.value = formattedPhotos
                 } else {
@@ -1358,23 +1360,50 @@ class AuthViewModel(
         _referBySuccess.value = null
     }
 
-
     private val _commissionState =
-        MutableStateFlow<Resource<CommissionResponse>>(Resource.Loading())
-    val commissionState: StateFlow<Resource<CommissionResponse>> = _commissionState
+        MutableStateFlow<Resource<Any>>(Resource.Loading())
+    val commissionState: StateFlow<Resource<Any>> = _commissionState
 
-    fun getCommission(driver_id: String) {
+    fun getCommission(userId: String, userRole: String) {
         viewModelScope.launch {
-            _commissionState.value = Resource.Loading() // Emit loading state
+            _commissionState.value = Resource.Loading()
             try {
-                val response = repository.getCommission(driver_id)
-                _commissionState.value = Resource.Success(response)
+                if (userRole.equals(Constants.USER_PARENT)) {
+                    val response = repository.getCommissionParent(userId)
+                    _commissionState.value = Resource.Success(response)
+                }else{
+                    val response = repository.getCommission(userId)
+                    _commissionState.value = Resource.Success(response)
+                }
             } catch (e: Exception) {
-                Log.e("TAG", "Error while fetching commission", e)
+                Log.e("TAG", "Error while fetching commission for $userRole", e)
                 _commissionState.value = Resource.Error(e.message ?: "Something went wrong", e)
             }
         }
     }
+
+    private val _getOrderId = MutableStateFlow<Resource<RazorpayOrderCreationResponse>>(Resource.Loading())
+    val getOrderId: StateFlow<Resource<RazorpayOrderCreationResponse>> = _getOrderId
+
+    fun getRazorPayOrderId() {
+        viewModelScope.launch {
+            _getOrderId.value = Resource.Loading() // Optional: show loading again
+            try {
+                val response = repository.getOrderId()
+
+                if (response.status == true) {
+                    _getOrderId.value = Resource.Success(response)
+                } else {
+                    _getOrderId.value = Resource.Error(response.message ?: "Unknown error occurred")
+                }
+
+            } catch (e: Exception) {
+                Log.e("TAG", "getRazorPayOrderId: ${e.localizedMessage}", e)
+                _getOrderId.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+
 }
 
 

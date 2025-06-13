@@ -8,9 +8,12 @@ import com.vihaanshika.mykidsvan.android.data.AuthApi
 import com.vihaanshika.mykidsvan.android.data.AuthRepositoryImpl
 import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
 import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
-import com.vihaanshika.mykidsvan.android.utils.Constants
-
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
+import com.vihaanshika.mykidsvan.android.utils.WebSocketManager
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.websocket.WebSockets
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
@@ -33,7 +36,7 @@ val appModule = module {
 
         // Build Retrofit instance
         Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
+            .baseUrl(APIEndpoints.BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -44,10 +47,10 @@ val appModule = module {
     single { UserPreferences(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<LatLngRepository> { LatLngRepositoryImpl(get()) }
+    single { HttpClient(CIO) { install(WebSockets) } }
+    single { WebSocketManager(get()) }
 
-    viewModel {
-        LatLngViewModel(get(), get(), androidContext())
-    }
+    viewModel { LatLngViewModel(get(), get(), androidContext()) }
     viewModel { AuthViewModel(get(), get()) }
     viewModel { MessagesViewModel(get()) }
 }

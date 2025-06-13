@@ -44,8 +44,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--<meta-data
+            android:name="com.razorpay.ApiKey"
+            android:value="rzp_test_BVJygtmA6ljXBB" />-->
         <meta-data
             android:name="com.razorpay.ApiKey"
-            android:value="rzp_test_BVJygtmA6ljXBB" />
+            android:value="rzp_live_0I5r5310Og6W21" />
     </application>
 </manifest>

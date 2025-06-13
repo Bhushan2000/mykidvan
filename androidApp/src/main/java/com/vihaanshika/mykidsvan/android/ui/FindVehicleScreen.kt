@@ -66,6 +66,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.DisposableEffect
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
+import com.vihaanshika.mykidsvan.android.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,13 +94,15 @@ fun FindVehicleScreen(
             selectedDriverId.value?.let { driverId ->
                 viewModel.updatePaymentStatus(
                     id = userId.toInt(),
-                    transactionId = paymentData.paymentId ?: "TXN",
-                    amount = (paymentAmountInPaise/100).toString(),
+                    paymentId = paymentData.paymentId ?: "TXN",
+                    amount = (paymentAmountInPaise / 100).toString(),
                     paymentStatus = "Paid",
                     expireDate = expireDate,
                     paymentDate = paymentDate,
                     assignStatus = "Assigned",
-                    assignDate = paymentDate
+                    assignDate = paymentDate,
+                    signature = paymentData.signature,
+                    orderId = paymentData.orderId
                 )
 
                 viewModel.sendAssignRequest(driverId, userId)
@@ -109,6 +113,23 @@ fun FindVehicleScreen(
             Toast.makeText(context, "Payment failed", Toast.LENGTH_SHORT).show()
             Log.e("TAG", "FindVehicleScreen: $message")
             onPaymentFailure(code, message)
+        }
+    }
+
+    val orderIdState by viewModel.getOrderId.collectAsState()
+    var razorOrderId by remember { mutableStateOf<String?>(null) }
+    var razorAmount by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(Unit) {
+        viewModel.getRazorPayOrderId()
+    }
+
+    LaunchedEffect(orderIdState) {
+        if (orderIdState is Resource.Success) {
+            val data = (orderIdState as Resource.Success).data
+            data.let {
+                razorOrderId = it.orderId
+                razorAmount = it.amountPaise
+            }
         }
     }
 
@@ -147,7 +168,7 @@ fun FindVehicleScreen(
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(paymentAmountInPaise)
+                        activity?.startPayment(razorAmount,razorOrderId)
                             ?: Toast.makeText(
                                 context,
                                 "Unable to start payment.",
@@ -165,7 +186,7 @@ fun FindVehicleScreen(
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(paymentAmountInPaise)
+                        activity?.startPayment(razorAmount,razorOrderId)
                             ?: Toast.makeText(
                                 context,
                                 "Unable to start payment.",
@@ -630,7 +651,7 @@ fun DriverCard(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(vehiclePhotos) { photoPath ->
                         AsyncImage(
-                            model = "${Constants.BASE_URL}$photoPath",
+                            model = "${APIEndpoints.BASE_URL}$photoPath",
                             contentDescription = "Vehicle Photo",
                             modifier = Modifier
                                 .size(80.dp)
@@ -641,7 +662,7 @@ fun DriverCard(
                                     RoundedCornerShape(16.dp)
                                 )
                                 .clickable {
-                                    selectedImage.value = "${Constants.BASE_URL}$photoPath"
+                                    selectedImage.value = "${APIEndpoints.BASE_URL}$photoPath"
                                     openDialog.value = true
                                 },
                             contentScale = ContentScale.Crop

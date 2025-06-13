@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
@@ -26,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -43,8 +45,17 @@ class LatLngViewModel(
     private val _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation
 
+    // for parent
     private val _latLngList = MutableStateFlow<List<LatLng>>(emptyList())
     val latLngList: StateFlow<List<LatLng>> = _latLngList
+
+    // for driver
+    private val _visiblePolylinePath = MutableStateFlow<List<LatLng>>(emptyList())
+    val visiblePolylinePath: StateFlow<List<LatLng>> = _visiblePolylinePath
+
+    // for driver
+    private val _localLatLngList = MutableStateFlow<List<LatLng>>(emptyList())
+    val localLatLngList: StateFlow<List<LatLng>> = _localLatLngList
 
     private val _bearing = MutableStateFlow(0f)
     val bearing: StateFlow<Float> = _bearing
@@ -136,22 +147,18 @@ class LatLngViewModel(
     }
 
     fun startTracking() {
-        val role = userRole.value
         _isTracking.value = true
-         trackingJob = viewModelScope.launch {
+        trackingJob = viewModelScope.launch {
             while (isActive) {
-                // Driver → send and receive
-                if (role == "driver") {
-                    // Keep fallback for ViewModel polling
-                    val location = getLastKnownLocation()
+                val role = userRole.value
+                if (role == Constants.USER_DRIVER) {
+                    val location = getLastKnownLocation() // fallback
                     location?.let { sendCurrentLocationToServer(it) }
-                    fetchLatLngFromServer()
-                }
-                // Parent → only receive
-                else if (role == "parent") {
-                    fetchLatLngFromServer()
-                }
 
+                }
+//                else if (role == Constants.USER_PARENT){
+//                    fetchLatLngFromServer()
+//                }
                 delay(10_000)
             }
         }
@@ -162,26 +169,71 @@ class LatLngViewModel(
 
         locationReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
+                val action = intent?.action
                 val lat = intent?.getDoubleExtra("latitude", 0.0)
                 val lng = intent?.getDoubleExtra("longitude", 0.0)
 
-                if (lat != null && lng != null) {
-                    val location = Location("service").apply {
-                        latitude = lat
-                        longitude = lng
-                    }
+                Log.d(
+                    "BroadcastReceiver",
+                    "Received broadcast action: $action, lat: $lat, lng: $lng"
+                )
 
-                    _currentLocation.value = LatLng(lat, lng)
-
+                if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+                    val latLng = LatLng(lat, lng)
                     viewModelScope.launch {
-                        sendCurrentLocationToServer(location)
+                        when (action) {
+                            Constants.SERVER_LOCATION_BROADCAST_ACTION -> {
+                                if (userRole.value == Constants.USER_PARENT) {
+                                    Log.d("DEBUG", "Inside USER_PARENT block")
+
+                                    if (latLng.latitude != 0.0 && latLng.longitude != 0.0) {
+                                        val oldLatLng = _latLngList.value.lastOrNull()
+                                        _bearing.value = oldLatLng?.let { old ->
+                                            calculateBearing(old, latLng).takeIf { it.isFinite() }
+                                        } ?: 0f
+
+                                        // ✅ Skip if duplicate in visible path
+                                        if (_visiblePolylinePath.value.lastOrNull()?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true) {
+                                            _visiblePolylinePath.update { oldList ->
+                                                val updated = (oldList + latLng)
+                                                updated
+                                            }
+                                        }
+
+                                        // ✅ Skip if duplicate in latLng list
+                                        if (_latLngList.value.lastOrNull()?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true) {
+                                            _latLngList.update { it + latLng }
+                                            Log.e("Fetch----if", "onReceive: ${_latLngList.value}")
+                                        } else {
+                                            Log.d("DEBUG", "Duplicate latLng skipped: $latLng")
+                                        }
+                                    }
+
+                                } else {
+                                    Log.d("DEBUG", "userRole not parent: ${userRole.value}")
+                                }
+                            }
+
+                            Constants.LOCATION_BROADCAST_ACTION -> {
+                                if (userRole.value == Constants.USER_DRIVER) {
+                                    val location = Location("service").apply {
+                                        latitude = lat
+                                        longitude = lng
+                                    }
+                                    sendCurrentLocationToServer(location)
+                                    Log.e("Send---", "onReceive: ${_latLngList.value}")
+
+                                }
+                            }
+                        }
                     }
                 }
-
             }
         }
-
-        val filter = IntentFilter(Constants.LOCATION_BROADCAST_ACTION)
+        val filter = IntentFilter().apply {
+            addAction(Constants.LOCATION_BROADCAST_ACTION)
+            addAction(Constants.SERVER_LOCATION_BROADCAST_ACTION) // In case you're using it
+        }
         LocalBroadcastManager.getInstance(context).registerReceiver(locationReceiver!!, filter)
     }
 
@@ -191,7 +243,6 @@ class LatLngViewModel(
             locationReceiver = null
         }
     }
-
 
     fun startTrackingService(context: Context) {
         val intent = Intent(context, LocationTrackingService::class.java)
@@ -213,6 +264,23 @@ class LatLngViewModel(
         if (userRole.value != "driver") return // ✅ Prevents sending if the role is "parent"
         if (!isLocationPermissionGranted(context)) return
         try {
+            val newLatLng = LatLng(location.latitude, location.longitude)
+
+            // Check distance from previous point
+            val lastLatLng = _visiblePolylinePath.value.lastOrNull()
+            if (lastLatLng != null) {
+                val lastLocation = Location("").apply {
+                    latitude = lastLatLng.latitude
+                    longitude = lastLatLng.longitude
+                }
+
+                val distance = lastLocation.distanceTo(location)
+                if (distance < 5) {
+                    Log.d("TAG", "Location change < 5m (${distance}m), skipping update.")
+                    return
+                }
+            }
+
             driverId?.let { id ->
                 val request = SendLatLongRequest(
                     id = id,
@@ -221,6 +289,45 @@ class LatLngViewModel(
                 )
                 repository.sendLatLong(request) // ✅ Sends location to server
             }
+
+            val currentList = _localLatLngList.value
+
+            val updatedList = when {
+                currentList.isEmpty() -> listOf(newLatLng) // First point
+                currentList.size == 1 && currentList[0] != newLatLng -> listOf(
+                    currentList[0],
+                    newLatLng
+                ) // Second point
+                currentList.size == 2 && currentList[1] != newLatLng -> listOf(
+                    currentList[1],
+                    newLatLng
+                ) // Slide window
+                else -> currentList // Same point as last, no update
+            }
+
+            _localLatLngList.value = updatedList
+
+            // Animate marker with 2 points
+            val shortList = _localLatLngList.value.toMutableList()
+            if (shortList.isEmpty() || shortList.last() != newLatLng) {
+                if (shortList.size >= 2) shortList.removeFirst()
+                shortList.add(newLatLng)
+                _localLatLngList.value = shortList
+            }
+
+            // Keep full path separately
+            val fullPath = _visiblePolylinePath.value.toMutableList()
+            if (fullPath.isEmpty() || fullPath.last() != newLatLng) {
+                fullPath.add(newLatLng)
+                _visiblePolylinePath.value = fullPath
+            }
+
+            // Calculate bearing between the two points
+            if (updatedList.size == 2) {
+                _bearing.value = calculateBearing(updatedList[0], updatedList[1])
+            }
+            Log.d("TAG", "sendCurrentLocationToServer: ${_localLatLngList.value}")
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -250,7 +357,6 @@ class LatLngViewModel(
             .addOnSuccessListener { cont.resume(it, null) }
             .addOnFailureListener { cont.resume(null, null) }
     }
-
 
     private suspend fun fetchLatLngFromServer() {
         try {
@@ -287,18 +393,15 @@ class LatLngViewModel(
         return (Math.toDegrees(atan2(y, x)).toFloat() + 360) % 360
     }
 
-    fun hasAllPermissions(): Boolean {
-        val permissions = listOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.FOREGROUND_SERVICE,
-            Manifest.permission.FOREGROUND_SERVICE_LOCATION,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        )
-
-        return permissions.all {
-            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    fun registerLocationReceiverIfNeeded(context: Context, role: String) {
+        if (role == Constants.USER_DRIVER || role == Constants.USER_PARENT) {
+            registerLocationBroadcastReceiver(context)
         }
     }
 
+    fun unregisterLocationReceiverIfNeeded(context: Context, role: String) {
+        if (role == Constants.USER_DRIVER || role == Constants.USER_PARENT) {
+            unregisterLocationBroadcastReceiver(context)
+        }
+    }
 }

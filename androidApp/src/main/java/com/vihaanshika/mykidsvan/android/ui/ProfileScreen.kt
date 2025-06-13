@@ -66,6 +66,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMob
 import com.vihaanshika.mykidsvan.android.data.dto.response.Parent
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import kotlinx.coroutines.delay
 
@@ -211,10 +212,10 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                     ProfileImage(
                                         imageUrl = when (data) {
                                             is DriverMob -> profileImageUri?.toString()
-                                                ?: "${Constants.BASE_URL}${data.profilePicture}"
+                                                ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
 
                                             is Parent -> profileImageUri?.toString()
-                                                ?: "${Constants.BASE_URL}${data.profilePicture}"
+                                                ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
 
                                             else -> profileImageUri?.toString() ?: ""
                                         }

@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
@@ -41,6 +42,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationRespon
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
@@ -50,6 +52,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import retrofit2.http.Body
 import retrofit2.http.FieldMap
 import retrofit2.http.FormUrlEncoded
@@ -62,153 +65,137 @@ import retrofit2.http.Path
 interface AuthApi {
 
     @FormUrlEncoded
-    @POST("index.php/api/Logincontroller/login")
+    @POST(APIEndpoints.LOGIN)
     suspend fun login(@FieldMap request: Map<String, String>): LoginResponse
 
-    @POST("index.php/api/AccountsController/vehicles")
+    @POST(APIEndpoints.REGISTER_DRIVER)
     suspend fun registerDriver(@Body request: Map<String, String>): RegistrationResponse
 
-    @POST("index.php/api/AccountsController/parent")
+    @POST(APIEndpoints.REGISTER_PARENT)
     suspend fun registerParent(@Body request: ParentRegistrationRequest): RegistrationResponse
 
-    @GET("index.php/api/AccountsController/get_state")
+    @GET(APIEndpoints.GET_STATE)
     suspend fun getState(): StatesResponse
 
-    @GET("index.php/api/AccountsController/get_district/{state_id}")
-    suspend fun getDistrict(@Path("state_id") state_id: String): DistrictsResponse
+    @GET(APIEndpoints.GET_DISTRICT)
+    suspend fun getDistrict(@Path(APIEndpoints.PATH_STATE_ID) stateId: String): DistrictsResponse
 
-    @GET("index.php/api/AccountsController/get_taluka/{state_id}/{district_id}")
+    @GET(APIEndpoints.GET_TALUKA)
     suspend fun getTaluka(
-        @Path("state_id") state_id: String,
-        @Path("district_id") district_id: String
+        @Path(APIEndpoints.PATH_STATE_ID) stateId: String,
+        @Path(APIEndpoints.PATH_DISTRICT_ID) districtId: String
     ): TalukasResponse
 
-    @GET("index.php/api/AccountsController/get_school/{state_id}/{district_id}/{taluka_id}")
+    @GET(APIEndpoints.GET_SCHOOLS)
     suspend fun getSchools(
-        @Path("state_id") state_id: String,
-        @Path("district_id") district_id: String,
-        @Path("taluka_id") taluka_id: String
+        @Path(APIEndpoints.PATH_STATE_ID) stateId: String,
+        @Path(APIEndpoints.PATH_DISTRICT_ID) districtId: String,
+        @Path(APIEndpoints.PATH_TALUKA_ID) talukaId: String
     ): AllSchoolResponse
 
-    @GET("index.php/api/AccountsController/get_parent/{school_id}")
-    suspend fun getParents(@Path("school_id") state_id: String): ParentsResponse
+    @GET(APIEndpoints.GET_PARENTS)
+    suspend fun getParents(@Path(APIEndpoints.PATH_SCHOOL_ID) schoolId: String): ParentsResponse
 
-    @GET("index.php/api/AccountsController/get_driver/{school_id}")
-    suspend fun getDriver(@Path("school_id") state_id: String): DriverResponse
+    @GET(APIEndpoints.GET_DRIVERS)
+    suspend fun getDriver(@Path(APIEndpoints.PATH_SCHOOL_ID) schoolId: String): DriverResponse
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    @POST("index.php/api/AccountsController/store_otp")
+    @POST(APIEndpoints.SEND_OTP)
     suspend fun sendOtp(@Body request: OtpRequest): OtpResponse
 
-    @POST("index.php/api/AccountsController/verify_otp")
+    @POST(APIEndpoints.VERIFY_OTP)
     suspend fun verifyOtp(@Body request: OtpVerificationRequest): OtpVerificationResponse
 
-    @PUT("index.php/api/AccountsController/update_password")
+    @PUT(APIEndpoints.UPDATE_PASSWORD)
     suspend fun updatePassword(@Body request: UpdatePasswordRequest): UpdatePasswordResponse
 
-    @POST("index.php/api/AccountsController/school")
+    @POST(APIEndpoints.REGISTER_SCHOOL)
     suspend fun registerSchools(@Body request: SchoolRegistrationRequest): SchoolRegistrationResponse
 
-    @GET("index.php/api/AccountsController/get_parentdetail/{parent_id}")
-    suspend fun getParentProfile(@Path("parent_id") parent_id: String): ParentsResponse
+    @GET(APIEndpoints.GET_PARENT_PROFILE)
+    suspend fun getParentProfile(@Path(APIEndpoints.PATH_PARENT_ID) parentId: String): ParentsResponse
 
-    @GET("index.php/api/AccountsController/get_driverdetail/{driver_id}")
-    suspend fun getDriverProfile(@Path("driver_id") driver_id: String): DriverResponse
+    @GET(APIEndpoints.GET_DRIVER_PROFILE)
+    suspend fun getDriverProfile(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): DriverResponse
 
-    @PUT("index.php/api/AccountsController/update_vehiclesschool_id")
+    @PUT(APIEndpoints.ASSIGN_VEHICLE)
     suspend fun assignedVehicle(@Body request: AssignRequest): AssignedResponse
 
-    @PUT("index.php/api/AccountsController/update_parentschool_id")
+    @PUT(APIEndpoints.ASSIGN_STUDENT)
     suspend fun assignedStudent(@Body request: AssignRequest): AssignedResponse
 
-    @GET("index.php/api/AccountsController/get_school_registeration")
+    @GET(APIEndpoints.GET_ALL_SCHOOLS)
     suspend fun getAllSchools(): AllSchoolResponse
 
-    @GET("/index.php/api/AccountsController/get_driverbynumber/{mobile_no}")
-    suspend fun getDriverByMobNo(@Path("mobile_no") driver_id: String): DriverByMobResponse
+    @GET(APIEndpoints.GET_DRIVER_BY_MOBILE)
+    suspend fun getDriverByMobNo(@Path(APIEndpoints.PATH_MOBILE_NO) mobileNo: String): DriverByMobResponse
 
-    // map api's
-    @PUT("index.php/api/AccountsController/update_vehicles")
+    @PUT(APIEndpoints.SEND_LAT_LONG)
     suspend fun sendLatLong(@Body request: SendLatLongRequest): SendLatLongResponse
 
-    @GET("index.php/api/AccountsController/get_vehicles/{driver_id}")
-    suspend fun getLatLong(
-        @Path("driver_id") driver_id: String
-    ): GetLatLongResponse
+    @GET(APIEndpoints.GET_LAT_LONG)
+    suspend fun getLatLong(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetLatLongResponse
 
-    @PUT("index.php/api/AccountsController/vehicle_message")
+    @PUT(APIEndpoints.UPDATE_ASSIGN_REQUEST)
     suspend fun updateAssignRequest(@Body request: UpdateAssignRequest): SendLatLongResponse
 
-    @POST("index.php/api/AccountsController/vehicle_message")
+    @POST(APIEndpoints.SEND_ASSIGN_REQUEST)
     suspend fun sendAssignRequest(@Body request: SendAssignRequest): SendRequestToDriverResponse
 
-    @GET("index.php/api/AccountsController/get_vehicle_message/{driver_id}")
-    suspend fun getDriverRequests(
-        @Path("driver_id") driver_id: String,
-    ): DriverRequestResponse
+    @GET(APIEndpoints.GET_DRIVER_REQUESTS)
+    suspend fun getDriverRequests(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): DriverRequestResponse
 
-    @PUT("index.php/api/AccountsController/update_parentdetail")
-    suspend fun updateProfileParent(
-        @Body request: ParentUpdateRequest
-    ): ProfileUpdateResponse
+    @PUT(APIEndpoints.UPDATE_PROFILE_PARENT)
+    suspend fun updateProfileParent(@Body request: ParentUpdateRequest): ProfileUpdateResponse
 
-    @PUT("index.php/api/AccountsController/update_driverdetail")
-    suspend fun updateProfileDriver(
-        @Body request: DriverUpdateRequest
-    ): ProfileUpdateResponse
+    @PUT(APIEndpoints.UPDATE_PROFILE_DRIVER)
+    suspend fun updateProfileDriver(@Body request: DriverUpdateRequest): ProfileUpdateResponse
 
-    @PUT("index.php/api/AccountsController/update_vehicle_photo")
-    suspend fun updateVehiclePhotos(
-        @Body request: UpdateVehicleImageRequest
-    ): ProfileUpdateResponse
+    @PUT(APIEndpoints.UPDATE_VEHICLE_PHOTOS)
+    suspend fun updateVehiclePhotos(@Body request: UpdateVehicleImageRequest): ProfileUpdateResponse
 
-    @PUT("index.php/api/AccountsController/update_payment")
-    suspend fun updatePayment(
-        @Body request: PaymentUpdateRequest
-    ): UpdatePaymentResponse
+    @PUT(APIEndpoints.UPDATE_PAYMENT)
+    suspend fun updatePayment(@Body request: PaymentUpdateRequest): UpdatePaymentResponse
 
-    @GET("index.php/api/AccountsController/get_vehicle_photos/{driver_id}")
-    suspend fun getVehiclePhotos(
-        @Path("driver_id") driver_id: String
-    ): VehiclePhotosResponse
+    @GET(APIEndpoints.CREATE_ORDER)
+    suspend fun getOrderId(): RazorpayOrderCreationResponse
 
-    @POST("index.php/api/AccountsController/school_vehicles")
-    suspend fun driverSchoolOnRegister(
-        @Body request: RegisterSchoolDriverRequest
-    ): RegisterSchoolResponse
+    @GET(APIEndpoints.GET_VEHICLE_PHOTOS)
+    suspend fun getVehiclePhotos(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): VehiclePhotosResponse
 
-    @POST("index.php/api/AccountsController/school")
-    suspend fun parentSchoolOnRegister(
-        @Body request: RegisterSchoolParentRequest
-    ): RegisterSchoolResponse
+    @POST(APIEndpoints.DRIVER_SCHOOL_ON_REGISTER)
+    suspend fun driverSchoolOnRegister(@Body request: RegisterSchoolDriverRequest): RegisterSchoolResponse
 
-    @PUT("index.php/api/AccountsController/update_images")
+    @POST(APIEndpoints.PARENT_SCHOOL_ON_REGISTER)
+    suspend fun parentSchoolOnRegister(@Body request: RegisterSchoolParentRequest): RegisterSchoolResponse
+
+    @PUT(APIEndpoints.UPLOAD_DOCUMENTS)
     suspend fun uploadDocumentsToDatabase(@Body request: Map<String, String>): DocumentUploadResponse
 
-    @POST("index.php/api/AccountsController/check_refer_by_status")
-    suspend fun checkReferCode(
-        @Body request: ReferByRequest
-    ): ReferByResponse
+    @POST(APIEndpoints.CHECK_REFER_CODE)
+    suspend fun checkReferCode(@Body request: ReferByRequest): ReferByResponse
 
-    @GET("index.php/api/AccountsController/get_commision/{driver_id}")
-    suspend fun getCommission(@Path("driver_id") driver_id: String): CommissionResponse
+    @GET(APIEndpoints.GET_DRIVER_COMMISSION)
+    suspend fun getCommission(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): CommissionResponse
 
-    @GET("index.php/api/AccountsController/get_all_parents")
+    @GET(APIEndpoints.GET_PARENT_COMMISSION)
+    suspend fun getCommissionParent(@Path(APIEndpoints.PATH_PARENT_ID) parentId: String): CommissionParentResponse
+
+    @GET(APIEndpoints.GET_ALL_PARENTS)
     suspend fun getAlParents(): ParentsResponse
 
-    @POST("index.php/api/AccountsController/parent_message") // all // individual
+    @POST(APIEndpoints.SEND_MESSAGE_TO_DRIVER_FROM_PARENT)
     suspend fun sendMessageToDriverFromParent(@Body request: SendMessageRequest): MessageResponse
 
-    @POST("index.php/api/AccountsController/driver_message") // all // individual
+    @POST(APIEndpoints.SEND_MESSAGE_TO_PARENT_FROM_DRIVER)
     suspend fun sendMessageToParentFromDriver(@Body request: SendMessageRequest): MessageResponse
 
-    @GET("index.php/api/AccountsController/get_parent_message/{parent_id}") // driver cha table madhun yete messages parent id sathi
-    suspend fun getParentMessage(@Path("parent_id") parent_id: String): GetParentMessagesResponse
+    @GET(APIEndpoints.GET_PARENT_MESSAGES)
+    suspend fun getParentMessage(@Path(APIEndpoints.PATH_PARENT_ID) parentId: String): GetParentMessagesResponse
 
-    @GET("index.php/api/AccountsController/get_driver_message/{driver_id}") // parent cha table madhun yete messages
-    suspend fun getDriverMessage(@Path("driver_id") driver_id: String): GetDriverMessagesResponse
+    @GET(APIEndpoints.GET_DRIVER_MESSAGES)
+    suspend fun getDriverMessage(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetDriverMessagesResponse
 
-    @GET("index.php/api/AccountsController/get_all_message/{driver_id}")
-    suspend fun getDriverAllMessage(@Path("driver_id") driver_id: String): GetDriverAllMessagesResponse
+    @GET(APIEndpoints.GET_DRIVER_ALL_MESSAGES)
+    suspend fun getDriverAllMessage(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetDriverAllMessagesResponse
 
 }

@@ -10,6 +10,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverRes
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
@@ -27,6 +28,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationRespon
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
@@ -172,13 +174,15 @@ interface AuthRepository {
 
     suspend fun updatePaymentStatus(
         id: Int,
-        transactionId: String,
+        paymentId: String,
         amount: String,
         paymentStatus: String,
         expireDate: String,
         paymentDate: String,
         assignStatus: String,
-        assignDate: String
+        assignDate: String,
+        signature: String,
+        orderId: String
     ): UpdatePaymentResponse
 
     suspend fun getVehiclePhotos(driver_id: String): VehiclePhotosResponse
@@ -221,6 +225,8 @@ interface AuthRepository {
 
     suspend fun getCommission(driver_id: String): CommissionResponse
 
+    suspend fun getCommissionParent(parent_id: String): CommissionParentResponse
+
     suspend fun getAllParents(): ParentsResponse
 
     suspend fun sendMessageToDriverFromParent(request: SendMessageRequest): MessageResponse
@@ -233,4 +239,5 @@ interface AuthRepository {
 
     suspend fun getDriverAllMessage(driver_id: String): GetDriverAllMessagesResponse
 
+    suspend fun getOrderId(): RazorpayOrderCreationResponse
 }

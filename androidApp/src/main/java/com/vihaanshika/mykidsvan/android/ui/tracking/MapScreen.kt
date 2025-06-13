@@ -24,11 +24,16 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +57,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.maptracking.LatLngViewModel
 import com.vihaanshika.mykidsvan.android.R
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -65,11 +73,18 @@ import kotlinx.coroutines.delay
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
+fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val parentLatLngList by viewModel.latLngList.collectAsState()
+    val driverLatLngList by viewModel.localLatLngList.collectAsState()
 
-    val latLngList by viewModel.latLngList.collectAsState()
+    val latLngList = if (userRole == Constants.USER_PARENT) {
+        parentLatLngList
+    } else {
+        driverLatLngList
+    }
+
     val bearing by viewModel.bearing.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
 
@@ -82,19 +97,27 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
     val userRole by viewModel.userRole.collectAsState()
     val assignedVehicleId by viewModel.assignedVehicleId.collectAsState()
     val vehicleTrackingStatus by viewModel.vehicleTrackingStatus.collectAsState()
-
     // counter
-    val timer = remember { mutableStateOf(1) }
+    val timer = remember { mutableStateOf(0) }
     // Track changes to last LatLng
     var lastKnownPoint by remember { mutableStateOf(latLngList.lastOrNull()) }
 
-    DisposableEffect(Unit) {
-        viewModel.registerLocationBroadcastReceiver(context)
-        onDispose {
-            viewModel.unregisterLocationBroadcastReceiver(context)
+    val fullPolylineList by viewModel.visiblePolylinePath.collectAsState()
+
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            viewModel.registerLocationReceiverIfNeeded(context, userRole.toString())
+        } else {
+            viewModel.unregisterLocationReceiverIfNeeded(context, userRole.toString())
         }
     }
 
+    // this destroy service when page is leave
+    DisposableEffect(userRole) {
+        onDispose {
+            viewModel.stopTracking() // Stop LiveData/StateFlow updates
+        }
+    }
 
     val locationSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -208,6 +231,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                 )
             ) {
                 if (!isTracking) {
+                    viewModel.startTrackingService(context)
                     viewModel.startTracking()
                 }
             } else {
@@ -362,7 +386,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
             ) {
                 if (latLngList.isNotEmpty()) {
                     Polyline(
-                        points = latLngList,
+                        points = fullPolylineList,
                         color = Color.Blue,
                         width = 24f,
                         visible = true,
@@ -377,8 +401,8 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel()) {
                         icon = bitmapDescriptorFromVector(
                             context,
                             if (userRole == Constants.USER_PARENT && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
-                            100,
-                            180
+                            width = 64,
+                            height = 112
                         ),
                         rotation = bearing,
                         anchor = Offset(0.5f, 0.5f),

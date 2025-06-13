@@ -10,6 +10,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResp
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Resource
@@ -263,7 +264,7 @@ class MessagesViewModel(private val repository: AuthRepository) : ViewModel() {
     }
     fun getProfileUrlFromName(name: String): String? {
         val relativeUrl = parentNameToProfileUrlMap.value[name]
-        return relativeUrl?.let { Constants.BASE_URL + it }
+        return relativeUrl?.let { APIEndpoints.BASE_URL + it }
     }
 
     fun resetGetAllParent(){

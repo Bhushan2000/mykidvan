@@ -64,6 +64,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Resource
@@ -274,7 +275,7 @@ fun MessageScreen(
                             it.message,
                             it.createdAt ?: "",
                             firstDriver?.driverName.orEmpty(),
-                            Constants.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
+                            APIEndpoints.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
                             Constants.USER_PARENT
                         )
                     } ?: emptyList()
@@ -285,7 +286,7 @@ fun MessageScreen(
                                 driverMessage.message,
                                 driverMessage.createdAt.orEmpty(),
                                 parent.parentName.orEmpty(),
-                                Constants.BASE_URL + parent.profilePicture.orEmpty(),
+                                APIEndpoints.BASE_URL + parent.profilePicture.orEmpty(),
                                 Constants.USER_DRIVER
                             )
                         }

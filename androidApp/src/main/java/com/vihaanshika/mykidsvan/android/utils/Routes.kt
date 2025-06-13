@@ -11,4 +11,5 @@ object Routes {
     const val UPDATE_PASSWORD = "update_password/{phone}"
     const val SCHOOL_ON_REGISTRATION = "schoolOnRegistration/{uid}/{role}"
     const val FILE_UPLOAD = "fileupload/{uid}"
+    const val CHAT = "chat/{chatTarget}"
 }

@@ -37,6 +37,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import com.vihaanshika.mykidsvan.android.utils.UnifiedMessage
@@ -192,7 +193,7 @@ fun ChatScreen(
                             it.message,
                             it.createdAt ?: "",
                             it.name,
-                            Constants.BASE_URL + (it.profilePicture.orEmpty()),
+                            APIEndpoints.BASE_URL + (it.profilePicture.orEmpty()),
                             if (it.parentId?.isEmpty() == true) Constants.USER_DRIVER else Constants.USER_PARENT
                         )
                     } ?: emptyList()
@@ -338,7 +339,7 @@ fun ChatScreen(
                             it.message,
                             it.createdAt ?: "",
                             firstDriver?.driverName.orEmpty(),
-                            Constants.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
+                            APIEndpoints.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
                             Constants.USER_PARENT
                         )
                     } ?: emptyList()
@@ -350,7 +351,7 @@ fun ChatScreen(
                                 driverMessage.message,
                                 driverMessage.createdAt.orEmpty(),
                                 parent.parentName.orEmpty(),
-                                Constants.BASE_URL + parent.profilePicture.orEmpty(),
+                                APIEndpoints.BASE_URL + parent.profilePicture.orEmpty(),
                                 Constants.USER_DRIVER
                             )
                         }
