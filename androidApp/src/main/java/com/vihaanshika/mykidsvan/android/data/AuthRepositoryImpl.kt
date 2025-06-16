@@ -19,6 +19,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
+import com.vihaanshika.mykidsvan.android.data.dto.request.StopTrackingRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
@@ -48,6 +49,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.StatesResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
@@ -56,7 +58,13 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 
 class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun login(username: String, password: String, token: String): LoginResponse {
-        return api.login(mapOf("number" to username, "password" to password, "device_token" to token))
+        return api.login(
+            mapOf(
+                "number" to username,
+                "password" to password,
+                "device_token" to token
+            )
+        )
     }
 
     override suspend fun registerDriver(
@@ -180,8 +188,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.getDriverByMobNo(mobile_no)
     }
 
-    override suspend fun sendOtp(mobile_number: String,purpose: String): OtpResponse {
-        val otpRequest = OtpRequest(mobile_number,purpose)  // Create an OtpRequest object
+    override suspend fun sendOtp(mobile_number: String, purpose: String): OtpResponse {
+        val otpRequest = OtpRequest(mobile_number, purpose)  // Create an OtpRequest object
         return api.sendOtp(otpRequest) // Pass the OtpRequest object
     }
 
@@ -244,19 +252,6 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         driver_id: String
     ): DriverRequestResponse {
         return api.getDriverRequests(driver_id)
-    }
-
-    override suspend fun sendLatLong(
-        lat: String,
-        long: String,
-        id: String
-    ): SendLatLongResponse {
-        val request = SendLatLongRequest(id, lat, long)
-        return api.sendLatLong(request)
-    }
-
-    override suspend fun getLatLong(driver_id: String): GetLatLongResponse {
-        return api.getLatLong(driver_id)
     }
 
     override suspend fun sendAssignRequest(
@@ -444,6 +439,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun getCommissionParent(parent_id: String): CommissionParentResponse {
         return api.getCommissionParent(parent_id)
     }
+
     override suspend fun getAllParents(): ParentsResponse {
         return api.getAlParents()
     }

@@ -22,7 +22,7 @@ class UserPreferences(context: Context) {
         private val ASSIGNED_VEHICLE_ID = stringPreferencesKey("assign_vehicle_id")
         private val STATUS = stringPreferencesKey("status")
         private val REFER_CODE = stringPreferencesKey("refer_code")
-
+        private val TRACKING_STATUS = stringPreferencesKey("tracking_status")
     }
 
     // Save login state (suspend function)
@@ -47,9 +47,15 @@ class UserPreferences(context: Context) {
         }
     }
 
+    suspend fun saveTrackingStatus(status: String){
+        dataStore.edit { prefs->
+            prefs[TRACKING_STATUS] = status
+        }
+    }
+
     val assignVehicleIdFlow: Flow<String?> = dataStore.data.map { it[ASSIGNED_VEHICLE_ID] }
     val statusFlow: Flow<String?> = dataStore.data.map { it[STATUS] }
-
+    val trackingStatusFlow: Flow<String?> = dataStore.data.map { it[TRACKING_STATUS] }
 
     suspend fun clearUserData() {
         dataStore.edit { prefs ->
@@ -74,4 +80,4 @@ class UserPreferences(context: Context) {
 
     val referCode:Flow<String?> = dataStore.data.map { it[REFER_CODE] }
 
-}
+ }

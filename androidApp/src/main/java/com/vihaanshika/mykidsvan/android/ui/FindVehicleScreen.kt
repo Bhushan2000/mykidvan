@@ -76,16 +76,35 @@ fun FindVehicleScreen(
     viewModel: AuthViewModel,
     userId: String,
     onPaymentSuccess: (PaymentData) -> Unit,
-    onPaymentFailure: (Int, String?) -> Unit
+    onPaymentFailure: (Int, String?) -> Unit,
+    requestAssignedStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
 
     val selectedDriverId = remember { mutableStateOf<String?>(null) }
-    val paymentAmountInPaise = Constants.AMOUNT_IN_PAISE
     val currentDate = LocalDate.now()
     val paymentDate = currentDate.format(DateTimeFormatter.ISO_DATE)
     val expireDate = currentDate.plusYears(1).format(DateTimeFormatter.ISO_DATE)
+
+    val orderIdState by viewModel.getOrderId.collectAsState()
+    var razorOrderId by remember { mutableStateOf<String?>(null) }
+    var razorAmount by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (requestAssignedStatus == null)
+            viewModel.getRazorPayOrderId()
+    }
+
+    LaunchedEffect(orderIdState) {
+        if (orderIdState is Resource.Success) {
+            val data = (orderIdState as Resource.Success).data
+            data.let {
+                razorOrderId = it.orderId
+                razorAmount = it.amountPaise
+            }
+        }
+    }
     // Razorpay Callbacks Setup
     LaunchedEffect(Unit) {
         viewModel.loadStateOptions()
@@ -95,7 +114,7 @@ fun FindVehicleScreen(
                 viewModel.updatePaymentStatus(
                     id = userId.toInt(),
                     paymentId = paymentData.paymentId ?: "TXN",
-                    amount = (paymentAmountInPaise / 100).toString(),
+                    amount = (razorAmount?.toInt()?.div(100)).toString(),
                     paymentStatus = "Paid",
                     expireDate = expireDate,
                     paymentDate = paymentDate,
@@ -116,22 +135,6 @@ fun FindVehicleScreen(
         }
     }
 
-    val orderIdState by viewModel.getOrderId.collectAsState()
-    var razorOrderId by remember { mutableStateOf<String?>(null) }
-    var razorAmount by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(Unit) {
-        viewModel.getRazorPayOrderId()
-    }
-
-    LaunchedEffect(orderIdState) {
-        if (orderIdState is Resource.Success) {
-            val data = (orderIdState as Resource.Success).data
-            data.let {
-                razorOrderId = it.orderId
-                razorAmount = it.amountPaise
-            }
-        }
-    }
 
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf("By School", "By Mobile No.")
@@ -161,38 +164,40 @@ fun FindVehicleScreen(
             when (selectedTabIndex) {
                 0 -> FindBySchoolSection(
                     assignVehicleId,
-                    paymentAmountInPaise,
+                    razorAmount ?: 0,
                     currentDate,
                     expireDate,
                     viewModel = viewModel,
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(razorAmount,razorOrderId)
+                        activity?.startPayment(razorAmount, razorOrderId)
                             ?: Toast.makeText(
                                 context,
                                 "Unable to start payment.",
                                 Toast.LENGTH_SHORT
                             ).show()
-                    }
+                    },
+                    requestAssignedStatus
                 )
 
                 1 -> FindByMobileSection(
                     assignVehicleId,
-                    paymentAmountInPaise,
+                    razorAmount ?: 0,
                     currentDate,
                     expireDate,
                     viewModel = viewModel,
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(razorAmount,razorOrderId)
+                        activity?.startPayment(razorAmount, razorOrderId)
                             ?: Toast.makeText(
                                 context,
                                 "Unable to start payment.",
                                 Toast.LENGTH_SHORT
                             ).show()
-                    }
+                    },
+                    requestAssignedStatus
                 )
             }
         }
@@ -208,7 +213,8 @@ fun FindByMobileSection(
     expireDate: String,
     viewModel: AuthViewModel,
     userId: String,
-    onStartPayment: (driverId: String) -> Unit
+    onStartPayment: (driverId: String) -> Unit,
+    requestAssignedStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -291,7 +297,8 @@ fun FindByMobileSection(
                 viewModel = viewModel,
                 userId = userId,
                 onStartPayment = onStartPayment,
-                isLoading = isLoading
+                isLoading = isLoading,
+                requestAssignedStatus
             )
         }
     }
@@ -321,7 +328,8 @@ fun FindBySchoolSection(
     expireDate: String,
     viewModel: AuthViewModel,
     userId: String,
-    onStartPayment: (driverId: String) -> Unit
+    onStartPayment: (driverId: String) -> Unit,
+    requestAssignedStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -447,7 +455,8 @@ fun FindBySchoolSection(
                             driver = driver,
                             viewModel = viewModel,
                             userId = userId,
-                            onStartPayment = onStartPayment
+                            onStartPayment = onStartPayment,
+                            requestAssignedStatus = requestAssignedStatus,
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -588,7 +597,8 @@ fun DriverCard(
     viewModel: AuthViewModel,
     userId: String,
     onStartPayment: (String) -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    requestAssignedStatus: String?
 ) {
     val context = LocalContext.current
     val openDialog = remember { mutableStateOf(false) }
@@ -697,9 +707,17 @@ fun DriverCard(
                 // Send Request Button
                 Button(
                     onClick = {
-                        if (assignVehicleId == null)
+                        if (requestAssignedStatus.equals("pending")) {
+                            Toast.makeText(
+                                context,
+                                "Your request is already in Process",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else if (requestAssignedStatus == null) {
                             showSheet.value = true
-                        else
+                        } else if (assignVehicleId != null && requestAssignedStatus.equals("rejected")) {
+                            viewModel.sendAssignRequest(driver.id.toString(), userId)
+                        } else
                             Toast.makeText(
                                 context,
                                 "Already Vehicle Owner Assigned",
@@ -768,24 +786,29 @@ fun DriverCard(
             ) {
 
                 Text(
-                    "Send Tracking Request",
+                    "\uD83D\uDE90 Send Tracking Request",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(16.dp))
 
+
+                val paymentDetailsText =
+                    "If you’ve finalized this driver, send a tracking request now.\n" +
+                            "Once the driver accepts, you’ll be able to track your child’s school van live through the app.\n" +
+                            "\n" +
+                            "✅ Yearly Subscription Fee: ₹$total/-\n" +
+                            "(That’s less than the price of a pizza for peace of mind all year!)"
+
                 Text(
-                    "If you have finalized this driver.\n" +
-                            "Once the driver accepts your request,\nyou will be able to track your child’s school van.\n\n" +
-                            "Yearly Subscription fee:",
-                    style = MaterialTheme.typography.bodyLarge
+                    paymentDetailsText, style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(Modifier.height(8.dp))
 
-                Text(
-                    "Fees: ₹$fees (Only 28 Paise per day)",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+//                Text(
+//                    "Fees: ₹$fees (Only 28 Paise per day)",
+//                    style = MaterialTheme.typography.bodyLarge
+//                )
                 Text("Duration: $duration", style = MaterialTheme.typography.bodyLarge)
 //                Text("Expiry Date: $expiryDate", style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(8.dp))

@@ -58,7 +58,7 @@ object APIEndpoints {
 
     const val SEND_LAT_LONG = "index.php/api/AccountsController/update_vehicles"
     const val GET_LAT_LONG = "index.php/api/AccountsController/get_vehicles/{driver_id}"
-
+    const val STOP_TRACKING = "index.php/api/AccountsController/update_vehicles_stop"
     const val SEND_ASSIGN_REQUEST = "index.php/api/AccountsController/vehicle_message"
     const val UPDATE_ASSIGN_REQUEST = "index.php/api/AccountsController/vehicle_message"
     const val GET_DRIVER_REQUESTS = "index.php/api/AccountsController/get_vehicle_message/{driver_id}"

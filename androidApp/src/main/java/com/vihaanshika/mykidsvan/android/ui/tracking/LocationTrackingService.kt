@@ -26,6 +26,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.vihaanshika.mykidsvan.android.MainActivity
+import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
@@ -50,41 +52,50 @@ class LocationTrackingService : Service() {
     private val userPreferences: UserPreferences by inject()
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
+    private var trackingJob: Job? = null
 
     var driverId: String? = null// Your default/fallback
+    private val _trackingStatus = MutableStateFlow<String?>(null)
     override fun onCreate() {
         super.onCreate()
         Log.d("LocationService", "onCreate called")
         createNotificationChannel()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        startForeground(NOTIFICATION_ID, createNotification())
         startLocationUpdates()
 
         serviceScope.launch {
             combine(
                 userPreferences.userRole,
-                userPreferences.assignVehicleIdFlow
-            ) { role, id -> role to id }
-                .distinctUntilChanged()
-                .collect { (role, id) ->
+                userPreferences.assignVehicleIdFlow,
+                userPreferences.trackingStatusFlow // ← from DataStore (or use your StateFlow)
+            ) { role, id, trackingStatus ->
+                Triple(role, id, trackingStatus)
+            }.distinctUntilChanged()
+                .collect { (role, id, trackingStatus) ->
                     _userRole.value = role
+
+                    // Cancel any old fetch job before starting new one
+                    trackingJob?.cancel()
 
                     if (role != Constants.USER_DRIVER && id != null) {
                         driverId = id
-                        Log.d("LocationService", "user is parent. starting periodic fetch...")
+                        Log.d("LocationService", "Starting periodic fetch...")
 
-                        // ✅ Start fetching from server every 10 seconds
-                        launch {
-                            while (isActive && userRole.value != Constants.USER_DRIVER) {
+                        trackingJob = launch {
+                            while (isActive) {
                                 fetchLatLngFromServer()
                                 delay(10_000L)
                             }
                         }
                     } else {
-                        Log.d("LocationService", "user is driver or id is null. no server fetch needed.")
+                        Log.d(
+                            "LocationService",
+                            "Tracking not started. Role=$role ID=$id Status=$trackingStatus"
+                        )
                     }
                 }
         }
+
     }
 
     private fun startLocationUpdates() {
@@ -202,11 +213,19 @@ class LocationTrackingService : Service() {
                         putExtra("longitude", latLng.longitude)
                     }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-                    Log.d("LocationService", "Broadcast send for Location: ${latLng.latitude}, ${latLng.longitude}")
+                    Log.d(
+                        "LocationService",
+                        "Broadcast send for Location: ${latLng.latitude}, ${latLng.longitude}"
+                    )
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(NOTIFICATION_ID, createNotification()) // 👈 move it here
+        return START_STICKY
     }
 }

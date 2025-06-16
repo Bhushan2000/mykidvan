@@ -18,7 +18,7 @@ import kotlin.random.Random
 import androidx.core.app.RemoteInput  // ✅ CORRECT
 
 class FirebaseMessagingService : FirebaseMessagingService() {
-
+    private val TAG = "FirebaseMessagingService"
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
@@ -27,7 +27,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-
+        Log.d(TAG, "onMessageReceived: $remoteMessage")
         val title = remoteMessage.notification?.title ?: "New Message"
         val body = remoteMessage.notification?.body ?: "You've received a new message"
 
@@ -41,6 +41,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         val channelId = "message_channel"
         val notificationId = Random.nextInt()
         val groupKey = "group_chat_messages"
+
+        Log.d(TAG, "showNotification: profile image - profileUrl $profileUrl")
 
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra("openMessageScreen", true)
@@ -63,6 +65,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 null
             }
         }
+        Log.d(TAG, "showNotification: large icon - largeIcon $largeIcon")
 
         // --- LIKE ACTION ---
         val likeIntent = Intent(this, NotificationActionReceiver::class.java).apply {
@@ -88,7 +91,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         }
         val replyPendingIntent = PendingIntent.getBroadcast(
             this, notificationId + 1, replyIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
         val replyAction = NotificationCompat.Action.Builder(
             R.drawable.ic_reply, "Reply", replyPendingIntent

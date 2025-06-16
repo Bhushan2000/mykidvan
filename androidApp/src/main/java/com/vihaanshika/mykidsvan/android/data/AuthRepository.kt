@@ -35,6 +35,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationRes
 import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
 
 import com.vihaanshika.mykidsvan.android.data.dto.response.StatesResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
@@ -133,11 +134,6 @@ interface AuthRepository {
     suspend fun assignedStudent(school_id: String, id: String): AssignedResponse
 
     suspend fun getDriverByMob(mobile_no: String): DriverByMobResponse
-
-    // map
-    suspend fun sendLatLong(lat: String, long: String, id: String): SendLatLongResponse
-
-    suspend fun getLatLong(driver_id: String): GetLatLongResponse
 
     suspend fun sendAssignRequest(
         vehicle_id: String,

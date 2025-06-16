@@ -191,8 +191,7 @@ class AuthViewModel(
                     _assignedVehicleId.value = session.assignVehicleId
                     _vehicleStatus.value = session.status
                     _referCode.value = session.referCode
-
-                    session.userId?.let { loadAllRequests(it) }
+//                    session.userId?.let { loadAllRequests(it) }
                 }
             }
         }

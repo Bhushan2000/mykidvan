@@ -365,7 +365,7 @@ fun MyApp(
                     // Drawer items
                     composable(DrawerItem.Home.route) {
                         MapScreen(
-                            userRole = userRole.toString()
+                            userRole = userRole.toString(), userId = userId.toString()
                         )
                     }
 
@@ -399,6 +399,7 @@ fun MyApp(
                     composable(DrawerItem.FindVehicle.route) {
                         userId?.let { it1 ->
                             FindVehicleScreen(
+                                requestAssignedStatus = requestAssignedStatus,
                                 assignVehicleId = assignVehicleId,
                                 viewModel = loginViewModel,
                                 userId = it1,

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -23,15 +24,23 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
+import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
+import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
+import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -76,12 +85,13 @@ class LatLngViewModel(
     val userRole: StateFlow<String?> = _userRole
 
     var driverId: String? = null// Your default/fallback
-
+    var trackingStatus: String? = null
     private var locationReceiver: BroadcastReceiver? = null
 
     // user id
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId
+
 
     init {
         // Collect user role
@@ -135,6 +145,9 @@ class LatLngViewModel(
         }
     }
 
+    fun appendPolylinePoint(newPoint: LatLng) {
+        _visiblePolylinePath.update { it + newPoint }
+    }
     private suspend fun fetchInitialLocation() {
         if (userRole.value != "driver") return // Skip for parents
 
@@ -155,10 +168,9 @@ class LatLngViewModel(
                     val location = getLastKnownLocation() // fallback
                     location?.let { sendCurrentLocationToServer(it) }
 
-                }
-//                else if (role == Constants.USER_PARENT){
+                } else if (role == Constants.USER_PARENT) {
 //                    fetchLatLngFromServer()
-//                }
+                }
                 delay(10_000)
             }
         }
@@ -193,7 +205,9 @@ class LatLngViewModel(
                                         } ?: 0f
 
                                         // ✅ Skip if duplicate in visible path
-                                        if (_visiblePolylinePath.value.lastOrNull()?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true) {
+                                        if (_visiblePolylinePath.value.lastOrNull()
+                                                ?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true
+                                        ) {
                                             _visiblePolylinePath.update { oldList ->
                                                 val updated = (oldList + latLng)
                                                 updated
@@ -201,7 +215,9 @@ class LatLngViewModel(
                                         }
 
                                         // ✅ Skip if duplicate in latLng list
-                                        if (_latLngList.value.lastOrNull()?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true) {
+                                        if (_latLngList.value.lastOrNull()
+                                                ?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true
+                                        ) {
                                             _latLngList.update { it + latLng }
                                             Log.e("Fetch----if", "onReceive: ${_latLngList.value}")
                                         } else {
@@ -221,7 +237,6 @@ class LatLngViewModel(
                                         longitude = lng
                                     }
                                     sendCurrentLocationToServer(location)
-                                    Log.e("Send---", "onReceive: ${_latLngList.value}")
 
                                 }
                             }
@@ -280,15 +295,24 @@ class LatLngViewModel(
                     return
                 }
             }
+            val timestamp = getCurrentTimestamp()
+            println(timestamp) // Example output: 2025-06-14 15:13:35
+
+            val address = getFullAddress(context, location.latitude, location.longitude)
+            Log.d("FullAddress", address ?: "Address not found")
 
             driverId?.let { id ->
                 val request = SendLatLongRequest(
                     id = id,
                     latitude = location.latitude.toString(),
-                    longitude = location.longitude.toString()
+                    longitude = location.longitude.toString(),
+                    start_time = timestamp,
+                    location = address.toString(),
+                    lat_status = Constants.ACTIVE_TRACKING
                 )
-                repository.sendLatLong(request) // ✅ Sends location to server
-            }
+                val response = repository.sendLatLong(request) // ✅ Sends location to server
+
+             }
 
             val currentList = _localLatLngList.value
 
@@ -330,6 +354,34 @@ class LatLngViewModel(
 
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    fun getCurrentTimestamp(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        return dateFormat.format(Date())
+    }
+
+    fun getFullAddress(context: Context, latitude: Double, longitude: Double): String? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+            if (!addresses.isNullOrEmpty()) {
+                val address = addresses[0]
+                val fullAddress = buildString {
+                    append(address.featureName ?: "")        // House/building name
+                    append(", ${address.thoroughfare ?: ""}") // Street name
+                    append(", ${address.subLocality ?: ""}")  // Area/locality
+                    append(", ${address.locality ?: ""}")     // City
+                    append(", ${address.adminArea ?: ""}")    // State
+                    append(", ${address.postalCode ?: ""}")   // ZIP
+                    append(", ${address.countryName ?: ""}")  // Country
+                }
+                fullAddress.trim().replace(", ,", ",").replace(", ,", ",")
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -402,6 +454,23 @@ class LatLngViewModel(
     fun unregisterLocationReceiverIfNeeded(context: Context, role: String) {
         if (role == Constants.USER_DRIVER || role == Constants.USER_PARENT) {
             unregisterLocationBroadcastReceiver(context)
+        }
+    }
+
+    private val _stopTrackingState =
+        MutableStateFlow<Resource<StopTrackingResponse>>(Resource.Loading())
+    val stopTrackingState: StateFlow<Resource<StopTrackingResponse>> = _stopTrackingState
+
+    fun stopDriverTracking(id: String, status: String) {
+        viewModelScope.launch {
+            _stopTrackingState.value = Resource.Loading()
+            try {
+                val response = repository.stopTracking(id, status)
+                _stopTrackingState.value = Resource.Success(response)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _stopTrackingState.value = Resource.Error(e.message ?: "Unknown error occurred")
+            }
         }
     }
 }

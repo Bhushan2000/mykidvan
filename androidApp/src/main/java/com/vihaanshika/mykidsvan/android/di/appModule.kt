@@ -8,7 +8,9 @@ import com.vihaanshika.mykidsvan.android.data.AuthApi
 import com.vihaanshika.mykidsvan.android.data.AuthRepositoryImpl
 import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
 import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
+import com.vihaanshika.mykidsvan.android.ui.tracking.LocationTrackingService
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
+import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.vihaanshika.mykidsvan.android.utils.WebSocketManager
 import io.ktor.client.HttpClient
@@ -49,7 +51,6 @@ val appModule = module {
     single<LatLngRepository> { LatLngRepositoryImpl(get()) }
     single { HttpClient(CIO) { install(WebSockets) } }
     single { WebSocketManager(get()) }
-
     viewModel { LatLngViewModel(get(), get(), androidContext()) }
     viewModel { AuthViewModel(get(), get()) }
     viewModel { MessagesViewModel(get()) }

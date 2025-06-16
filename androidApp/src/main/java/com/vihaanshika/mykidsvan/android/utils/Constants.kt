@@ -82,4 +82,13 @@ object Constants {
     // otp type
     const val REGISTER_OTP = "register"
     const val FORGOT_OTP = "forget"
+
+    // lat_status
+    const val ACTIVE_TRACKING = "start"
+    const val INACTIVE_TRACKING = "stop"
+
+    // request status
+    const val REQUEST_ACCEPTED = "accepted"
+    const val REQUEST_REJECTED = "rejected"
+    const val REQUEST_PENDING = "pending"
 }

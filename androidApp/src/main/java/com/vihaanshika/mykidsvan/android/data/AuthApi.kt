@@ -19,6 +19,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
+import com.vihaanshika.mykidsvan.android.data.dto.request.StopTrackingRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
@@ -48,6 +49,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.StatesResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
@@ -131,6 +133,9 @@ interface AuthApi {
 
     @PUT(APIEndpoints.SEND_LAT_LONG)
     suspend fun sendLatLong(@Body request: SendLatLongRequest): SendLatLongResponse
+
+    @PUT(APIEndpoints.STOP_TRACKING)
+    suspend fun stopTracking(@Body request: StopTrackingRequest): StopTrackingResponse
 
     @GET(APIEndpoints.GET_LAT_LONG)
     suspend fun getLatLong(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetLatLongResponse

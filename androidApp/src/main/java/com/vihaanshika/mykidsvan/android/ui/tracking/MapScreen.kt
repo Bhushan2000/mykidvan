@@ -24,7 +24,9 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.SystemClock
 import android.util.Log
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -68,12 +70,18 @@ import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
+import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
+import com.vihaanshika.mykidsvan.android.utils.Resource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
+
+fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, userId: String) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val parentLatLngList by viewModel.latLngList.collectAsState()
@@ -275,85 +283,85 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
     // for dark mode of the map
 
     val darkMapStyleJson = """
-[
-  {
-    "elementType": "geometry",
-    "stylers": [{"color": "#0f1a30"}]   // Darker background geometry
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#a0c4c8"}]  // Slightly brighter text fill
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#0b1a2b"}]  // Darker text stroke for better contrast
-  },
-  {
-    "featureType": "administrative.country",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#3b5360"}]  // Slightly darker boundary lines
-  },
-  {
-    "featureType": "administrative.land_parcel",
-    "stylers": [{"visibility": "off"}]
-  },
-  {
-    "featureType": "landscape.man_made",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#25406d"}]  // Deeper color for man-made structures
-  },
-  {
-    "featureType": "poi",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#5f8a96"}]  // More muted poi label color
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry.fill",
-    "stylers": [{"color": "#014455"}]  // Darker park fill
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#2c5f6a"}]  // Darker park label text
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry",
-    "stylers": [{"color": "#223d6f"}]  // Dark blue roads
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#a5b4cc"}]  // Slightly brighter road text
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#0f1a30"}]  // Darker road text stroke
-  },
-  {
-    "featureType": "transit",
-    "elementType": "geometry",
-    "stylers": [{"color": "#23364b"}]  // Deeper transit geometry color
-  },
-  {
-    "featureType": "transit.station",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#d07b43"}]  // Slightly warmer transit station labels
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [{"color": "#07141f"}]  // Darker water color
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#3d5a5f"}]  // Muted water labels
-  }
-]
-""".trimIndent()
+        [
+          {
+            "elementType": "geometry",
+            "stylers": [{"color": "#0f1a30"}]   // Darker background geometry
+          },
+          {
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#a0c4c8"}]  // Slightly brighter text fill
+          },
+          {
+            "elementType": "labels.text.stroke",
+            "stylers": [{"color": "#0b1a2b"}]  // Darker text stroke for better contrast
+          },
+          {
+            "featureType": "administrative.country",
+            "elementType": "geometry.stroke",
+            "stylers": [{"color": "#3b5360"}]  // Slightly darker boundary lines
+          },
+          {
+            "featureType": "administrative.land_parcel",
+            "stylers": [{"visibility": "off"}]
+          },
+          {
+            "featureType": "landscape.man_made",
+            "elementType": "geometry.stroke",
+            "stylers": [{"color": "#25406d"}]  // Deeper color for man-made structures
+          },
+          {
+            "featureType": "poi",
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#5f8a96"}]  // More muted poi label color
+          },
+          {
+            "featureType": "poi.park",
+            "elementType": "geometry.fill",
+            "stylers": [{"color": "#014455"}]  // Darker park fill
+          },
+          {
+            "featureType": "poi.park",
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#2c5f6a"}]  // Darker park label text
+          },
+          {
+            "featureType": "road",
+            "elementType": "geometry",
+            "stylers": [{"color": "#223d6f"}]  // Dark blue roads
+          },
+          {
+            "featureType": "road",
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#a5b4cc"}]  // Slightly brighter road text
+          },
+          {
+            "featureType": "road",
+            "elementType": "labels.text.stroke",
+            "stylers": [{"color": "#0f1a30"}]  // Darker road text stroke
+          },
+          {
+            "featureType": "transit",
+            "elementType": "geometry",
+            "stylers": [{"color": "#23364b"}]  // Deeper transit geometry color
+          },
+          {
+            "featureType": "transit.station",
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#d07b43"}]  // Slightly warmer transit station labels
+          },
+          {
+            "featureType": "water",
+            "elementType": "geometry",
+            "stylers": [{"color": "#07141f"}]  // Darker water color
+          },
+          {
+            "featureType": "water",
+            "elementType": "labels.text.fill",
+            "stylers": [{"color": "#3d5a5f"}]  // Muted water labels
+          }
+        ]
+        """.trimIndent()
 
     val isDarkTheme = isSystemInDarkTheme()
     val mapStyleOptions = remember {
@@ -432,7 +440,10 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
             }
 
             // Timer display on map
-            if (userRole == Constants.USER_PARENT)
+            if (userRole == Constants.USER_PARENT && !assignedVehicleId.isNullOrBlank() && vehicleTrackingStatus.equals(
+                    PlaceHolders.ACCEPTED
+                )
+            )
                 RadarTimerWithProgress(
                     timer = timer.value,
                     isDriverInactive = isDriverInactive.value
@@ -447,6 +458,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
                     onClick = {
                         if (isTracking) {
                             viewModel.stopTracking()
+                            viewModel.stopDriverTracking(userId, Constants.INACTIVE_TRACKING)
                         } else {
                             if (locationPermissionState.status.isGranted) {
                                 checkAndPromptEnableGps()
@@ -478,58 +490,6 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
                     )
 
                 }
-
-
-                /*                FloatingActionButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val location = viewModel.getLastKnownLocation()
-                                            location?.let {
-                                                val latLng = LatLng(it.latitude, it.longitude)
-                                                currentLocation.value = latLng
-                                                cameraPositionState.animate(
-                                                    CameraUpdateFactory.newCameraPosition(
-                                                        CameraPosition.builder()
-                                                            .target(latLng)
-                                                            .zoom(18f)
-                                                            .tilt(45f)
-                                                            .bearing(0f)
-                                                            .build()
-                                                    ),
-                                                    durationMs = 1000
-                                                )
-                                            } ?: run {
-                                                Toast.makeText(
-                                                    context,
-                                                    PlaceHolders.MSG_LOCATION_NOT_AVAILABLE,
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(16.dp)
-                                        .size(56.dp), // Standard FAB size
-                                    shape = CircleShape, // Ensure it's round
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    contentColor = greenColor,
-                                    elevation =  FloatingActionButtonDefaults.elevation(
-                                        defaultElevation = 8.dp,
-                                        pressedElevation = 12.dp,
-                                        focusedElevation = 10.dp,
-                                        hoveredElevation = 10.dp
-                                    )
-
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.menu),
-                                        contentDescription = PlaceHolders.MSG_CURRENT_LOCATION,
-                                        modifier = Modifier.size(40.dp), // Increased size
-                                        tint = Color.Unspecified // <--- This disables the default black tint
-
-                                    )
-                                }*/
 
             }
 
@@ -581,6 +541,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String) {
         }
     }
 }
+
 
 fun bitmapDescriptorFromVector(
     context: Context, @DrawableRes vectorResId: Int, width: Int = 100, height: Int = 100
