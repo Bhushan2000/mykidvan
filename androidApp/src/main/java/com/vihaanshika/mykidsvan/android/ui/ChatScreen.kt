@@ -194,7 +194,7 @@ fun ChatScreen(
                             it.createdAt ?: "",
                             it.name,
                             APIEndpoints.BASE_URL + (it.profilePicture.orEmpty()),
-                            if (it.parentId?.isEmpty() == true) Constants.USER_DRIVER else Constants.USER_PARENT
+                            if (it.parentId == null) Constants.USER_DRIVER else Constants.USER_PARENT
                         )
                     } ?: emptyList()
 

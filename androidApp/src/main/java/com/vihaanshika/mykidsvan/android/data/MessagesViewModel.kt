@@ -266,6 +266,14 @@ class MessagesViewModel(private val repository: AuthRepository) : ViewModel() {
         val relativeUrl = parentNameToProfileUrlMap.value[name]
         return relativeUrl?.let { APIEndpoints.BASE_URL + it }
     }
+    fun getRoleFromNameAndId(name: String, id: String): String? {
+        val map = parentNameToIdMap.value
+        return if (map[name] == id) {
+            Constants.USER_PARENT // or "parent"
+        } else {
+            null
+        }
+    }
 
     fun resetGetAllParent(){
         _allParentsState.value = Resource.Idle()

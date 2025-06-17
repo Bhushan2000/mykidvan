@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.util.Log
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -18,9 +19,11 @@ import com.vihaanshika.mykidsvan.android.R
 import java.net.URL
 import kotlin.random.Random
 import androidx.core.app.RemoteInput  // ✅ CORRECT
+import androidx.core.content.ContextCompat
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import coil.transform.CircleCropTransformation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +33,7 @@ import kotlinx.coroutines.launch
 class FirebaseMessagingService : FirebaseMessagingService() {
     private val TAG = "FirebaseMessagingService"
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val userMessageCountMap = mutableMapOf<String, Int>()
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -49,20 +53,15 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "onMessageReceived: name --> $senderName  profileUrl---> $profileImageUrl")
 
         serviceScope.launch {
-//            showNotificationWithImage(
-//                this@FirebaseMessagingService,
-//                senderName,
-//                body,
-//                profileImageUrl
-//            )
-            showNotification(senderName,body,profileImageUrl)
+            showNotification(senderName, body, profileImageUrl)
         }
     }
+
 
     private fun showNotification(name: String, message: String, profileUrl: String?) {
         val channelId = "message_channel"
         val notificationId = Random.nextInt()
-        val groupKey = "group_chat_messages"
+        val groupKey = "group_chat_messages_$name" // 👈 Unique group for each sender
 
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra("openMessageScreen", true)
@@ -105,28 +104,30 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         ).addRemoteInput(remoteInput).setAllowGeneratedReplies(true).build()
 
         CoroutineScope(Dispatchers.IO).launch {
+            val imageLoader = ImageLoader(this@FirebaseMessagingService)
             var bitmap: Bitmap? = null
 
             try {
-                profileUrl?.let {
-                    val input = URL(it).openStream()
-                    bitmap = BitmapFactory.decodeStream(input)
+                val request = ImageRequest.Builder(this@FirebaseMessagingService)
+                    .data(profileUrl)
+                    .placeholder(R.drawable.menu)
+                    .error(R.drawable.menu)
+                    .transformations(CircleCropTransformation())
+                    .allowHardware(false)
+                    .build()
+
+                val result = (imageLoader.execute(request) as? SuccessResult)?.drawable
+                if (result is BitmapDrawable) {
+                    bitmap = result.bitmap
                 }
             } catch (e: Exception) {
-                Log.e("Notification", "Failed to load image", e)
+                Log.e("Notification", "Image load failed", e)
             }
-
-            val style = NotificationCompat.BigPictureStyle()
-                .bigPicture(bitmap)
-                .bigLargeIcon(null as Bitmap?)
-                // Hide large icon in expanded view
-                .setSummaryText(message)
 
             val builder = NotificationCompat.Builder(this@FirebaseMessagingService, channelId)
                 .setContentTitle(name)
                 .setContentText(message)
                 .setSmallIcon(R.drawable.menu)
-                .setStyle(style)
                 .setLargeIcon(bitmap)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
@@ -143,9 +144,36 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 manager.createNotificationChannel(channel)
             }
 
+            // ⬇️ Send the individual message notification
             manager.notify(notificationId, builder.build())
+
+            // ⬇️ Maintain a group summary for this user
+            val existingCount = userMessageCountMap.getOrDefault(name, 0) + 1
+            userMessageCountMap[name] = existingCount
+
+            if (existingCount > 1) {
+                val summaryText = "$existingCount messages from $name"
+
+                val summaryBuilder =
+                    NotificationCompat.Builder(this@FirebaseMessagingService, channelId)
+                        .setContentTitle(name)
+                        .setContentText(summaryText)
+                        .setSmallIcon(R.drawable.menu)
+                        .setLargeIcon(bitmap)
+                        .setStyle(
+                            NotificationCompat.InboxStyle().addLine(message)
+                                .setSummaryText(summaryText)
+                        )
+                        .setGroup(groupKey)
+                        .setGroupSummary(true)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent)
+
+                manager.notify(name.hashCode(), summaryBuilder.build()) // Unique ID per user
+            }
         }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()

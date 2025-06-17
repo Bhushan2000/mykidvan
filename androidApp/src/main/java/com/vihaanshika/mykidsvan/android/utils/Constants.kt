@@ -91,4 +91,9 @@ object Constants {
     const val REQUEST_ACCEPTED = "accepted"
     const val REQUEST_REJECTED = "rejected"
     const val REQUEST_PENDING = "pending"
+
+    // support system
+    const val SUPPORT_PHONE_NO = "7276888566"
+    const val SUPPORT_EMAIL = "support@mykidvan.com"
+    const val SUPPORT_WEBSITE = "https://vihaanshika.com"
 }

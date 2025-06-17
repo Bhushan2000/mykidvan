@@ -1,5 +1,8 @@
 package com.vihaanshika.mykidsvan.android.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +29,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,17 +49,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.vihaanshika.mykidsvan.R
 import com.vihaanshika.mykidsvan.android.utils.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupportHelpScreen() {
+    val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+    val openDialog = remember { mutableStateOf(false) }
 
-    Scaffold(
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -63,38 +73,129 @@ fun SupportHelpScreen() {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 📞 Contact Section (Phone + Email)
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Need Help?",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = colors.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Logo + Text
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Phone, contentDescription = "Phone", tint = colors.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "7276888566", style = MaterialTheme.typography.bodyLarge)
+                        Icon(
+                            painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.mkv),
+                            contentDescription = "Logo",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Designed & Developed by\nVihaanshika Tech Solutions",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.primary
+                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Email, contentDescription = "Email", tint = colors.primary)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Website
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_WEBSITE))
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.website),
+                            contentDescription = "Website",
+                            tint = colors.primary
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "support@mykidvan.com", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = Constants.SUPPORT_WEBSITE,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = colors.primary,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Phone
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            openDialog.value = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Phone",
+                            tint = colors.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = Constants.SUPPORT_PHONE_NO,
+                            style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Email
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:${Constants.SUPPORT_EMAIL}")
+                            }
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = "Email",
+                            tint = colors.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = Constants.SUPPORT_EMAIL,
+                            style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
+                        )
                     }
                 }
-            }
+
         }
+    }
+
+    // 📞 Dialog to choose Call or WhatsApp
+    if (openDialog.value) {
+        AlertDialog(
+            onDismissRequest = { openDialog.value = false },
+            title = { Text("Contact Support") },
+            text = { Text("How would you like to contact us?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    openDialog.value = false
+                    val callIntent = Intent(Intent.ACTION_DIAL)
+                    callIntent.data = Uri.parse("tel:${Constants.SUPPORT_PHONE_NO}")
+                    context.startActivity(callIntent)
+                }) {
+                    Text("Call")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    openDialog.value = false
+                    val whatsappIntent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("https://wa.me/${Constants.SUPPORT_PHONE_NO.replace("+", "").replace(" ", "")}")
+                    }
+                    context.startActivity(whatsappIntent)
+                }) {
+                    Text("WhatsApp")
+                }
+            }
+        )
     }
 }
 
