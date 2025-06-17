@@ -9,6 +9,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
@@ -140,7 +141,7 @@ interface AuthRepository {
         parent_id: String
     ): SendRequestToDriverResponse
 
-    suspend fun updateAssignRequest(vehicle_id: String, status: String): SendLatLongResponse
+    suspend fun updateAssignRequest(vehicle_id: String, status: String): AssignRequestAcpRejResponse
 
     suspend fun updateProfileParent(
         id: String,

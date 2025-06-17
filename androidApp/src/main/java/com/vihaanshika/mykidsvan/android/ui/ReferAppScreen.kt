@@ -222,16 +222,68 @@ val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रे
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val parentContent  = "\uD83D\uDE90 बच्चा स्कूल वैन/ऑटो से जाता है?\n" +
+                    "\n" +
+                    "अब उसकी वैन की लाइव लोकेशन, ड्राइवर डिटेल और अलर्ट्स सब मिलेंगे एक ऐप में \uD83D\uDCF1\n" +
+                    "\n" +
+                    "\uD83D\uDCF2 *MyKidVan – पैरेंट्स के लिए Peace of Mind!*\n" +
+                    "\n" +
+                    "✅ GPS से वैन की LIVE ट्रैकिंग  \n" +
+                    "✅ ड्राइवर/वैन की जानकारी  \n" +
+                    "✅ पिकअप-ड्रॉप नोटिफिकेशन  \n" +
+                    "✅ इमरजेंसी के लिए सिक्योर फीचर्स\n" +
+                    "\n" +
+                    "\uD83D\uDCB0 सिर्फ ₹199/- साल भर की ट्रैकिंग (50 पैसे/दिन से भी कम!)\n" +
+                    "\n" +
+                    "\uD83D\uDC49 अभी Play Store से डाउनलोड करें:  \n" +
+                    "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
+                    "\n" +
+                    "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
+                    "(पेमेंट के बाद आपको ₹50 का फायदा मिलेगा!) \uD83D\uDCB8\n" +
+                    "\n" +
+                    "\uD83D\uDCE2 कृपया इसे अपने किसी जानने वाले पैरेंट तक भेजें या ग्रुप में शेयर करें –  \n" +
+                    "**एक ऐप, बच्चों की सुरक्षा और आपकी कमाई – दोनों!**"
+
+            val driverContent = "\uD83D\uDE4F हेलो पैरेंट्स,\n" +
+                    "\n" +
+                    "मैंने अपनी स्कूल वैन/ऑटो **MyKidVan ऐप** में रजिस्टर कर दी है \uD83D\uDE90  \n" +
+                    "अब आप मुझे ऐप में ढूंढकर मेरी वैन की **LIVE GPS ट्रैकिंग** शुरू कर सकते हैं।\n" +
+                    "\n" +
+                    "\uD83D\uDCF2 ऐप से मिलते हैं:\n" +
+                    "✅ वैन की लाइव लोकेशन  \n" +
+                    "✅ पिकअप/ड्रॉप अलर्ट  \n" +
+                    "✅ ड्राइवर की जानकारी  \n" +
+                    "✅ बच्चों की सुरक्षा के लिए खास फीचर्स\n" +
+                    "\n" +
+                    "✅ **रजिस्ट्रेशन और वैन सर्च करना बिल्कुल फ्री है**  \n" +
+                    "\uD83D\uDCB0 **सिर्फ ट्रैकिंग फीचर के लिए ₹199/- सालाना देना होता है**  \n" +
+                    "(1 दिन = 50 पैसे से भी कम!)\n" +
+                    "\n" +
+                    "\uD83D\uDC47 ऐप डाउनलोड करें:  \n" +
+                    "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
+                    "\n" +
+                    "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
+                    "(इससे मुझे ₹50 का बोनस मिलेगा – धन्यवाद \uD83D\uDE0A)\n" +
+                    "\n" +
+                    "\uD83D\uDD01 **आप भी ऐप शेयर करके ₹50 कमा सकते हैं — जब कोई व्यक्ति आपका कोड डालकर पेमेंट करता है!**\n" +
+                    "\n" +
+                    "\uD83D\uDCE2 बच्चों की सुरक्षा और आपकी कमाई — अब एक ही ऐप में!"
+
             // Share Button
             Button(
                 onClick = {
+                    val message = if (userRole.equals(Constants.USER_DRIVER)) driverContent else parentContent
                     val intent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            "Hey! Use my referral code: $referralCode to sign up.\nMyKidVan Team"
-                        )
-                        setPackage("com.whatsapp")
+                        putExtra(Intent.EXTRA_TEXT, message)
+                        `package` = "com.whatsapp"
+                    }
+
+                    // Check if WhatsApp is installed
+                    if (intent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(intent)
+                    } else {
+                        Toast.makeText(context, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
                     }
 
                     try {

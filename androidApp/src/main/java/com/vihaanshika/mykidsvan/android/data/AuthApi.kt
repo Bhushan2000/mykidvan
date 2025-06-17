@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
@@ -141,7 +142,7 @@ interface AuthApi {
     suspend fun getLatLong(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetLatLongResponse
 
     @PUT(APIEndpoints.UPDATE_ASSIGN_REQUEST)
-    suspend fun updateAssignRequest(@Body request: UpdateAssignRequest): SendLatLongResponse
+    suspend fun updateAssignRequest(@Body request: UpdateAssignRequest): AssignRequestAcpRejResponse
 
     @POST(APIEndpoints.SEND_ASSIGN_REQUEST)
     suspend fun sendAssignRequest(@Body request: SendAssignRequest): SendRequestToDriverResponse

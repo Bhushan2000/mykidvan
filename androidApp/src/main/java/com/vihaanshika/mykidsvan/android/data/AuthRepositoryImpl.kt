@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
@@ -265,7 +266,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override suspend fun updateAssignRequest(
         vehicle_id: String,
         status: String
-    ): SendLatLongResponse {
+    ): AssignRequestAcpRejResponse {
         val request = UpdateAssignRequest(vehicle_id, status)
         return api.updateAssignRequest(request)
     }

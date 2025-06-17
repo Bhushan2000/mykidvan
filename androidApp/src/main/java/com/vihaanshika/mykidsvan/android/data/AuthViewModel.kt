@@ -13,7 +13,9 @@ import androidx.compose.ui.unit.Constraints
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.messaging
 import com.vihaanshika.mykidsvan.android.data.AuthRepository
 import com.vihaanshika.mykidsvan.android.data.dto.request.PhotoOfVehicle
 import com.vihaanshika.mykidsvan.android.data.dto.request.ReferByResponse
@@ -932,7 +934,7 @@ class AuthViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Send Assign Request
+    // Send Assign driver Request
     fun sendAssignRequest(vehicleId: String, parentId: String) {
         viewModelScope.launch {
             isLoading = true
@@ -963,6 +965,19 @@ class AuthViewModel(
             try {
                 val response = repository.updateAssignRequest(parentId, status)
                 updateMessage.value = response.message ?: "Updated successfully"
+                if (response.status == true) {
+                    // subscribe the user here for fcm messaging
+                    // ✅ Subscribe the parent to a topic
+                    val topic = response.topicUpdated.toString();
+                    Firebase.messaging.subscribeToTopic(topic)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Log.d("FCM", "parent - $parentId Subscribed to $topic successfully")
+                            } else {
+                                Log.e("FCM", "Subscription failed: ${task.exception}")
+                            }
+                        }
+                }
 
                 // 👇 Reload list after update
                 loadDriverRequests(userId.value.toString())
@@ -1370,7 +1385,7 @@ class AuthViewModel(
                 if (userRole.equals(Constants.USER_PARENT)) {
                     val response = repository.getCommissionParent(userId)
                     _commissionState.value = Resource.Success(response)
-                }else{
+                } else {
                     val response = repository.getCommission(userId)
                     _commissionState.value = Resource.Success(response)
                 }
@@ -1381,7 +1396,8 @@ class AuthViewModel(
         }
     }
 
-    private val _getOrderId = MutableStateFlow<Resource<RazorpayOrderCreationResponse>>(Resource.Loading())
+    private val _getOrderId =
+        MutableStateFlow<Resource<RazorpayOrderCreationResponse>>(Resource.Loading())
     val getOrderId: StateFlow<Resource<RazorpayOrderCreationResponse>> = _getOrderId
 
     fun getRazorPayOrderId() {

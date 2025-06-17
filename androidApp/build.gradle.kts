@@ -60,8 +60,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.firebase.crashlytics.buildtools)
-    implementation(libs.firebase.crashlytics)
     debugImplementation(libs.compose.ui.tooling)
     implementation("androidx.navigation:navigation-compose:2.8.9")
     // Retrofit for REST API calls
@@ -90,18 +88,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     // razorpay
     implementation("com.razorpay:checkout:1.6.40")
-    // Jetpack Datastore for login state persistence
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    // coil
-    implementation("io.coil-kt:coil-compose:2.4.0") // for AsyncImage
+
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.0.0")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
     // Pager (optional)
     implementation("com.google.accompanist:accompanist-pager:0.34.0")
     // Compose Material 3
     implementation("androidx.compose.material3:material3:1.2.0")
-    // FCM
-    implementation("com.google.firebase:firebase-messaging:24.1.1")
+
 
     // BOM: Bill of Materials to manage versions of related libraries
     implementation(platform("com.google.auth:google-auth-library-bom:1.30.1"))
@@ -113,4 +107,14 @@ dependencies {
     implementation("io.ktor:ktor-client-websockets:2.3.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("io.ktor:ktor-client-cio:2.3.7") // 👈 This is needed for CIO
+    // Import the BoM for the Firebase platform
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
+    // Analytics
+    implementation("com.google.firebase:firebase-analytics")
+    // FCM
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
+    // crashlytics
+    implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.firebase.crashlytics)
 }
