@@ -1,12 +1,9 @@
 package com.vihaanshika.mykidsvan.android.data
 
 import com.vihaanshika.mykidsvan.android.data.dto.request.AssignRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpVerificationRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.PaymentUpdateRequest
@@ -16,12 +13,11 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.RegisterSchoolDriverRe
 import com.vihaanshika.mykidsvan.android.data.dto.request.RegisterSchoolParentRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendAssignRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.SendLatLongRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
-import com.vihaanshika.mykidsvan.android.data.dto.request.StopTrackingRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateTokenRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
@@ -35,25 +31,22 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.StatesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 
 
@@ -467,5 +460,14 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun getOrderId(): RazorpayOrderCreationResponse {
         return api.getOrderId()
+    }
+
+    override suspend fun updateFCMToken(
+        id: Int?,
+        role: String,
+        token: String
+    ): UpdateTokenResponse {
+        val request = UpdateTokenRequest(id = id, role = role, deviceToken = token)
+        return api.updateDeviceToken(request)
     }
 }

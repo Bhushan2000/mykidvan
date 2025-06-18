@@ -1,7 +1,5 @@
 package com.example.authapp.presentation.viewmodel
 
-import com.google.auth.oauth2.GoogleCredentials
-
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
@@ -9,7 +7,6 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.Constraints
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +19,6 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.ReferByResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
-import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.District
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverData
@@ -44,15 +40,14 @@ import com.google.gson.Gson
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.net.UnknownHostException
 
@@ -379,28 +374,6 @@ class AuthViewModel(
             }
         }
     }
-
-    fun generateAccessTokenFromServiceAccount(context: Context, onResult: (String?) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val inputStream = context.assets.open("serviceAccountKey.json")
-                val credentials = GoogleCredentials.fromStream(inputStream)
-                    .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
-                credentials.refreshIfExpired()
-                val token = credentials.accessToken.tokenValue
-
-                withContext(Dispatchers.Main) {
-                    onResult(token)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    onResult(null)
-                }
-            }
-        }
-    }
-
 
     fun logout() {
         viewModelScope.launch {
@@ -1418,7 +1391,6 @@ class AuthViewModel(
             }
         }
     }
-
 }
 
 

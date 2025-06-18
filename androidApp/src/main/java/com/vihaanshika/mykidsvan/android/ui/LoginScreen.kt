@@ -248,14 +248,6 @@ fun LoginScreen(
                         .show()
                 } else {
                     viewModel.login(username, password)
-                    viewModel.generateAccessTokenFromServiceAccount(context) { token ->
-                        if (token != null) {
-                            Log.d("AccessToken", "Token: $token")
-                            // Use token
-                        } else {
-                            Toast.makeText(context, "Failed to generate token", Toast.LENGTH_SHORT).show()
-                        }
-                    }
                 }
             },
             modifier = Modifier

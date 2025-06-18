@@ -1,8 +1,5 @@
 package com.vihaanshika.mykidsvan.android.data
 
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
-import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ReferByResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
@@ -20,26 +17,23 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegistrationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.SchoolRegistrationResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.SendLatLongResponse
 
 import com.vihaanshika.mykidsvan.android.data.dto.response.StatesResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 
 // Domain Layer: AuthRepository.kt
@@ -59,11 +53,7 @@ interface AuthRepository {
 
     suspend fun getTalukas(state_id: String, district_id: String): TalukasResponse
 
-    suspend fun getSchools(
-        state_id: String,
-        district_id: String,
-        taluka_id: String
-    ): AllSchoolResponse
+    suspend fun getSchools(state_id: String, district_id: String, taluka_id: String): AllSchoolResponse
 
     suspend fun getDriver(school_id: String): DriverResponse
 
@@ -136,10 +126,7 @@ interface AuthRepository {
 
     suspend fun getDriverByMob(mobile_no: String): DriverByMobResponse
 
-    suspend fun sendAssignRequest(
-        vehicle_id: String,
-        parent_id: String
-    ): SendRequestToDriverResponse
+    suspend fun sendAssignRequest(vehicle_id: String, parent_id: String): SendRequestToDriverResponse
 
     suspend fun updateAssignRequest(vehicle_id: String, status: String): AssignRequestAcpRejResponse
 
@@ -237,4 +224,6 @@ interface AuthRepository {
     suspend fun getDriverAllMessage(driver_id: String): GetDriverAllMessagesResponse
 
     suspend fun getOrderId(): RazorpayOrderCreationResponse
+
+    suspend fun updateFCMToken(id: Int?, role: String, token: String): UpdateTokenResponse
 }

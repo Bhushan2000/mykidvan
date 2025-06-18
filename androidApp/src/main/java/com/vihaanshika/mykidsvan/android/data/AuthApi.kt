@@ -22,6 +22,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverRes
 import com.vihaanshika.mykidsvan.android.data.dto.request.StopTrackingRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateTokenRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
@@ -54,6 +55,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.TalukasResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import retrofit2.http.Body
@@ -204,4 +206,6 @@ interface AuthApi {
     @GET(APIEndpoints.GET_DRIVER_ALL_MESSAGES)
     suspend fun getDriverAllMessage(@Path(APIEndpoints.PATH_DRIVER_ID) driverId: String): GetDriverAllMessagesResponse
 
+    @PUT(APIEndpoints.UPDATE_DEVICE_TOKEN)
+    suspend fun updateDeviceToken(@Body request: UpdateTokenRequest): UpdateTokenResponse
 }

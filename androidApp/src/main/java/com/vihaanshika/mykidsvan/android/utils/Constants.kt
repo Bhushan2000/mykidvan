@@ -15,7 +15,8 @@ object Constants {
 
     // razorpay
     const val AMOUNT_IN_PAISE = 10000 // ₹100
-//    const val AMOUNT_IN_PAISE = 100 // ₹1
+
+    //    const val AMOUNT_IN_PAISE = 100 // ₹1
     const val RAZORPAY_TEST_KEY = "rzp_test_BVJygtmA6ljXBB"
     const val RAZORPAY_LIVE_KEY = "rzp_live_0I5r5310Og6W21"
 
@@ -64,8 +65,8 @@ object Constants {
     const val ROUTE_REFER_APP = "refer_app"
 
     // user types
-    const val USER_DRIVER ="driver"
-    const val USER_PARENT ="parent"
+    const val USER_DRIVER = "driver"
+    const val USER_PARENT = "parent"
 
     // logout dialog
     const val YES = "Yes"
@@ -96,4 +97,9 @@ object Constants {
     const val SUPPORT_PHONE_NO = "7276888566"
     const val SUPPORT_EMAIL = "support@mykidvan.com"
     const val SUPPORT_WEBSITE = "https://vihaanshika.com"
+
+    // notification channel id
+    const val MESSAGE_CHANNEL = "message_channel"
+    const val PAYMENT_CHANNEL = ""
+    const val TRACKING_CHANNEL = ""
 }
