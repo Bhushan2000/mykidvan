@@ -75,10 +75,10 @@ class LatLngViewModel(
     private var trackingJob: Job? = null
     private val fusedLocationProvider = LocationServices.getFusedLocationProviderClient(context)
 
-    private val _assignedVehicleId = MutableStateFlow<String?>(null)
+    private var _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
-    private val _vehicleTrackingStatus = MutableStateFlow<String?>(null)
+    private var _vehicleTrackingStatus = MutableStateFlow<String?>(null)
     val vehicleTrackingStatus: StateFlow<String?> = _vehicleTrackingStatus
 
     private val _userRole = MutableStateFlow<String?>(null)
@@ -145,9 +145,6 @@ class LatLngViewModel(
         }
     }
 
-    fun appendPolylinePoint(newPoint: LatLng) {
-        _visiblePolylinePath.update { it + newPoint }
-    }
     private suspend fun fetchInitialLocation() {
         if (userRole.value != "driver") return // Skip for parents
 
@@ -167,10 +164,10 @@ class LatLngViewModel(
                 if (role == Constants.USER_DRIVER) {
                     val location = getLastKnownLocation() // fallback
                     location?.let { sendCurrentLocationToServer(it) }
-
-                } else if (role == Constants.USER_PARENT) {
-//                    fetchLatLngFromServer()
                 }
+//                else if (role == Constants.USER_PARENT) {
+//                    fetchLatLngFromServer()
+//                }
                 delay(10_000)
             }
         }
@@ -199,29 +196,30 @@ class LatLngViewModel(
                                     Log.d("DEBUG", "Inside USER_PARENT block")
 
                                     if (latLng.latitude != 0.0 && latLng.longitude != 0.0) {
-                                        val oldLatLng = _latLngList.value.lastOrNull()
-                                        _bearing.value = oldLatLng?.let { old ->
-                                            calculateBearing(old, latLng).takeIf { it.isFinite() }
-                                        } ?: 0f
+                                        val lastVisible = _visiblePolylinePath.value.lastOrNull()
+                                        val lastLatLng = _latLngList.value.lastOrNull()
 
-                                        // ✅ Skip if duplicate in visible path
-                                        if (_visiblePolylinePath.value.lastOrNull()
-                                                ?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true
-                                        ) {
-                                            _visiblePolylinePath.update { oldList ->
-                                                val updated = (oldList + latLng)
-                                                updated
+                                        val isNewPoint = lastLatLng?.let {
+                                            it.latitude != latLng.latitude || it.longitude != latLng.longitude
+                                        } ?: true
+
+                                        if (isNewPoint) {
+                                            // ✅ Update bearing only when new point is added
+                                            _bearing.value = lastLatLng?.let { old ->
+                                                calculateBearing(old, latLng).takeIf { it.isFinite() }
+                                            } ?: 0f
+
+                                            // ✅ Add to _visiblePolylinePath if not already last
+                                            if (lastVisible?.latitude != latLng.latitude || lastVisible.longitude != latLng.longitude) {
+                                                _visiblePolylinePath.update { oldList -> oldList + latLng }
                                             }
-                                        }
 
-                                        // ✅ Skip if duplicate in latLng list
-                                        if (_latLngList.value.lastOrNull()
-                                                ?.let { it.latitude == latLng.latitude && it.longitude == latLng.longitude } != true
-                                        ) {
+                                            // ✅ Add to _latLngList
                                             _latLngList.update { it + latLng }
                                             Log.e("Fetch----if", "onReceive: ${_latLngList.value}")
                                         } else {
                                             Log.d("DEBUG", "Duplicate latLng skipped: $latLng")
+                                            // Do NOT reset _bearing here — preserve previous
                                         }
                                     }
 

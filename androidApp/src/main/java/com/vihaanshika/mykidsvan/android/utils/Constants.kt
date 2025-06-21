@@ -99,7 +99,11 @@ object Constants {
     const val SUPPORT_WEBSITE = "https://vihaanshika.com"
 
     // notification channel id
-    const val MESSAGE_CHANNEL = "message_channel"
-    const val PAYMENT_CHANNEL = ""
-    const val TRACKING_CHANNEL = ""
+    const val CHAT_CHANNEL = "chat_channel"
+    const val PAYMENT_CHANNEL = "payment_channel"
+    const val TRACKING_CHANNEL = "tracking_channel"
+    const val TRACKING_REQUEST_CHANNEL = "tracking_request_channel"
+
+    const val ACTION_STOP_TRACKING = "ACTION_STOP_TRACKING"
+
 }

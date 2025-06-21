@@ -29,6 +29,7 @@ fun TermsAndPrivacyRow(
     onCheckedChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val defaultTextColor = MaterialTheme.colorScheme.onBackground
 
     Row(
         modifier = Modifier
@@ -39,8 +40,9 @@ fun TermsAndPrivacyRow(
         Checkbox(checked = termsAccepted, onCheckedChange = onCheckedChange)
 
         val annotatedText = buildAnnotatedString {
-            append("Accept ")
-
+            withStyle(style = SpanStyle(color = defaultTextColor)) {
+                append("Accept ")
+            }
             pushStringAnnotation(
                 tag = "TERMS",
                 annotation = Constants.TERMS_AND_CONDITIONS
@@ -56,7 +58,9 @@ fun TermsAndPrivacyRow(
             }
             pop()
 
-            append(" and ")
+            withStyle(style = SpanStyle(color = defaultTextColor)) {
+                append(" and ")
+            }
 
             pushStringAnnotation(
                 tag = "PRIVACY",

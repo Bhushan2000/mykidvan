@@ -208,6 +208,9 @@ fun DriverSignupScreen(
         is Resource.Error -> OtpState(error = (sendOtpState as Resource.Error).message)
         else -> OtpState()
     }
+    LaunchedEffect(Unit) {
+        viewModel.loadStateOptions()
+    }
 
     Scaffold(topBar = {
         TopAppBar(title = { Text("Driver Registration Form") })

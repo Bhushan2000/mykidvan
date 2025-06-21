@@ -6,6 +6,7 @@ object PlaceHolders {
     const val ARE_YOU_SURE_YOU_WANT_TO_LOGOUT = "Are you sure you want to logout?"
     const val MSG_NO_VEHICLE_ASSIGNED = "No Vehicle Assigned Yet"
     const val MSG_REQUEST_DRIVER_ASSIGNMENT = "Please send a request to your driver to assign a vehicle for tracking to begin"
+    const val MSG_REQUEST_DRIVER_REJECTED = "Please send another request to your driver to assign a vehicle for tracking to begin"
     // Icon
     const val MENU = "Menu"
 

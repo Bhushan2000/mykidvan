@@ -33,6 +33,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
@@ -409,32 +410,12 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
                         icon = bitmapDescriptorFromVector(
                             context,
                             if (userRole == Constants.USER_PARENT && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
-                            width = 64,
-                            height = 112
+                            width = 160,
+                            height = 160
                         ),
                         rotation = bearing,
                         anchor = Offset(0.5f, 0.5f),
                         flat = true
-                    )
-                }
-            }
-
-            if (isDriverInactive.value && !assignedVehicleId.isNullOrBlank() &&
-                vehicleTrackingStatus.equals(PlaceHolders.ACCEPTED, ignoreCase = true)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xAA000000)) // semi-transparent black
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = PlaceHolders.MSG_TRACKING_NOT_STARTED,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -495,48 +476,17 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
 
             // 🚫 Parent – show driver not assigned message
             if (userRole == Constants.USER_PARENT && (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
-                    PlaceHolders.ACCEPTED, ignoreCase = true
-                ))
-            ) {
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(), // Fills the whole screen
-                    contentAlignment = Alignment.Center // Centers the inner content
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp) // This adds margin around the whole message
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .background(
-                                    Color.White.copy(alpha = 0.8f),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
-                                color = Color.Red,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(Modifier.height(8.dp))
-
-                            Text(
-                                text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
-                                color = Color.Red,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Normal,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
+                    PlaceHolders.ACCEPTED, ignoreCase = true))) {
+                CustomMessage(
+                    PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
+                    PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT
+                )
+            }else if (userRole == Constants.USER_PARENT && !assignedVehicleId.isNullOrBlank()
+                && vehicleTrackingStatus.equals(PlaceHolders.REJECTED, ignoreCase = true)) {
+                CustomMessage(
+                    PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
+                    PlaceHolders.MSG_REQUEST_DRIVER_REJECTED
+                )
             }
         }
     }
@@ -646,5 +596,5 @@ fun CurrentLocationFab(
 }
 
 fun shouldShowBlueDot(userType: String): Boolean {
-    return userType.lowercase() in listOf(Constants.USER_DRIVER)
+    return userType.lowercase() in listOf("other") // if added driver or parent then blue dot will be show
 }

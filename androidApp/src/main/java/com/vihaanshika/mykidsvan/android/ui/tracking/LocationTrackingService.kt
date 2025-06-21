@@ -26,7 +26,6 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.vihaanshika.mykidsvan.android.MainActivity
-import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +35,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
@@ -55,8 +53,7 @@ class LocationTrackingService : Service() {
     private var trackingJob: Job? = null
 
     var driverId: String? = null// Your default/fallback
-    private val _trackingStatus = MutableStateFlow<String?>(null)
-    override fun onCreate() {
+     override fun onCreate() {
         super.onCreate()
         Log.d("LocationService", "onCreate called")
         createNotificationChannel()
@@ -67,11 +64,10 @@ class LocationTrackingService : Service() {
             combine(
                 userPreferences.userRole,
                 userPreferences.assignVehicleIdFlow,
-                userPreferences.trackingStatusFlow // ← from DataStore (or use your StateFlow)
-            ) { role, id, trackingStatus ->
-                Triple(role, id, trackingStatus)
+            ) { role, id ->
+                Pair(role, id)
             }.distinctUntilChanged()
-                .collect { (role, id, trackingStatus) ->
+                .collect { (role, id) ->
                     _userRole.value = role
 
                     // Cancel any old fetch job before starting new one
@@ -90,7 +86,7 @@ class LocationTrackingService : Service() {
                     } else {
                         Log.d(
                             "LocationService",
-                            "Tracking not started. Role=$role ID=$id Status=$trackingStatus"
+                            "Tracking not started. Role=$role ID=$id"
                         )
                     }
                 }
@@ -144,15 +140,17 @@ class LocationTrackingService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("LocationService", "onDestroy called")
+        Log.d("LocationTrackingService", "onDestroy called")
+        // Cancel location tracking job
+        trackingJob?.cancel()
+        // Cancel service scope to stop all coroutines
+        serviceScope.cancel()
+        // Stop fused location updates if needed
         fusedLocationClient.removeLocationUpdates(locationCallback)
-        serviceScope.cancel() // 👈 Cancel coroutine on service destruction
-
+        Log.d("LocationTrackingService", "All jobs and location updates cancelled")
     }
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -191,6 +189,42 @@ class LocationTrackingService : Service() {
             .build()
     }
 
+    private fun createNotificationDriver(): Notification {
+        val channelId = "location_channel_id"
+
+        // Open MainActivity intent
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        val contentPendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Exit action intent
+        val stopIntent = Intent(this, LocationTrackingService::class.java).apply {
+            action = Constants.ACTION_STOP_TRACKING
+        }
+
+        val stopPendingIntent = PendingIntent.getService(
+            this, 1, stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Tracking Location")
+            .setContentText("Location is being tracked in background")
+            .setSmallIcon(R.drawable.baseline_location_on_24)
+            .setColor(Color.BLUE)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setContentIntent(contentPendingIntent)
+            .addAction(0, "Stop", stopPendingIntent) // 👉 Text-only "Stop" action
+            .build()
+    }
+
     companion object {
         private const val NOTIFICATION_ID = 101
     }
@@ -225,7 +259,13 @@ class LocationTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, createNotification()) // 👈 move it here
+        if (intent?.action == Constants.ACTION_STOP_TRACKING) {
+            stopSelf() // This triggers onDestroy()
+            return START_NOT_STICKY
+        }
+        val notification = if(userRole.value.equals(Constants.USER_DRIVER))createNotificationDriver() else createNotification()
+        startForeground(NOTIFICATION_ID, notification)
         return START_STICKY
     }
+
 }

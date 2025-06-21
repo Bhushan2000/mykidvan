@@ -22,17 +22,20 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,9 +46,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +74,7 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import com.vihaanshika.mykidsvan.android.utils.UnifiedMessage
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -123,7 +129,7 @@ fun MessageScreen(
                 Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
             }
 
-            is Resource.Loading -> { /* optional loading UI */
+            is Resource.Loading -> {
 
             }
 
@@ -137,7 +143,6 @@ fun MessageScreen(
             viewModel.resetGetAllParent()
         }
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -232,11 +237,8 @@ fun MessageScreen(
                     }
                 }
 
-
             } else {
-
                 // parent
-
                 Text(
                     text = "Select group to group chat.",
                     style = MaterialTheme.typography.titleMedium,
@@ -295,12 +297,9 @@ fun MessageScreen(
                 val allMessages = parentMessages + driverMessages
                 // Sort messages if needed by date
                 val sortedMessages = allMessages.sortedBy { it.createdAt }
-                val listState = rememberLazyListState()
-                LaunchedEffect(sortedMessages.size) {
-                    if (sortedMessages.isNotEmpty()) {
-                        listState.animateScrollToItem(sortedMessages.lastIndex)
-                    }
-                }
+                val listState = rememberLazyListState(
+                    initialFirstVisibleItemIndex = 0 // Already starts at bottom due to reverseLayout
+                )
 
                 if (sortedMessages.isEmpty()) {
                     Box(
@@ -316,12 +315,14 @@ fun MessageScreen(
                     }
                 } else {
                     LazyColumn(
+                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                        state = listState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     ) {
-                        items(sortedMessages) { message ->
+                        items(sortedMessages.reversed()) { message ->
                             val isParent = message.senderType == Constants.USER_PARENT
                             val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
                             val bubbleShape = if (isParent) {
@@ -347,7 +348,6 @@ fun MessageScreen(
                                         contentDescription = "Parent Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )
@@ -358,8 +358,7 @@ fun MessageScreen(
                                 Card(
                                     shape = bubbleShape,
                                     colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                    elevation = CardDefaults.cardElevation(16.dp),
-                                    modifier = Modifier.widthIn(max = 280.dp)
+                                     modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
@@ -409,7 +408,6 @@ fun MessageScreen(
                                         contentDescription = "Driver Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )

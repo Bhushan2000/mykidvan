@@ -205,12 +205,9 @@ fun ChatScreen(
 
                 Log.d("TAG", "ChatScreen: ${sortedMessages}")
 
-                val listState = rememberLazyListState()
-                LaunchedEffect(sortedMessages.size) {
-                    if (sortedMessages.isNotEmpty()) {
-                        listState.animateScrollToItem(sortedMessages.lastIndex)
-                    }
-                }
+                val listState = rememberLazyListState(
+                    initialFirstVisibleItemIndex = 0 // Already starts at bottom due to reverseLayout
+                )
                 if (sortedMessages.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -225,12 +222,14 @@ fun ChatScreen(
                     }
                 } else {
                     LazyColumn(
+                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                        state = listState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     ) {
-                        items(sortedMessages) { message ->
+                        items(sortedMessages.reversed()) { message ->
                             val isParent = message.senderType == Constants.USER_PARENT
                             val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
                             val bubbleShape = if (isParent) {
@@ -257,8 +256,7 @@ fun ChatScreen(
                                         contentDescription = "Parent Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
-                                            .clip(CircleShape)
+                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape),
 
 
@@ -270,8 +268,7 @@ fun ChatScreen(
                                 Card(
                                     shape = bubbleShape,
                                     colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                    elevation = CardDefaults.cardElevation(16.dp),
-                                    modifier = Modifier.widthIn(max = 280.dp)
+                                     modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
@@ -321,8 +318,7 @@ fun ChatScreen(
                                         contentDescription = "Driver Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
-                                            .clip(CircleShape)
+                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )
                                 }
@@ -365,12 +361,9 @@ fun ChatScreen(
                 Log.d("TAG", "ChatScreen: ${sortedMessages}")
 
 
-                val listState = rememberLazyListState()
-                LaunchedEffect(sortedMessages.size) {
-                    if (sortedMessages.isNotEmpty()) {
-                        listState.animateScrollToItem(sortedMessages.lastIndex)
-                    }
-                }
+                val listState = rememberLazyListState(
+                    initialFirstVisibleItemIndex = 0 // Already starts at bottom due to reverseLayout
+                )
 
                 if (sortedMessages.isEmpty()) {
                     Box(
@@ -386,12 +379,14 @@ fun ChatScreen(
                     }
                 } else {
                     LazyColumn(
+                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                        state = listState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     ) {
-                        items(sortedMessages) { message ->
+                        items(sortedMessages.reversed()) { message ->
                             val isParent = message.senderType == Constants.USER_PARENT
                             val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
                             val bubbleShape = if (isParent) {
@@ -418,8 +413,7 @@ fun ChatScreen(
                                         contentDescription = "Parent Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
-                                            .clip(CircleShape)
+                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape),
 
 
@@ -431,8 +425,7 @@ fun ChatScreen(
                                 Card(
                                     shape = bubbleShape,
                                     colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                    elevation = CardDefaults.cardElevation(16.dp),
-                                    modifier = Modifier.widthIn(max = 280.dp)
+                                     modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
@@ -482,8 +475,7 @@ fun ChatScreen(
                                         contentDescription = "Driver Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .shadow(16.dp, shape = CircleShape, clip = false)
-                                            .clip(CircleShape)
+                                             .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )
                                 }

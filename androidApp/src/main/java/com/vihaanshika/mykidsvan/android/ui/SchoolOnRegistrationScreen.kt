@@ -41,6 +41,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.messaging.messaging
+import com.vihaanshika.mykidsvan.android.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,14 +83,14 @@ fun SchoolOnRegistrationScreen(
     val selectedSchool by viewModel.selectedSchool.collectAsState()
 
     // Observe success state based on role
-    val parentSuccess by viewModel.schoolRegistrationPSuccess.collectAsState()
-    val driverSuccess by viewModel.schoolRegistrationDSuccess.collectAsState()
+
 
     var showManualFields by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         Log.d("TAG", "SchoolOnRegistrationScreen: uid -- $uid && userRole -- $userRole")
     }
+
     Scaffold(topBar = {
         TopAppBar(title = { Text("Select school") })
     }) { padding ->
@@ -212,9 +215,10 @@ fun SchoolOnRegistrationScreen(
                     if (userRole?.lowercase() == "parent") {
                         if (!selectedSchool?.schoolName.equals("Other"))
                             viewModel.registerSchoolParent(
-                                uid ,
-                                selectedSchoolName ,
-                                "", "", "", "", "", "", "")
+                                uid,
+                                selectedSchoolName,
+                                "", "", "", "", "", "", ""
+                            )
                         else
                             viewModel.registerSchoolParent(
                                 uid,
@@ -232,7 +236,8 @@ fun SchoolOnRegistrationScreen(
                             viewModel.registerSchoolDriver(
                                 uid,
                                 selectedSchoolName,
-                                "", "", "", "", "", "", "")
+                                "", "", "", "", "", "", ""
+                            )
                         else
                             viewModel.registerSchoolDriver(
                                 uid,
@@ -271,29 +276,93 @@ fun SchoolOnRegistrationScreen(
                     )
                 }
             }
-        }
+         }
     }
     // Observe registration success based on role
-    LaunchedEffect(parentSuccess, driverSuccess) {
-        if ((userRole == "parent" && parentSuccess) || (userRole == "driver" && driverSuccess)) {
-            isLoading = false
-            schoolName.value = ""
-            contactNumber.value = ""
-            city.value = ""
-            schoolAddress.value = ""
-            viewModel.resetSchoolRegistrationDropDowns()
-            if (userRole == "parent") {
+//    LaunchedEffect(parentSuccess, driverSuccess) {
+//        if ((userRole == "parent" && parentSuccess) || (userRole == "driver" && driverSuccess)) {
+//            isLoading = false
+//            schoolName.value = ""
+//            contactNumber.value = ""
+//            city.value = ""
+//            schoolAddress.value = ""
+//            viewModel.resetSchoolRegistrationDropDowns()
+//            if (userRole == "parent") {
+//                Toast.makeText(context, "Registration Successful!", Toast.LENGTH_SHORT).show()
+//
+//                navController.navigate("login") {
+//                    popUpTo("schoolOnRegistration") { inclusive = true }
+//                }
+//            } else {
+//                navController.navigate("fileupload/$uid")
+//            }
+//
+//            // subscribe the user here for fcm messaging
+//            // ✅ Subscribe the parent to a topic
+//            val topic = parentSuccess.topicUpdated.toString();
+//            Firebase.messaging.subscribeToTopic(topic)
+//                .addOnCompleteListener { task ->
+//                    if (task.isSuccessful) {
+//                        Log.d("FCM", "User Subscribed to $topic successfully")
+//                    } else {
+//                        Log.e("FCM", "Subscription failed: ${task.exception}")
+//                    }
+//                }
+//        } else if ((userRole == "parent" && !parentSuccess) || (userRole == "driver" && !driverSuccess)) {
+//            isLoading = false
+//        }
+//    }
+
+    val parentState by viewModel.schoolRegistrationPSuccess.collectAsState()
+    val driverState by viewModel.schoolRegistrationDSuccess.collectAsState()
+
+    LaunchedEffect(parentState, driverState) {
+        val successResource = when (userRole) {
+            "parent" -> parentState
+            "driver" -> driverState
+            else -> null
+        }
+
+        when (successResource) {
+            is Resource.Success -> {
+                isLoading = false
+                schoolName.value = ""
+                contactNumber.value = ""
+                city.value = ""
+                schoolAddress.value = ""
+
+                viewModel.resetSchoolRegistrationDropDowns()
+
                 Toast.makeText(context, "Registration Successful!", Toast.LENGTH_SHORT).show()
 
-                navController.navigate("login") {
-                    popUpTo("schoolOnRegistration") { inclusive = true }
+                if (userRole == "parent") {
+                    navController.navigate("login") {
+                        popUpTo("schoolOnRegistration") { inclusive = true }
+                    }
+                } else {
+                    navController.navigate("fileupload/$uid")
                 }
-            } else {
-                navController.navigate("fileupload/$uid")
+
+                // ✅ FCM Topic Subscription
+                val topic = successResource.data.topic ?: ""
+                if (topic.isNotBlank()) {
+                    Firebase.messaging.subscribeToTopic(topic)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Log.d("FCM", "User Subscribed to $topic successfully")
+                            } else {
+                                Log.e("FCM", "Subscription failed: ${task.exception}")
+                            }
+                        }
+                }
             }
 
-        } else if ((userRole == "parent" && !parentSuccess) || (userRole == "driver" && !driverSuccess)) {
-            isLoading = false
+            is Resource.Error -> {
+                isLoading = false
+                Toast.makeText(context, "Registration Failed: ${successResource.message}", Toast.LENGTH_SHORT).show()
+            }
+
+            else -> Unit // Loading state, do nothing
         }
     }
 

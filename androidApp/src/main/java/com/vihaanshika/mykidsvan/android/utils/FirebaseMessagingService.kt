@@ -6,38 +6,28 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.util.Log
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.vihaanshika.mykidsvan.android.MainActivity
 import com.vihaanshika.mykidsvan.android.R
-import java.net.URL
 import kotlin.random.Random
 import androidx.core.app.RemoteInput  // ✅ CORRECT
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import coil.transform.CircleCropTransformation
 import com.vihaanshika.mykidsvan.android.data.AuthRepository
-import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
-import com.vihaanshika.mykidsvan.android.ui.tracking.LatLngRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import org.koin.androidx.compose.inject
 
 class FirebaseMessagingService : FirebaseMessagingService() {
     private val TAG = "FirebaseMessagingService"
@@ -45,6 +35,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     private val userMessageCountMap = mutableMapOf<String, Int>()
     private val repository: AuthRepository by inject()
     private val userPreferences: UserPreferences by inject()
+    private var userType: String? = null
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
@@ -52,15 +43,35 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         try {
             serviceScope.launch {
                 combine(userPreferences.userRole, userPreferences.userIdFlow) { role, id ->
-                    role to id // or return a custom data class if you want
+                    role to id
                 }.collect { (role, id) ->
                     Log.d("CombinedFlow", "Role: $role, ID: $id")
-                    // Do whatever you want with role and id
-                    val response = repository.updateFCMToken(id?.toInt(), role.toString(), token)
-                    if (response.status == true) {
-                        Log.d(TAG, "onNewToken if block : ${response.message}")
+
+                    // ✅ Skip if role or id is null or empty
+                    if (role.isNullOrEmpty() || id.isNullOrEmpty()) {
+                        Log.w("FCM", "Skipping token update: role or ID is null/empty")
+                        return@collect
+                    }
+
+                    val safeId = id.toIntOrNull()
+                    if (safeId == null) {
+                        Log.w("FCM", "Invalid ID format: $id")
+                        return@collect
+                    }
+                    if (role.equals(Constants.USER_DRIVER)) {
+                        userType = "vehicle owner"
                     } else {
-                        Log.d(TAG, "onNewToken else block : ${response.message}")
+                        userType = role
+                    }
+                    try {
+                        val response = repository.updateFCMToken(safeId, userType.toString(), token)
+                        if (response.status == true) {
+                            Log.d(TAG, "onNewToken success: ${response.message}")
+                        } else {
+                            Log.d(TAG, "onNewToken failed: ${response.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FCM", "API call error", e)
                     }
                 }
             }
@@ -76,23 +87,22 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         val type = remoteMessage.data["type"] ?: "unknown"
         when (type) {
             "chat" -> {
-                val senderName = remoteMessage.data["name"] ?: title
-                // val message = remoteMessage.data["message"] ?: "You've got a new message"
                 val profileUrl = remoteMessage.data["profile_picture"]
-                Log.d(TAG, "message received :name --> $title profileUrl---> $profileUrl")
-
                 serviceScope.launch {
-                    showNotification(senderName, body, profileUrl)
+                    showNotification(title, body, profileUrl, Constants.CHAT_CHANNEL)
                 }
             }
-
             "payment" -> {
                 // Optionally trigger a simple notification (without actions)
-                showSimpleNotification(title, body, "payment_channel")
+                showSimpleNotification(title, body, Constants.PAYMENT_CHANNEL)
             }
 
             "tracking" -> {
-                showSimpleNotification(title, body, "tracking_channel")
+                showSimpleNotification(title, body, Constants.TRACKING_CHANNEL)
+            }
+
+            "trackingRequest" -> {
+                showSimpleNotification(title, body, Constants.TRACKING_REQUEST_CHANNEL)
             }
 
             else -> {
@@ -136,8 +146,12 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         manager.notify(notificationId, builder.build())
     }
 
-    private fun showNotification(name: String, message: String, profileUrl: String?) {
-        val channelId = Constants.MESSAGE_CHANNEL
+    private fun showNotification(
+        name: String,
+        message: String,
+        profileUrl: String?,
+        channelId: String
+    ) {
         val notificationId = Random.nextInt()
         val groupKey = "group_chat_messages_$name" // 👈 Unique group for each sender
 

@@ -5,5 +5,6 @@ import com.google.gson.annotations.SerializedName
 data class RegisterSchoolResponse(
     @SerializedName("status") var status: Boolean? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("school_id") var schoolId: String? = null
+    @SerializedName("school_id") var schoolId: String? = null,
+    @SerializedName("topic") var topic: String? = null,
 )

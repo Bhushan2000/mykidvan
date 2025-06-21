@@ -40,6 +40,7 @@ import com.google.gson.Gson
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -152,10 +153,10 @@ class AuthViewModel(
     private val _referCode = MutableStateFlow<String?>(null)
     val referCode: StateFlow<String?> = _referCode
 
-    private val _assignedVehicleId = MutableStateFlow<String?>(null)
+    private var _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
-    private val _vehicleStatus = MutableStateFlow<String?>(null)
+    private var _vehicleStatus = MutableStateFlow<String?>(null)
     val vehicleStatus: StateFlow<String?> = _vehicleStatus
 
     init {
@@ -192,10 +193,7 @@ class AuthViewModel(
                 }
             }
         }
-
-
-        loadStateOptions()
-    }
+     }
 
     private val _navigateToMessageScreen = MutableStateFlow(false)
     val navigateToMessageScreen = _navigateToMessageScreen.asStateFlow()
@@ -1215,11 +1213,21 @@ class AuthViewModel(
     }
 
 
-    private val _schoolRegistrationPSuccess = MutableStateFlow(false)
-    val schoolRegistrationPSuccess: StateFlow<Boolean> = _schoolRegistrationPSuccess
+//    private val _schoolRegistrationPSuccess = MutableStateFlow(false)
+//    val schoolRegistrationPSuccess: StateFlow<Boolean> = _schoolRegistrationPSuccess
 
-    private val _schoolRegistrationDSuccess = MutableStateFlow(false)
-    val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
+//    private val _schoolRegistrationDSuccess = MutableStateFlow(false)
+//    val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
+
+    private val _schoolRegistrationPSuccess =
+        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Loading())
+    val schoolRegistrationPSuccess: StateFlow<Resource<RegisterSchoolResponse>> =
+        _schoolRegistrationPSuccess
+
+    private val _schoolRegistrationDSuccess =
+        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Loading())
+    val schoolRegistrationDSuccess: StateFlow<Resource<RegisterSchoolResponse>> =
+        _schoolRegistrationDSuccess
 
     fun registerSchoolParent(
         parentId: String,
@@ -1231,9 +1239,9 @@ class AuthViewModel(
         taluka: String,
         city: String,
         schoolAddress: String,
-
-        ) {
+    ) {
         viewModelScope.launch {
+            _schoolRegistrationPSuccess.value = Resource.Loading()
             try {
                 val response = repository.parentSchoolOnRegister(
                     parentId,
@@ -1249,13 +1257,14 @@ class AuthViewModel(
 
                 if (response.status == true) {
                     Log.d("TAG", "School Registration (Parent) Successful: ${response.message}")
-                    _schoolRegistrationPSuccess.value = true
+                    _schoolRegistrationPSuccess.value = Resource.Success(response)
                 } else {
                     Log.e("TAG", "School Registration (Parent) Failed: ${response.message}")
-                    _schoolRegistrationPSuccess.value = false
+                    _schoolRegistrationPSuccess.value = Resource.Error(response.message ?: "Unknown error")
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "Error during school registration (Parent)", e)
+                _schoolRegistrationPSuccess.value = Resource.Error(e.message ?: "Exception occurred")
             }
         }
     }
@@ -1272,6 +1281,7 @@ class AuthViewModel(
         schoolAddress: String
     ) {
         viewModelScope.launch {
+            _schoolRegistrationDSuccess.value = Resource.Loading()
             try {
                 val response = repository.driverSchoolOnRegister(
                     vehicleId,
@@ -1284,15 +1294,17 @@ class AuthViewModel(
                     city,
                     schoolAddress
                 )
+
                 if (response.status == true) {
                     Log.d("TAG", "School Registration (Driver) Successful: ${response.message}")
-                    _schoolRegistrationDSuccess.value = true
+                    _schoolRegistrationDSuccess.value = Resource.Success(response)
                 } else {
                     Log.e("TAG", "School Registration (Driver) Failed: ${response.message}")
-                    _schoolRegistrationDSuccess.value = false
+                    _schoolRegistrationDSuccess.value = Resource.Error(response.message ?: "Unknown error")
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "Error during school registration (Driver)", e)
+                _schoolRegistrationDSuccess.value = Resource.Error(e.message ?: "Exception occurred")
             }
         }
     }
