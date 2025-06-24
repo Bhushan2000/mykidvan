@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -5,7 +7,9 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.google.firebase.crashlytics)
 }
-
+val secrets = Properties().apply {
+    load(rootProject.file("secrets.properties").inputStream())
+}
 android {
     namespace = "com.vihaanshika.mykidsvan.android"
     compileSdk = 34
@@ -13,10 +17,20 @@ android {
         applicationId = "com.vihaanshika.mykidsvan.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 4
+        versionName = "1.3"
         //buildConfigField("String", "API_KEY", "\"${API_KEY}\"")
-        buildConfigField("String", "API_KEY", "\"${project.findProperty("API_KEY")}\"")
+        //buildConfigField("String", "API_KEY", "\"${project.findProperty("API_KEY")}\"")
+
+        // new way using secrets.properties.
+        buildConfigField("String", "MAPS_API_KEY", "\"${secrets["MAPS_API_KEY"]}\"")
+        buildConfigField("String", "RAZORPAY_SECRET", "\"${secrets["RAZORPAY_SECRET"]}\"")
+        buildConfigField("String", "RAZORPAY_ID", "\"${secrets["RAZORPAY_ID"]}\"")
+
+        // Optional: Use for manifest placeholder
+        manifestPlaceholders["MAPS_API_KEY"] = secrets["MAPS_API_KEY"] ?: ""
+        manifestPlaceholders["RAZORPAY_ID"] = secrets["RAZORPAY_ID"] ?: ""
+
 
     }
     buildFeatures {
@@ -61,6 +75,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
     debugImplementation(libs.compose.ui.tooling)
+    // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.9")
     // Retrofit for REST API calls
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -80,7 +95,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     //coil
     implementation("io.coil-kt:coil-compose:2.4.0") // Use the latest version if available
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
     // Accompanist Navigation Animation dependency :
     implementation("com.google.accompanist:accompanist-navigation-animation:0.30.1")
     // lottie
@@ -88,33 +102,28 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     // razorpay
     implementation("com.razorpay:checkout:1.6.40")
-
+    // local broadcastmanager
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.0.0")
+    // service class
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
     // Pager (optional)
     implementation("com.google.accompanist:accompanist-pager:0.34.0")
     // Compose Material 3
     implementation("androidx.compose.material3:material3:1.2.0")
-
-
     // BOM: Bill of Materials to manage versions of related libraries
     implementation(platform("com.google.auth:google-auth-library-bom:1.30.1"))
-
     // OAuth2 + HTTP support (for GoogleCredentials)
     implementation("com.google.auth:google-auth-library-oauth2-http")
-    // Websocket
-    implementation("io.ktor:ktor-client-core:2.3.7")
-    implementation("io.ktor:ktor-client-websockets:2.3.7")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("io.ktor:ktor-client-cio:2.3.7") // 👈 This is needed for CIO
     // Import the BoM for the Firebase platform
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
-    // Analytics
-    implementation("com.google.firebase:firebase-analytics")
     // FCM
     implementation("com.google.firebase:firebase-messaging:24.1.1")
     // crashlytics
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.firebase.crashlytics)
+    // in-app update
+    implementation("com.google.android.play:app-update:2.1.0")
+    // For Kotlin users also import the Kotlin extensions library for Play In-App Update:
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 }

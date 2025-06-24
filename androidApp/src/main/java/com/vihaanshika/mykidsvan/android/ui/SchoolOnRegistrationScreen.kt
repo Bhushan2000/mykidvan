@@ -332,8 +332,7 @@ fun SchoolOnRegistrationScreen(
                 schoolAddress.value = ""
 
                 viewModel.resetSchoolRegistrationDropDowns()
-
-                Toast.makeText(context, "Registration Successful!", Toast.LENGTH_SHORT).show()
+                viewModel.resetSchoolRegistration()
 
                 if (userRole == "parent") {
                     navController.navigate("login") {

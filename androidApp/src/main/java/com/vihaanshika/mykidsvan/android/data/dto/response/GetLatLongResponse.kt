@@ -15,4 +15,6 @@ data class DriverDetails(
     @SerializedName("timer") var timer: String? = null,
     @SerializedName("lat_status") var lat_status: String? = null,
     @SerializedName("location") var location: String? = null,
+    @SerializedName("start_time") var startTime: String? = null,
+    @SerializedName("speed") var speed: String? = null,
 )

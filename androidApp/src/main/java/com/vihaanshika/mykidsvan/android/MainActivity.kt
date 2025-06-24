@@ -2,6 +2,7 @@ package com.vihaanshika.mykidsvan.android
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -55,6 +56,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.AppUpdateType.IMMEDIATE
+import com.google.android.play.core.install.model.InstallStatus
+import com.google.android.play.core.install.model.UpdateAvailability
 import com.razorpay.Checkout
 import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
@@ -99,10 +105,14 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     var onPaymentSuccessCallback: ((PaymentData) -> Unit)? = null
     var onPaymentFailureCallback: ((Int, String?) -> Unit)? = null
     val loginViewModel: AuthViewModel by viewModel()
-
+    // app updater
+    private val appUpdateManager by lazy { AppUpdateManagerFactory.create(this) }
+    private val REQUEST_CODE = 777
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Checkout.preload(applicationContext)
+        checkForUpdate()
+
         setContent {
             MyApplicationTheme {
                 // Capture intent data
@@ -118,8 +128,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     fun startPayment(amountInPaise: Int?, orderId: String?) {
         val checkout = Checkout()
 //        checkout.setKeyID(Constants.RAZORPAY_TEST_KEY) // 🔐 Replace with your real key
-        checkout.setKeyID(Constants.RAZORPAY_LIVE_KEY) // 🔐 Replace with your real key
-
+        checkout.setKeyID(BuildConfig.RAZORPAY_ID) // 🔐 Replace with your real key
         val options = JSONObject().apply {
             put("name", Constants.PAYMENT_NAME)
             put("description", Constants.PAYMENT_DESCRIPTION)
@@ -152,6 +161,66 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         Log.e("Razorpay", "Error: $message")
         onPaymentFailureCallback?.invoke(code, message)
     }
+    private fun checkForUpdate() {
+//        Types of In-App Updates:
+//        Flexible update – App can be used while downloading update.
+//        Immediate update – App is blocked until update is completed.
+
+        val appUpdateInfoTask = appUpdateManager.appUpdateInfo
+        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+            if (
+                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                appUpdateInfo.isUpdateTypeAllowed(IMMEDIATE)
+            ) {
+                // For IMMEDIATE
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    IMMEDIATE,
+                    this,
+                    REQUEST_CODE
+                )
+            }
+
+            // For FLEXIBLE update, use this instead:
+            /*
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                appUpdateInfo.isUpdateTypeAllowed(FLEXIBLE)) {
+
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    FLEXIBLE,
+                    this,
+                    REQUEST_CODE
+                )
+
+                appUpdateManager.registerListener(installStateUpdatedListener)
+            }
+            */
+        }
+    }
+
+    // Optional: Listen to FLEXIBLE install completion
+    private val installStateUpdatedListener = InstallStateUpdatedListener { state ->
+        if (state.installStatus() == InstallStatus.DOWNLOADED) {
+            Toast.makeText(this, "Update downloaded. Restarting...", Toast.LENGTH_LONG).show()
+            appUpdateManager.completeUpdate()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Check if update was downloaded but not installed
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
+                appUpdateManager.completeUpdate()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        appUpdateManager.unregisterListener(installStateUpdatedListener)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -170,7 +239,7 @@ fun MyApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // user id from prefrences
+    // user id from preferences
     val userId by loginViewModel.userId.collectAsState()
     val assignVehicleId by loginViewModel.assignedVehicleId.collectAsState()
     val requestAssignedStatus by loginViewModel.vehicleStatus.collectAsState()
@@ -179,7 +248,7 @@ fun MyApp(
     var selectedMenuTitle by remember { mutableStateOf(Constants.MY_KID_VAN) } // Initial title
     var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
 
-// Collect your flag
+    // Collect your flag
     val openMessageScreen by loginViewModel.navigateToMessageScreen.collectAsState()
 
     LaunchedEffect(userId) {
@@ -580,11 +649,10 @@ fun CustomTopAppBar(
             navigationIcon = {
                 IconButton(onClick = onMenuClick) {
                     Icon(
-                        painter = painterResource(R.drawable.menu),
+                        painter = painterResource(R.drawable.app_icon),
                         contentDescription = PlaceHolders.MENU,
                         modifier = Modifier
-                            .size(48.dp)
-                            .padding(start = 8.dp), // Add start padding ,
+                             .padding(start = 8.dp), // Add start padding ,
                         tint = Color.Unspecified
                     )
                 }

@@ -25,15 +25,12 @@ import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
-import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
+import com.vihaanshika.mykidsvan.android.ui.tracking.SimpleKalmanLatLong
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,6 +38,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -85,13 +83,18 @@ class LatLngViewModel(
     val userRole: StateFlow<String?> = _userRole
 
     var driverId: String? = null// Your default/fallback
-    var trackingStatus: String? = null
     private var locationReceiver: BroadcastReceiver? = null
 
     // user id
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId
 
+    private val kalmanFilter = SimpleKalmanLatLong(qMetresPerSecond = 3.0f)
+    private var lastValidBearing: Float? = null
+    private val _trackingStatus =
+        MutableStateFlow("") // or null if you want to start with unknown
+    val trackingStatus: StateFlow<String> = _trackingStatus
+    var speed: Double? = 0.00
 
     init {
         // Collect user role
@@ -163,7 +166,7 @@ class LatLngViewModel(
                 val role = userRole.value
                 if (role == Constants.USER_DRIVER) {
                     val location = getLastKnownLocation() // fallback
-                    location?.let { sendCurrentLocationToServer(it) }
+                    location?.let { sendCurrentLocationToServer(it,speed) }
                 }
 //                else if (role == Constants.USER_PARENT) {
 //                    fetchLatLngFromServer()
@@ -181,7 +184,8 @@ class LatLngViewModel(
                 val action = intent?.action
                 val lat = intent?.getDoubleExtra("latitude", 0.0)
                 val lng = intent?.getDoubleExtra("longitude", 0.0)
-
+                var speedFromServer = intent?.getDoubleExtra("speed", 0.0)
+                speed = speedFromServer
                 Log.d(
                     "BroadcastReceiver",
                     "Received broadcast action: $action, lat: $lat, lng: $lng"
@@ -206,7 +210,10 @@ class LatLngViewModel(
                                         if (isNewPoint) {
                                             // ✅ Update bearing only when new point is added
                                             _bearing.value = lastLatLng?.let { old ->
-                                                calculateBearing(old, latLng).takeIf { it.isFinite() }
+                                                calculateBearing(
+                                                    old,
+                                                    latLng
+                                                ).takeIf { it.isFinite() }
                                             } ?: 0f
 
                                             // ✅ Add to _visiblePolylinePath if not already last
@@ -216,7 +223,7 @@ class LatLngViewModel(
 
                                             // ✅ Add to _latLngList
                                             _latLngList.update { it + latLng }
-                                            Log.e("Fetch----if", "onReceive: ${_latLngList.value}")
+                                            Log.d("Fetch----if", "onReceive: ${_latLngList.value}")
                                         } else {
                                             Log.d("DEBUG", "Duplicate latLng skipped: $latLng")
                                             // Do NOT reset _bearing here — preserve previous
@@ -234,9 +241,32 @@ class LatLngViewModel(
                                         latitude = lat
                                         longitude = lng
                                     }
-                                    sendCurrentLocationToServer(location)
 
+                                    // ✅ Apply pre-checks here to avoid unnecessary processing
+                                    if (lat == 0.0 || lng == 0.0) return@launch
+
+                                    // ❌ Avoid duplicates: compare with last visible or localLatLng
+                                    val lastLatLng = _localLatLngList.value.lastOrNull()
+                                    val isDuplicate = lastLatLng?.let {
+                                        it.latitude == lat && it.longitude == lng
+                                    } ?: false
+
+                                    if (isDuplicate) {
+                                        Log.d(
+                                            "Broadcast",
+                                            "Duplicate location, skipping: $lat, $lng"
+                                        )
+                                        return@launch
+                                    }
+
+                                    // ✅ Finally, send to server
+                                    sendCurrentLocationToServer(location, speed)
                                 }
+                            }
+
+                            Constants.TRACKING_STATUS_CHANGED -> {
+                                val newStatus = intent.getStringExtra("tracking_status") ?: "stop"
+                                updateTrackingStatus(newStatus)
                             }
                         }
                     }
@@ -273,85 +303,165 @@ class LatLngViewModel(
         stopTrackingService(context)
     }
 
-    private suspend fun sendCurrentLocationToServer(location: Location) {
-        if (userRole.value != "driver") return // ✅ Prevents sending if the role is "parent"
+    fun updateTrackingStatus(newStatus: String) {
+        _trackingStatus.value = newStatus
+    }
+
+    // This avoids sudden backward turns unless the user is truly reversing
+    fun isBearingAcceptable(oldBearing: Float, newBearing: Float): Boolean {
+        val diff = abs(oldBearing - newBearing) % 360
+        val angleDiff = if (diff > 180) 360 - diff else diff
+        return angleDiff < 90 // Accept only if change is < 90 degrees
+    }
+
+    /*    Your ViewModel already filters for:
+
+        Kalman filtering
+
+        Speed
+
+        Accuracy
+
+        Distance
+
+        Duplicate locations
+
+        Zig-zag detection
+
+        Bearing smoothing
+
+        Still detection
+
+        Server throttling*/
+
+    private var isFirstLocationSent = false // Add this at the top (outside function)
+
+    private suspend fun sendCurrentLocationToServer(location: Location, speed: Double?) {
+        if (userRole.value != "driver") return
         if (!isLocationPermissionGranted(context)) return
+
         try {
-            val newLatLng = LatLng(location.latitude, location.longitude)
+            // ✅ Apply Kalman Filter
+            val filteredLatLng = kalmanFilter.process(
+                location.latitude,
+                location.longitude,
+                location.accuracy,
+                System.currentTimeMillis()
+            )
 
-            // Check distance from previous point
-            val lastLatLng = _visiblePolylinePath.value.lastOrNull()
-            if (lastLatLng != null) {
-                val lastLocation = Location("").apply {
-                    latitude = lastLatLng.latitude
-                    longitude = lastLatLng.longitude
-                }
+            val filteredLocation = Location("").apply {
+                latitude = filteredLatLng.latitude
+                longitude = filteredLatLng.longitude
+            }
 
-                val distance = lastLocation.distanceTo(location)
-                if (distance < 5) {
-                    Log.d("TAG", "Location change < 5m (${distance}m), skipping update.")
+            // ✅ Skip filters for the very first location
+            if (isFirstLocationSent) {
+                // Accuracy Check
+                if (location.accuracy > 15f) {
+                    Log.d("TAG", "Low accuracy: ${location.accuracy}, skipping.")
                     return
                 }
+
+                // Speed Check
+                if (location.hasSpeed() && location.speed < 0.5f) {
+                    Log.d("TAG", "Speed < 0.5m/s (${location.speed}), skipping.")
+                    return
+                }
+
+                // Distance Check
+                val lastLatLng = _visiblePolylinePath.value.lastOrNull()
+                if (lastLatLng != null) {
+                    val lastLocation = Location("").apply {
+                        latitude = lastLatLng.latitude
+                        longitude = lastLatLng.longitude
+                    }
+
+                    val distance = lastLocation.distanceTo(filteredLocation)
+                    if (distance < 8f) {
+                        Log.d("TAG", "Moved <$distance m, skipping.")
+                        return
+                    }
+                }
             }
+
+            // Log raw and filtered
+            Log.d(
+                "LOCATION_DEBUG", """
+            Raw: (${location.latitude}, ${location.longitude})
+            Filtered: (${filteredLatLng.latitude}, ${filteredLatLng.longitude})
+            Accuracy: ${location.accuracy}
+            Speed: ${location.speed}
+        """.trimIndent()
+            )
+
+            // ✅ Send to Server
             val timestamp = getCurrentTimestamp()
-            println(timestamp) // Example output: 2025-06-14 15:13:35
-
-            val address = getFullAddress(context, location.latitude, location.longitude)
-            Log.d("FullAddress", address ?: "Address not found")
-
+            val address = getFullAddress(context, filteredLatLng.latitude, filteredLatLng.longitude)
+            val formattedSpeed = String.format("%.2f", speed)
             driverId?.let { id ->
                 val request = SendLatLongRequest(
                     id = id,
-                    latitude = location.latitude.toString(),
-                    longitude = location.longitude.toString(),
+                    latitude = filteredLatLng.latitude.toString(),
+                    longitude = filteredLatLng.longitude.toString(),
                     start_time = timestamp,
-                    location = address.toString(),
-                    lat_status = Constants.ACTIVE_TRACKING
+                    location = address ?: "Unknown",
+                    lat_status = Constants.ACTIVE_TRACKING,
+                    speed = formattedSpeed
                 )
-                val response = repository.sendLatLong(request) // ✅ Sends location to server
-
-             }
-
-            val currentList = _localLatLngList.value
-
-            val updatedList = when {
-                currentList.isEmpty() -> listOf(newLatLng) // First point
-                currentList.size == 1 && currentList[0] != newLatLng -> listOf(
-                    currentList[0],
-                    newLatLng
-                ) // Second point
-                currentList.size == 2 && currentList[1] != newLatLng -> listOf(
-                    currentList[1],
-                    newLatLng
-                ) // Slide window
-                else -> currentList // Same point as last, no update
+                repository.sendLatLong(request)
             }
 
-            _localLatLngList.value = updatedList
+            // ✅ Mark first location sent
+            isFirstLocationSent = true
 
-            // Animate marker with 2 points
-            val shortList = _localLatLngList.value.toMutableList()
-            if (shortList.isEmpty() || shortList.last() != newLatLng) {
-                if (shortList.size >= 2) shortList.removeFirst()
-                shortList.add(newLatLng)
-                _localLatLngList.value = shortList
+            // ✅ Update full path
+            val updatedPath = _visiblePolylinePath.value.toMutableList()
+            if (updatedPath.isEmpty() || updatedPath.last() != filteredLatLng) {
+                updatedPath.add(filteredLatLng)
+                _visiblePolylinePath.value = updatedPath
             }
 
-            // Keep full path separately
-            val fullPath = _visiblePolylinePath.value.toMutableList()
-            if (fullPath.isEmpty() || fullPath.last() != newLatLng) {
-                fullPath.add(newLatLng)
-                _visiblePolylinePath.value = fullPath
+            // ✅ Update last two points for bearing
+            val recentPoints = _localLatLngList.value.toMutableList()
+            if (recentPoints.isEmpty() || recentPoints.last() != filteredLatLng) {
+                if (recentPoints.size >= 2) recentPoints.removeFirst()
+                recentPoints.add(filteredLatLng)
+                _localLatLngList.value = recentPoints
             }
 
-            // Calculate bearing between the two points
-            if (updatedList.size == 2) {
-                _bearing.value = calculateBearing(updatedList[0], updatedList[1])
-            }
-            Log.d("TAG", "sendCurrentLocationToServer: ${_localLatLngList.value}")
+            // ✅ Bearing calculation
+            if (recentPoints.size == 2) {
+                val point1 = recentPoints[0]
+                val point2 = recentPoints[1]
 
+                val loc1 = Location("").apply {
+                    latitude = point1.latitude
+                    longitude = point1.longitude
+                }
+                val loc2 = Location("").apply {
+                    latitude = point2.latitude
+                    longitude = point2.longitude
+                }
+
+                val distance = loc1.distanceTo(loc2)
+                val newBearing = calculateBearing(point1, point2)
+
+                val isValidDirection =
+                    lastValidBearing == null || isBearingAcceptable(lastValidBearing!!, newBearing)
+
+                if (distance > 8f && isValidDirection) {
+                    _bearing.value = newBearing
+                    lastValidBearing = newBearing
+                    Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
+                } else {
+                    Log.d(
+                        "TAG",
+                        "❌ Skipped bearing: $newBearing (Distance = $distance, Last = $lastValidBearing)"
+                    )
+                }
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("TAG", "Exception: ${e.localizedMessage}", e)
         }
     }
 
@@ -459,15 +569,36 @@ class LatLngViewModel(
         MutableStateFlow<Resource<StopTrackingResponse>>(Resource.Loading())
     val stopTrackingState: StateFlow<Resource<StopTrackingResponse>> = _stopTrackingState
 
+    // ─── Stop-tracking call ──────────────────────────────────────────────────────
     fun stopDriverTracking(id: String, status: String) {
         viewModelScope.launch {
             _stopTrackingState.value = Resource.Loading()
             try {
                 val response = repository.stopTracking(id, status)
                 _stopTrackingState.value = Resource.Success(response)
+
+                /* -----------------------------------------------------------------
+                 * Reset location-tracking flags only when the stop really succeeded.
+                 * Two typical ways to decide that:
+                 *   1. Caller passed a truthy status string ("true", "inactive", …)
+                 *   2. Server response itself says “success == true”
+                 * Adapt the condition to whatever your backend returns.
+                 * ----------------------------------------------------------------- */
+                val serverConfirmed = response.status   // if your DTO has it
+                val callerSaysStop = status.equals("true", ignoreCase = true)
+
+                if (serverConfirmed || callerSaysStop) {
+                    isFirstLocationSent = false      // ⭐  <── reset here
+                    lastValidBearing = null          // (optional) clear bearing cache
+                    _visiblePolylinePath.value = emptyList()     // (optional) clear UI path
+                    _localLatLngList.value = emptyList()         // (optional) clear bearing list
+                    _bearing.value = 0f
+                    Log.d("TAG", "Tracking stopped → runtime state cleared.")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _stopTrackingState.value = Resource.Error(e.message ?: "Unknown error occurred")
+                _stopTrackingState.value =
+                    Resource.Error(e.message ?: "Unknown error occurred")
             }
         }
     }

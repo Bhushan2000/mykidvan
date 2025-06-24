@@ -12,10 +12,7 @@ import com.vihaanshika.mykidsvan.android.ui.tracking.LocationTrackingService
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
-import com.vihaanshika.mykidsvan.android.utils.WebSocketManager
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.websocket.WebSockets
+
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
@@ -49,8 +46,6 @@ val appModule = module {
     single { UserPreferences(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<LatLngRepository> { LatLngRepositoryImpl(get()) }
-    single { HttpClient(CIO) { install(WebSockets) } }
-    single { WebSocketManager(get()) }
     viewModel { LatLngViewModel(get(), get(), androidContext()) }
     viewModel { AuthViewModel(get(), get()) }
     viewModel { MessagesViewModel(get()) }

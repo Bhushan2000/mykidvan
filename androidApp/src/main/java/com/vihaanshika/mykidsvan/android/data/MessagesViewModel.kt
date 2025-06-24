@@ -274,7 +274,6 @@ class MessagesViewModel(private val repository: AuthRepository) : ViewModel() {
             null
         }
     }
-
     fun resetGetAllParent(){
         _allParentsState.value = Resource.Idle()
     }

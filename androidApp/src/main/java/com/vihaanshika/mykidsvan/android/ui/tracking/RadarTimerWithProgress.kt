@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
+// Timer like Radar
 @Composable
 fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
     if (!isDriverInactive) {

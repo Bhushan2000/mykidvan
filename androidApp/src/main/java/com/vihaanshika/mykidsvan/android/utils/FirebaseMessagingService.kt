@@ -105,6 +105,10 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 showSimpleNotification(title, body, Constants.TRACKING_REQUEST_CHANNEL)
             }
 
+            "new_user"->{
+                showSimpleNotification(title, body, Constants.TRACKING_CHANNEL)
+            }
+
             else -> {
                 Log.w(TAG, "Unknown notification type: $type")
             }

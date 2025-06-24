@@ -15,6 +15,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
@@ -53,7 +54,11 @@ interface AuthRepository {
 
     suspend fun getTalukas(state_id: String, district_id: String): TalukasResponse
 
-    suspend fun getSchools(state_id: String, district_id: String, taluka_id: String): AllSchoolResponse
+    suspend fun getSchools(
+        state_id: String,
+        district_id: String,
+        taluka_id: String
+    ): AllSchoolResponse
 
     suspend fun getDriver(school_id: String): DriverResponse
 
@@ -126,7 +131,10 @@ interface AuthRepository {
 
     suspend fun getDriverByMob(mobile_no: String): DriverByMobResponse
 
-    suspend fun sendAssignRequest(vehicle_id: String, parent_id: String): SendRequestToDriverResponse
+    suspend fun sendAssignRequest(
+        vehicle_id: String,
+        parent_id: String
+    ): SendRequestToDriverResponse
 
     suspend fun updateAssignRequest(vehicle_id: String, status: String): AssignRequestAcpRejResponse
 
@@ -226,4 +234,6 @@ interface AuthRepository {
     suspend fun getOrderId(): RazorpayOrderCreationResponse
 
     suspend fun updateFCMToken(id: Int?, role: String, token: String): UpdateTokenResponse
+
+    suspend fun getClasses(): GetClassesResponse
 }

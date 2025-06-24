@@ -2,6 +2,7 @@ package com.vihaanshika.mykidsvan.android.ui
 
 import android.app.DatePickerDialog
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.vihaanshika.mykidsvan.android.R
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.OtpState
@@ -85,8 +88,10 @@ fun ParentSignupScreen(
     val dropOffLocation = remember { mutableStateOf("") }
     val numberOfChildren = remember { mutableStateOf("") }
     val numberOfChildList = listOf("1", "2", "3", "4")
-    val childClassList =
-        listOf("Nursery", "KG-I", "KG-II", "1st std", "2nd std", "3rd std", "4th std", "5th std")
+    val childClassList = remember { mutableStateListOf<String>() }
+
+    /*  val childClassList =
+          listOf("Nursery", "KG-I", "KG-II", "1st std", "2nd std", "3rd std", "4th std", "5th std")*/
     val emergencyContact = remember { mutableStateOf("") }
     val termsAccepted = remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }  // Loading state for progress bar
@@ -130,8 +135,14 @@ fun ParentSignupScreen(
 
     val sendOtpState = viewModel.sendOtpState.collectAsState().value
     val verifyOtpState = viewModel.verifyOtp.collectAsState().value
-
+    val getClasses = viewModel.getClassDetails.collectAsState().value
     // Show OTP field and start timer on success message
+
+    LaunchedEffect(Unit) {
+        viewModel.loadStateOptions()
+        viewModel.getClasses()
+    }
+
     LaunchedEffect(sendOtpState) {
         if (sendOtpState is Resource.Success) {
             val msg = sendOtpState.data.toString()
@@ -147,7 +158,6 @@ fun ParentSignupScreen(
             Toast.makeText(context, sendOtpState.message, Toast.LENGTH_SHORT).show()
         }
     }
-
 
     // Auto-verify OTP
     LaunchedEffect(otp) {
@@ -174,15 +184,43 @@ fun ParentSignupScreen(
                 showOtpField = false
                 isVerifying = false
             }
+
             is Resource.Error -> {
                 Toast.makeText(context, verifyOtpState.message, Toast.LENGTH_SHORT).show()
                 isVerifying = false
             }
+
             is Resource.Loading -> {
                 // keep `isVerifying = true`
             }
+
             is Resource.Idle -> {
                 isVerifying = false
+            }
+        }
+    }
+
+    LaunchedEffect(getClasses) {
+        when (getClasses) {
+            is Resource.Loading -> {
+                // Show loading if needed
+                Log.d("TAG", "ParentSignupScreen: classes Loading..")
+            }
+
+            is Resource.Success -> {
+                // Hardcoded list when API success
+                val data = getClasses.data
+                childClassList.addAll(data.data.mapNotNull { it.className } ?: emptyList())
+                Log.d("TAG", "ParentSignupScreen: classes loaded..${childClassList.toList()}")
+            }
+
+            is Resource.Idle -> {
+                // Optional
+            }
+
+            is Resource.Error -> {
+                // Handle error
+                Log.d("TAG", "ParentSignupScreen: error while getting classes")
             }
         }
     }
@@ -193,8 +231,11 @@ fun ParentSignupScreen(
         is Resource.Error -> OtpState(error = (sendOtpState as Resource.Error).message)
         else -> OtpState()
     }
-    LaunchedEffect(Unit) {
-        viewModel.loadStateOptions()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearClasses()
+        }
     }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Parents Registration Form") }) }) { padding ->

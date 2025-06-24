@@ -38,11 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.R
+import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 
 @Composable
 fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
@@ -149,7 +152,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
 
 fun ensureFullUrl(path: String): String {
     return if (path.startsWith("http")) path
-    else "https://avschoolerp.com/$path"
+    else "${APIEndpoints.BASE_URL}$path"
 }
 
 
@@ -191,7 +194,7 @@ fun UploadPhotoCard(
                     modifier = Modifier.fillMaxSize()
                 )
             } ?: Icon(
-                imageVector = Icons.Default.Add,
+                painter = painterResource(R.drawable.ic_upload),
                 contentDescription = "Upload $label",
                 modifier = Modifier.size(48.dp)
             )

@@ -9,6 +9,7 @@ object Constants {
     // location service
     const val LOCATION_BROADCAST_ACTION = "LOCATION_UPDATE"
     const val SERVER_LOCATION_BROADCAST_ACTION = "SERVER_LOCATION_UPDATE"
+    const val TRACKING_STATUS_CHANGED = "TRACKING_STATUS_CHANGED"
 
     const val CHANNEL_ID = "location_channel"
     const val CHANNEL_NAME = "Location Tracking"
@@ -18,7 +19,6 @@ object Constants {
 
     //    const val AMOUNT_IN_PAISE = 100 // ₹1
     const val RAZORPAY_TEST_KEY = "rzp_test_BVJygtmA6ljXBB"
-    const val RAZORPAY_LIVE_KEY = "rzp_live_0I5r5310Og6W21"
 
     const val PAYMENT_NAME = "Assign Driver"
     const val PAYMENT_DESCRIPTION = "Driver Assignment"
@@ -103,7 +103,8 @@ object Constants {
     const val PAYMENT_CHANNEL = "payment_channel"
     const val TRACKING_CHANNEL = "tracking_channel"
     const val TRACKING_REQUEST_CHANNEL = "tracking_request_channel"
-
+    const val LOCATION_CHANNEL = "location_channel"
     const val ACTION_STOP_TRACKING = "ACTION_STOP_TRACKING"
+
 
 }

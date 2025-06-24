@@ -217,7 +217,7 @@ fun VehicleDetailsScreen(
                             .height(64.dp)
                     )
 
-                    OutlinedTextField(
+/*                    OutlinedTextField(
                         value = vehicleRegistration.value,
                         onValueChange = {},
                         readOnly = true,
@@ -226,7 +226,7 @@ fun VehicleDetailsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                    )
+                    )*/
 
                     val photoList = vehiclePhotosState.value
                         .split(",")

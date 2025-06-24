@@ -37,6 +37,7 @@ import com.vihaanshika.mykidsvan.android.utils.Resource
 import com.vihaanshika.mykidsvan.android.utils.UpdatePasswordState
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.gson.Gson
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
@@ -1212,20 +1213,13 @@ class AuthViewModel(
         }
     }
 
-
-//    private val _schoolRegistrationPSuccess = MutableStateFlow(false)
-//    val schoolRegistrationPSuccess: StateFlow<Boolean> = _schoolRegistrationPSuccess
-
-//    private val _schoolRegistrationDSuccess = MutableStateFlow(false)
-//    val schoolRegistrationDSuccess: StateFlow<Boolean> = _schoolRegistrationDSuccess
-
     private val _schoolRegistrationPSuccess =
-        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Loading())
+        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Idle())
     val schoolRegistrationPSuccess: StateFlow<Resource<RegisterSchoolResponse>> =
         _schoolRegistrationPSuccess
 
     private val _schoolRegistrationDSuccess =
-        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Loading())
+        MutableStateFlow<Resource<RegisterSchoolResponse>>(Resource.Idle())
     val schoolRegistrationDSuccess: StateFlow<Resource<RegisterSchoolResponse>> =
         _schoolRegistrationDSuccess
 
@@ -1309,11 +1303,18 @@ class AuthViewModel(
         }
     }
 
-    private val _uploadDocSuccess = MutableStateFlow<DocumentUploadResponse?>(null)
-    val uploadDocSuccess: StateFlow<DocumentUploadResponse?> = _uploadDocSuccess
+    fun resetSchoolRegistration(){
+        _schoolRegistrationDSuccess.value = Resource.Idle()
+        _schoolRegistrationPSuccess.value = Resource.Idle()
+    }
+
+
+    private val _uploadDocSuccess = MutableStateFlow<Resource<DocumentUploadResponse>>(Resource.Idle())
+    val uploadDocSuccess: StateFlow<Resource<DocumentUploadResponse>> = _uploadDocSuccess
 
     fun uploadDocumentsToDatabase(data: Map<String, String>) {
         viewModelScope.launch {
+            _uploadDocSuccess.value = Resource.Loading() // ← Loading state
             try {
                 val response = repository.uploadDocumentsToDatabase(
                     data["id"] ?: "",
@@ -1326,18 +1327,21 @@ class AuthViewModel(
                 )
 
                 if (response.status) {
-                    _uploadDocSuccess.value = response
+                    _uploadDocSuccess.value = Resource.Success(response) // ← Success
                 } else {
-                    Log.e("TAG", "Upload failed: ${response.message}")
+                    _uploadDocSuccess.value = Resource.Error(response.message) // ← Error
                 }
             } catch (e: Exception) {
-                Log.e("TAG", "Error while uploading documents ", e)
+                _uploadDocSuccess.value = Resource.Error(
+                    message = "Error uploading documents: ${e.message}",
+                    throwable = e
+                )
             }
         }
     }
 
     fun clearUploadDocToDatabase() {
-        _uploadDocSuccess.value = null
+        _uploadDocSuccess.value = Resource.Idle()
     }
 
     private val _referBySuccess = MutableStateFlow<ReferByResponse?>(null)
@@ -1382,7 +1386,7 @@ class AuthViewModel(
     }
 
     private val _getOrderId =
-        MutableStateFlow<Resource<RazorpayOrderCreationResponse>>(Resource.Loading())
+        MutableStateFlow<Resource<RazorpayOrderCreationResponse>>(Resource.Idle())
     val getOrderId: StateFlow<Resource<RazorpayOrderCreationResponse>> = _getOrderId
 
     fun getRazorPayOrderId() {
@@ -1403,9 +1407,27 @@ class AuthViewModel(
             }
         }
     }
+
+    private val _getClassDetails = MutableStateFlow<Resource<GetClassesResponse>>(Resource.Idle())
+    val getClassDetails: StateFlow<Resource<GetClassesResponse>> = _getClassDetails
+
+    fun getClasses(){
+        viewModelScope.launch {
+            _getClassDetails.value = Resource.Loading() // Optional: show loading again
+            try {
+                val response = repository.getClasses()
+                if (response.status == true) {
+                    _getClassDetails.value = Resource.Success(response)
+                } else {
+                    _getClassDetails.value = Resource.Error(response.message ?: "Unknown error occurred")
+                }
+            } catch (e: Exception) {
+                Log.e("TAG", "getRazorPayOrderId: ${e.localizedMessage}", e)
+                _getClassDetails.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+    fun clearClasses(){
+        _getClassDetails.value = Resource.Idle()
+    }
 }
-
-
-
-
-

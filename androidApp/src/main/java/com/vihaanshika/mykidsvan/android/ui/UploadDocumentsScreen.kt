@@ -28,6 +28,7 @@ import androidx.compose.material3.Card
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.vihaanshika.mykidsvan.android.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,12 +48,28 @@ fun UploadDocumentsScreen(
     var vehiclePhoto by remember { mutableStateOf("") }
     var profilePicture by remember { mutableStateOf("") }
     val uploadSuccess by viewModel.uploadDocSuccess.collectAsState()
+    val isUploading = uploadSuccess is Resource.Loading
 
     LaunchedEffect(uploadSuccess) {
-        if (uploadSuccess != null) {
-            Toast.makeText(context, "Registration successful.", Toast.LENGTH_SHORT).show()
-            navController.navigate("login") {
-                popUpTo("schoolOnRegistration") { inclusive = true }
+        when (uploadSuccess) {
+            is Resource.Success -> {
+                Toast.makeText(context, "Registration successful.", Toast.LENGTH_SHORT).show()
+                navController.navigate("login") {
+                    popUpTo("schoolOnRegistration") { inclusive = true }
+                }
+                viewModel.clearUploadDocToDatabase()
+            }
+
+            is Resource.Error -> {
+                val error = (uploadSuccess as Resource.Error).message
+                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+            }
+
+            is Resource.Loading -> { /* optional loading UI */
+            }
+
+            is Resource.Idle<*> -> {
+
             }
         }
     }
@@ -75,43 +92,58 @@ fun UploadDocumentsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            FileUploadFieldDoc("Aadhar Card Photo", aadharPhoto) { aadharPhoto = it }
-            FileUploadFieldDoc("Driver's License", licensePhoto) { licensePhoto = it }
-            FileUploadFieldDoc("Insurance Photo", insurancePhoto) { insurancePhoto = it }
-            FileUploadFieldDoc("Fitness Certificate", fitnessCertificate) {
+//          FileUploadFieldDoc("Aadhar Card Photo", aadharPhoto) { aadharPhoto = it }
+            FileUploadFieldDoc("* Driver's License", licensePhoto) {
+                licensePhoto = it
+            } // mandatory
+            FileUploadFieldDoc("  Insurance Photo", insurancePhoto) {
+                insurancePhoto = it
+            } // not compulsory
+            FileUploadFieldDoc("  Fitness Certificate", fitnessCertificate) {
                 fitnessCertificate = it
-            }
-            FileUploadFieldDoc("Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
-            FileUploadFieldDoc("Profile Picture", profilePicture) { profilePicture = it }
+            } // not compulsory
+//          FileUploadFieldDoc("Vehicle Photo", vehiclePhoto) { vehiclePhoto = it }
+//          FileUploadFieldDoc("Profile Picture", profilePicture) { profilePicture = it }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
-                    val data = mapOf(
-                        "id" to uid,
-                        "profile_picture" to profilePicture,
-                        "adhar_number" to aadharPhoto,
-                        "driver_license" to licensePhoto,
-                        "insurance_details" to insurancePhoto,
-                        "fitness_certificate" to fitnessCertificate,
-                        "photo_of_vehicle" to vehiclePhoto
+                    val mandatoryFields = listOf(
+                        licensePhoto
                     )
-
-                    if (data.values.all { it.isNotBlank() }) {
+                    if (mandatoryFields.all { it.isNotBlank() }) {
+                        val data = mapOf(
+                            "id" to uid,
+                            "profile_picture" to profilePicture,
+                            "adhar_number" to aadharPhoto,
+                            "driver_license" to licensePhoto,
+                            "insurance_details" to insurancePhoto,
+                            "fitness_certificate" to fitnessCertificate,
+                            "photo_of_vehicle" to vehiclePhoto
+                        )
                         onSubmit(data)
                     } else {
-                        Toast.makeText(context, "Please upload all documents", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(context, "Please upload driving licence document", Toast.LENGTH_SHORT).show()
                     }
                 },
+                enabled = !isUploading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(50.dp),
                 shape = RoundedCornerShape(20.dp),
             ) {
-                Text("Submit", color = Color.White, fontWeight = FontWeight.Bold)
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Submit", color = Color.White, fontWeight = FontWeight.Bold)
+                }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
         }

@@ -147,7 +147,7 @@ fun MessageScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
-            .verticalScroll(rememberScrollState())
+//            .verticalScroll(rememberScrollState())
             .imePadding()
     ) {
 

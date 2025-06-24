@@ -6,5 +6,6 @@ data class SendLatLongRequest(
     val longitude: String,
     val start_time: String,
     val location: String,
-    val lat_status: String
+    val lat_status: String,
+    val speed: String
 )

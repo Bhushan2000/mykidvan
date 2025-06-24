@@ -28,6 +28,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -87,7 +88,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
     val coroutineScope = rememberCoroutineScope()
     val parentLatLngList by viewModel.latLngList.collectAsState()
     val driverLatLngList by viewModel.localLatLngList.collectAsState()
-
+    val trackingStatus by viewModel.trackingStatus.collectAsState()
     val latLngList = if (userRole == Constants.USER_PARENT) {
         parentLatLngList
     } else {
@@ -110,12 +111,14 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
     val timer = remember { mutableStateOf(0) }
     // Track changes to last LatLng
     var lastKnownPoint by remember { mutableStateOf(latLngList.lastOrNull()) }
-
     val fullPolylineList by viewModel.visiblePolylinePath.collectAsState()
+
+    var showExitDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isTracking) {
         if (isTracking) {
             viewModel.registerLocationReceiverIfNeeded(context, userRole.toString())
+            Log.d("TAG", "MapScreen: trackingStatus - $trackingStatus")
         } else {
             viewModel.unregisterLocationReceiverIfNeeded(context, userRole.toString())
         }
@@ -410,14 +413,46 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
                         icon = bitmapDescriptorFromVector(
                             context,
                             if (userRole == Constants.USER_PARENT && isDriverInactive.value) R.drawable.red_marker else R.drawable.green_marker,
-                            width = 160,
-                            height = 160
+                            width = 120,
+                            height = 120
                         ),
                         rotation = bearing,
                         anchor = Offset(0.5f, 0.5f),
                         flat = true
                     )
                 }
+            }
+
+            if (showExitDialog && userRole.equals(Constants.USER_DRIVER)) {
+                AlertDialog(
+                    onDismissRequest = { showExitDialog = false },
+                    title = {
+                        Text(text = "Stop Tracking?")
+                    },
+                    text = {
+                        Text("Tracking is currently active. Do you want to exit and stop tracking?")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showExitDialog = false
+                            viewModel.stopTracking()
+                            if (userRole == Constants.USER_DRIVER) {
+                                viewModel.stopDriverTracking(userId, Constants.INACTIVE_TRACKING)
+                            }
+                            // Exit the screen (use NavController if you're using Navigation)
+                            (context as? Activity)?.finish()
+                        }) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showExitDialog = false
+                        }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
 
             // Timer display on map
@@ -476,19 +511,25 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
 
             // 🚫 Parent – show driver not assigned message
             if (userRole == Constants.USER_PARENT && (assignedVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
-                    PlaceHolders.ACCEPTED, ignoreCase = true))) {
+                    PlaceHolders.ACCEPTED, ignoreCase = true
+                ))
+            ) {
                 CustomMessage(
                     PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
                     PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT
                 )
-            }else if (userRole == Constants.USER_PARENT && !assignedVehicleId.isNullOrBlank()
-                && vehicleTrackingStatus.equals(PlaceHolders.REJECTED, ignoreCase = true)) {
+            } else if (userRole == Constants.USER_PARENT && !assignedVehicleId.isNullOrBlank()
+                && vehicleTrackingStatus.equals(PlaceHolders.REJECTED, ignoreCase = true)
+            ) {
                 CustomMessage(
                     PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
                     PlaceHolders.MSG_REQUEST_DRIVER_REJECTED
                 )
             }
         }
+    }
+    BackHandler(enabled = isTracking && userRole.equals(Constants.USER_DRIVER)) {
+        showExitDialog = true
     }
 }
 

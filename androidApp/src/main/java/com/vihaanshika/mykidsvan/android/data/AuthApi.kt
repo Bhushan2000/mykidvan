@@ -34,6 +34,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetLatLongResponse
@@ -208,4 +209,7 @@ interface AuthApi {
 
     @PUT(APIEndpoints.UPDATE_DEVICE_TOKEN)
     suspend fun updateDeviceToken(@Body request: UpdateTokenRequest): UpdateTokenResponse
+
+    @GET(APIEndpoints.GET_ClASSES)
+    suspend fun getClasses():GetClassesResponse
 }

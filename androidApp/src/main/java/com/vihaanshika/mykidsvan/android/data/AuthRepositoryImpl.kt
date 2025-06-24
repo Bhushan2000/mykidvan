@@ -29,6 +29,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverRequestResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverAllMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetDriverMessagesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetParentMessagesResponse
@@ -469,5 +470,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     ): UpdateTokenResponse {
         val request = UpdateTokenRequest(id = id, role = role, deviceToken = token)
         return api.updateDeviceToken(request)
+    }
+
+    override suspend fun getClasses(): GetClassesResponse {
+        return api.getClasses()
     }
 }

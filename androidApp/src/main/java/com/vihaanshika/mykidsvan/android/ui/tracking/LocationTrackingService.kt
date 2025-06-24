@@ -6,9 +6,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Location
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -16,6 +18,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.maptracking.LatLngViewModel
 import com.vihaanshika.mykidsvan.android.R
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -26,6 +29,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import com.vihaanshika.mykidsvan.android.MainActivity
+import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,11 +39,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 //
 class LocationTrackingService : Service() {
@@ -47,13 +55,17 @@ class LocationTrackingService : Service() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val repository: LatLngRepository by inject()
+    private val viewModel: LatLngViewModel by inject()
     private val userPreferences: UserPreferences by inject()
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
     private var trackingJob: Job? = null
-
+    private var speedInKmh: Double? = null
     var driverId: String? = null// Your default/fallback
-     override fun onCreate() {
+    private val isServerTrackingActive = MutableStateFlow(false)
+
+    private var lastSentLocation: Location? = null
+    override fun onCreate() {
         super.onCreate()
         Log.d("LocationService", "onCreate called")
         createNotificationChannel()
@@ -83,11 +95,6 @@ class LocationTrackingService : Service() {
                                 delay(10_000L)
                             }
                         }
-                    } else {
-                        Log.d(
-                            "LocationService",
-                            "Tracking not started. Role=$role ID=$id"
-                        )
                     }
                 }
         }
@@ -96,11 +103,13 @@ class LocationTrackingService : Service() {
 
     private fun startLocationUpdates() {
         val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            10_000L // Every 10 seconds
-        ).setMinUpdateIntervalMillis(5_000L) // Minimum 5 seconds between updates
-            .setMaxUpdateDelayMillis(15_000L) // Max delay if batching
-            .build()
+            Priority.PRIORITY_HIGH_ACCURACY, // Use PRIORITY_HIGH_ACCURACY for GPS + WiFi + Cell towers
+            5000L // Request update every 5 seconds
+        ).apply {
+            setMinUpdateIntervalMillis(2000L) // Don't get updates more than every 2 seconds
+            setWaitForAccurateLocation(true)  // Wait for a precise fix
+            setMaxUpdateDelayMillis(10000L)   // In case of batching
+        }.build()
 
         // ✅ Permission check
         if (ActivityCompat.checkSelfPermission(
@@ -123,23 +132,60 @@ class LocationTrackingService : Service() {
         )
     }
 
+
+    private fun isRedundantLocation(newLoc: Location): Boolean {
+        lastSentLocation?.let { lastLoc ->
+            val distance = lastLoc.distanceTo(newLoc)
+            val timeDiff = newLoc.time - lastLoc.time
+
+            // If moved less than 5 meters and it's been less than 4 seconds, skip
+            if (distance < 5 && timeDiff < 4000) {
+                Log.d(
+                    "LocationService",
+                    "📍 Redundant location (Distance: $distance m, TimeDiff: $timeDiff ms), skipping broadcast."
+                )
+                return true
+            }
+        }
+        lastSentLocation = newLoc
+        return false
+    }
+
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation ?: return
+            speedInKmh = location.speed * 3.6  // Float in m/s -> Double in km/h
+            Log.d("TAG", "onLocationResult: ${speedInKmh?.format(2)} km/h")
 
-            // 👉 Send broadcast, save to DB, or call repository
-            // Log.d("LocationService", "Location: ${location.latitude}, ${location.longitude}")
+            if (location.accuracy > 50f) {
+                Log.d("Service", "Too low accuracy: ${location.accuracy}, skipping broadcast.")
+                return
+            }
+
+            if (location.speed < 0.5f) {
+                Log.d("Service", "Speed < 0.5 m/s, likely idle or creeping. Skipping.")
+                return
+            }
+
+            if (isRedundantLocation(location)) return // 🔥 Skip sending duplicate/noisy updates
+
 
             // Example: Send broadcast to ViewModel
             val intent = Intent(Constants.LOCATION_BROADCAST_ACTION).apply {
                 putExtra("latitude", location.latitude)
                 putExtra("longitude", location.longitude)
+                putExtra("speed", speedInKmh)
             }
             LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
+            // ✅ Update notification with latest speed
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(NOTIFICATION_ID, createNotification())
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
     override fun onDestroy() {
         super.onDestroy()
         Log.d("LocationTrackingService", "onDestroy called")
@@ -151,10 +197,11 @@ class LocationTrackingService : Service() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
         Log.d("LocationTrackingService", "All jobs and location updates cancelled")
     }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                "location_channel_id",
+                Constants.LOCATION_CHANNEL,
                 "Location Tracking",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
@@ -167,7 +214,7 @@ class LocationTrackingService : Service() {
 
     // ✅ Notification setup
     private fun createNotification(): Notification {
-        val channelId = "location_channel_id"
+        val channelId = Constants.LOCATION_CHANNEL
         // Intent to open MapActivity
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -177,15 +224,26 @@ class LocationTrackingService : Service() {
             this, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val speed = speedInKmh ?: 0.0
+        val title = if ((speedInKmh ?: 0.0) < 1.0) {
+            "Tracking Inactive"
+        } else {
+            "Tracking Active"
+        }
+        val speedText = if ((speedInKmh ?: 0.0) < 1.0) {
+            PlaceHolders.MSG_TRACKING_NOT_STARTED
+        } else {
+            "Vehicle is moving at ${speedInKmh?.format(2)} km/h"
+        }
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Tracking Location")
-            .setContentText("Location is being tracked in background")
+            .setContentTitle(title)
+            .setContentText(speedText)
             .setSmallIcon(R.drawable.baseline_location_on_24)
             .setColor(Color.BLUE)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setContentIntent(pendingIntent) // 👈 PendingIntent added
+            .setContentIntent(pendingIntent)
             .build()
     }
 
@@ -232,6 +290,13 @@ class LocationTrackingService : Service() {
     private suspend fun fetchLatLngFromServer() {
         try {
             val response = driverId?.let { repository.getLatLong(it) }
+            val fetchedSpeed = response?.data?.firstOrNull()?.speed
+            val trackingStatus = response?.data?.firstOrNull()?.lat_status
+            if (trackingStatus?.equals(Constants.ACTIVE_TRACKING) == true)
+                speedInKmh = fetchedSpeed?.toDouble()
+            else
+                speedInKmh = 0.00
+
             if (response?.status == true && response.data.isNotEmpty()) {
                 val newLatLng = response.data.firstOrNull()?.let {
                     LatLng(
@@ -245,6 +310,7 @@ class LocationTrackingService : Service() {
                     val intent = Intent(Constants.SERVER_LOCATION_BROADCAST_ACTION).apply {
                         putExtra("latitude", latLng.latitude)
                         putExtra("longitude", latLng.longitude)
+                        putExtra("speed", fetchedSpeed)
                     }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
                     Log.d(
@@ -252,6 +318,10 @@ class LocationTrackingService : Service() {
                         "Broadcast send for Location: ${latLng.latitude}, ${latLng.longitude}"
                     )
                 }
+                // ✅ Update notification with latest speed
+                val notificationManager =
+                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.notify(NOTIFICATION_ID, createNotification())
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -260,12 +330,35 @@ class LocationTrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == Constants.ACTION_STOP_TRACKING) {
-            stopSelf() // This triggers onDestroy()
+            stopSelf()
             return START_NOT_STICKY
         }
-        val notification = if(userRole.value.equals(Constants.USER_DRIVER))createNotificationDriver() else createNotification()
-        startForeground(NOTIFICATION_ID, notification)
+
+        // ✅ Show a fallback notification immediately to avoid crash
+        startForeground(NOTIFICATION_ID, createStartupNotification())
+
+        // Continue logic here...
         return START_STICKY
+    }
+
+    // 🔧 Extension function to format Double
+    private fun Double.format(digits: Int) = "%.${digits}f".format(this)
+
+    private fun createStartupNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, Constants.LOCATION_CHANNEL)
+            .setContentTitle("Starting tracking...")
+            .setContentText("Please wait while tracking starts")
+            .setSmallIcon(R.drawable.baseline_location_on_24)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .build()
     }
 
 }

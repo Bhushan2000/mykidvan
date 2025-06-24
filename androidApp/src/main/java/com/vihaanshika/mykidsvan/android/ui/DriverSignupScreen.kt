@@ -213,7 +213,7 @@ fun DriverSignupScreen(
     }
 
     Scaffold(topBar = {
-        TopAppBar(title = { Text("Driver Registration Form") })
+        TopAppBar(title = { Text("Driver Registration") })
     }) { padding ->
         Column(
             modifier = Modifier
@@ -813,7 +813,7 @@ fun ReferralRow(
         OutlinedTextField(
             value = enteredReferralCode.value,
             onValueChange = { enteredReferralCode.value = it },
-            label = { Text("Referral Code (Optional)") },
+            label = { Text("Code") },
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier
                 .weight(1f)

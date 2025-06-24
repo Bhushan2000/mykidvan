@@ -1,9 +1,9 @@
 package com.vihaanshika.mykidsvan.android.utils
 
 object APIEndpoints {
-    const val BASE_URL = "https://test.avschoolerp.com/"
+    //const val BASE_URL = "https://test.avschoolerp.com/"
     // live api
-    //const val BASE_URL = "https://avschoolerp.com/"
+    const val BASE_URL = "https://avschoolerp.com/"
 
     // Path Keys
     const val PATH_STATE_ID = "state_id"
@@ -71,5 +71,5 @@ object APIEndpoints {
     const val GET_DRIVER_ALL_MESSAGES = "index.php/api/AccountsController/get_all_message/{driver_id}"
 
     const val UPDATE_DEVICE_TOKEN = "index.php/api/AccountsController/updateDeviceToken"
-
+    const val GET_ClASSES = "index.php/api/AccountsController/get_classes"
 }
