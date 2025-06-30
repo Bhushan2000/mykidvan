@@ -213,7 +213,7 @@ fun DriverSignupScreen(
     }
 
     Scaffold(topBar = {
-        TopAppBar(title = { Text("Driver Registration") })
+        TopAppBar(title = { Text(text = "Driver Registration", textAlign= TextAlign.Center) })
     }) { padding ->
         Column(
             modifier = Modifier

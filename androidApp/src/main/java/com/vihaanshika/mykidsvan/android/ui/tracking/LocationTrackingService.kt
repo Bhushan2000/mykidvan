@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -55,15 +56,13 @@ class LocationTrackingService : Service() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val repository: LatLngRepository by inject()
-    private val viewModel: LatLngViewModel by inject()
     private val userPreferences: UserPreferences by inject()
     private val _userRole = MutableStateFlow<String?>(null)
     val userRole: StateFlow<String?> = _userRole
     private var trackingJob: Job? = null
     private var speedInKmh: Double? = null
     var driverId: String? = null// Your default/fallback
-    private val isServerTrackingActive = MutableStateFlow(false)
-
+    var pollingStatus: Boolean? = null
     private var lastSentLocation: Location? = null
     override fun onCreate() {
         super.onCreate()
@@ -81,18 +80,19 @@ class LocationTrackingService : Service() {
             }.distinctUntilChanged()
                 .collect { (role, id) ->
                     _userRole.value = role
+                    driverId = id
 
                     // Cancel any old fetch job before starting new one
                     trackingJob?.cancel()
 
                     if (role != Constants.USER_DRIVER && id != null) {
-                        driverId = id
                         Log.d("LocationService", "Starting periodic fetch...")
-
+                        speedInKmh?.equals(0.0)
                         trackingJob = launch {
-                            while (isActive) {
+                            while (isActive && (pollingStatus == null || pollingStatus == true)) {
                                 fetchLatLngFromServer()
                                 delay(10_000L)
+                                Log.d("TAG", "onCreate: polling status - $pollingStatus")
                             }
                         }
                     }
@@ -132,7 +132,6 @@ class LocationTrackingService : Service() {
         )
     }
 
-
     private fun isRedundantLocation(newLoc: Location): Boolean {
         lastSentLocation?.let { lastLoc ->
             val distance = lastLoc.distanceTo(newLoc)
@@ -154,9 +153,6 @@ class LocationTrackingService : Service() {
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation ?: return
-            speedInKmh = location.speed * 3.6  // Float in m/s -> Double in km/h
-            Log.d("TAG", "onLocationResult: ${speedInKmh?.format(2)} km/h")
-
             if (location.accuracy > 50f) {
                 Log.d("Service", "Too low accuracy: ${location.accuracy}, skipping broadcast.")
                 return
@@ -169,6 +165,8 @@ class LocationTrackingService : Service() {
 
             if (isRedundantLocation(location)) return // 🔥 Skip sending duplicate/noisy updates
 
+            speedInKmh = location.speed * 3.6  // Float in m/s -> Double in km/h
+            Log.d("TAG", "onLocationResult: ${speedInKmh?.format(2)} km/h")
 
             // Example: Send broadcast to ViewModel
             val intent = Intent(Constants.LOCATION_BROADCAST_ACTION).apply {
@@ -195,6 +193,7 @@ class LocationTrackingService : Service() {
         serviceScope.cancel()
         // Stop fused location updates if needed
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        pollingStatus = false
         Log.d("LocationTrackingService", "All jobs and location updates cancelled")
     }
 
@@ -292,10 +291,13 @@ class LocationTrackingService : Service() {
             val response = driverId?.let { repository.getLatLong(it) }
             val fetchedSpeed = response?.data?.firstOrNull()?.speed
             val trackingStatus = response?.data?.firstOrNull()?.lat_status
-            if (trackingStatus?.equals(Constants.ACTIVE_TRACKING) == true)
+            if (trackingStatus?.equals(Constants.ACTIVE_TRACKING) == true) {
                 speedInKmh = fetchedSpeed?.toDouble()
-            else
+                pollingStatus = true
+            } else {
                 speedInKmh = 0.00
+                pollingStatus = false
+            }
 
             if (response?.status == true && response.data.isNotEmpty()) {
                 val newLatLng = response.data.firstOrNull()?.let {
@@ -310,13 +312,9 @@ class LocationTrackingService : Service() {
                     val intent = Intent(Constants.SERVER_LOCATION_BROADCAST_ACTION).apply {
                         putExtra("latitude", latLng.latitude)
                         putExtra("longitude", latLng.longitude)
-                        putExtra("speed", fetchedSpeed)
-                    }
+                        putExtra("speed", fetchedSpeed?.toDouble())
+                     }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-                    Log.d(
-                        "LocationService",
-                        "Broadcast send for Location: ${latLng.latitude}, ${latLng.longitude}"
-                    )
                 }
                 // ✅ Update notification with latest speed
                 val notificationManager =
@@ -352,13 +350,24 @@ class LocationTrackingService : Service() {
         )
 
         return NotificationCompat.Builder(this, Constants.LOCATION_CHANNEL)
-            .setContentTitle("Starting tracking...")
+            .setContentTitle("Tracking Started...")
             .setContentText("Please wait while tracking starts")
             .setSmallIcon(R.drawable.baseline_location_on_24)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()
+    }
+
+    private fun restartPolling() {
+        trackingJob?.cancel()
+        trackingJob = serviceScope.launch {
+            while (isActive && (pollingStatus == null || pollingStatus == true)) {
+                fetchLatLngFromServer()
+                delay(10_000L)
+                Log.d("restartPolling", "Polling... still active")
+            }
+        }
     }
 
 }

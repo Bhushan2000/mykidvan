@@ -1,8 +1,17 @@
 package com.vihaanshika.mykidsvan.android.ui
 
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 
 import androidx.compose.ui.graphics.Color
@@ -43,14 +53,28 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReferAppScreen(viewModel: AuthViewModel,userRole: String) {
+fun ReferAppScreen(viewModel: AuthViewModel, userRole: String) {
     val context = LocalContext.current
 
     val referCode by viewModel.referCode.collectAsState()
     val commissionState by viewModel.commissionState.collectAsState()
 
     val referralCode = referCode.toString()
+
+    val showSheet = remember { mutableStateOf(false) }
+    val withdrawAmount = remember { mutableStateOf("") }
+    val bankName = remember { mutableStateOf("") }
+    val ifscCode = remember { mutableStateOf("") }
+    val accountNumber = remember { mutableStateOf("") }
+    val upiId = remember { mutableStateOf("") }
+
+// Simulated values for now:
+    val totalEarned = 500.0
+    val totalWithdrawn = 200.0
+    val remaining = totalEarned - totalWithdrawn
+
 
     val yourHindiReferralProgramText = """
 रेफ़रल प्रोग्राम
@@ -137,59 +161,356 @@ fun ReferAppScreen(viewModel: AuthViewModel,userRole: String) {
             "\n" +
             "अब आप भी बनें MyKidVan नेटवर्क का हिस्सा और कमाएं हर कनेक्शन से!"
 
-val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रेफ़रल प्रोग्राम\n" +
-        "कैसे काम करता है:\n" +
-        "जब आप किसी अन्य माता-पिता को ‘MyKidVan’ ऐप डाउनलोड करने और प्रीमियम सेवा (₹199 पेमेंट) के लिए रजिस्टर करने के लिए रेफ़र करते हैं, तो आपको मिलते हैं:\n" +
-        "\n" +
-        "\uD83C\uDF81 ₹50 (50 पॉइंट्स) सीधे आपके खाते में!\n" +
-        "\n" +
-        "ज्यादा रेफ़र करें, ज्यादा कमाएं:\n" +
-        "जितने अधिक माता-पिता आप रेफ़र करेंगे, उतनी अधिक बार ₹50 कमाने का मौका मिलेगा।\n" +
-        "\n" +
-        "कोई सीमा नहीं — हर सफल रेफ़रल पर ₹50 आपके खाते में।\n" +
-        "\n" +
-        "आपके फायदे:\n" +
-        "✅ तुरंत इनाम: जब आपका रेफ़र किया हुआ माता-पिता ₹199 की प्रीमियम सेवा लेते हैं, तो आपको तुरंत ₹50 मिलते हैं।\n" +
-        "✅ आसान शेयरिंग: अपना रेफ़रल कोड SMS, WhatsApp, या सोशल मीडिया के ज़रिए शेयर करें।\n" +
-        "✅ अपनी प्रगति ट्रैक करें: \"मेरे रेफ़रल\" सेक्शन में जाकर अपने रेफ़रल की स्थिति देख सकते हैं।\n" +
-        "\n" +
-        "\uD83D\uDD12 जरूरी सूचना:\n" +
-        "रेफ़रल कोड का इस्तेमाल अनिवार्य है। रजिस्ट्रेशन के समय आपके कोड का उपयोग नहीं किया गया तो आपको लाभ नहीं मिलेगा।\n" +
-        "\n" +
-        "1 पॉइंट = ₹1 होता है।\n" +
-        "\n" +
-        "\uD83D\uDE80 कैसे शुरू करें?\n" +
-        "अपने \"Parent Login\" से ऐप में लॉगिन करें।\n" +
-        "\n" +
-        "\"रेफ़र ऐप\" सेक्शन में जाकर अपना यूनिक रेफ़रल कोड पाएं।\n" +
-        "\n" +
-        "नए माता-पिता को ऐप डाउनलोड कराएं और रजिस्ट्रेशन के समय आपका कोड इस्तेमाल करने को कहें।\n" +
-        "\n" +
-        "जैसे ही वे प्रीमियम सेवा लेते हैं, ₹50 आपके अकाउंट में जुड़ जाएंगे।"
+    val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रेफ़रल प्रोग्राम\n" +
+            "कैसे काम करता है:\n" +
+            "जब आप किसी अन्य माता-पिता को ‘MyKidVan’ ऐप डाउनलोड करने और प्रीमियम सेवा (₹199 पेमेंट) के लिए रजिस्टर करने के लिए रेफ़र करते हैं, तो आपको मिलते हैं:\n" +
+            "\n" +
+            "\uD83C\uDF81 ₹50 (50 पॉइंट्स) सीधे आपके खाते में!\n" +
+            "\n" +
+            "ज्यादा रेफ़र करें, ज्यादा कमाएं:\n" +
+            "जितने अधिक माता-पिता आप रेफ़र करेंगे, उतनी अधिक बार ₹50 कमाने का मौका मिलेगा।\n" +
+            "\n" +
+            "कोई सीमा नहीं — हर सफल रेफ़रल पर ₹50 आपके खाते में।\n" +
+            "\n" +
+            "आपके फायदे:\n" +
+            "✅ तुरंत इनाम: जब आपका रेफ़र किया हुआ माता-पिता ₹199 की प्रीमियम सेवा लेते हैं, तो आपको तुरंत ₹50 मिलते हैं।\n" +
+            "✅ आसान शेयरिंग: अपना रेफ़रल कोड SMS, WhatsApp, या सोशल मीडिया के ज़रिए शेयर करें।\n" +
+            "✅ अपनी प्रगति ट्रैक करें: \"मेरे रेफ़रल\" सेक्शन में जाकर अपने रेफ़रल की स्थिति देख सकते हैं।\n" +
+            "\n" +
+            "\uD83D\uDD12 जरूरी सूचना:\n" +
+            "रेफ़रल कोड का इस्तेमाल अनिवार्य है। रजिस्ट्रेशन के समय आपके कोड का उपयोग नहीं किया गया तो आपको लाभ नहीं मिलेगा।\n" +
+            "\n" +
+            "1 पॉइंट = ₹1 होता है।\n" +
+            "\n" +
+            "\uD83D\uDE80 कैसे शुरू करें?\n" +
+            "अपने \"Parent Login\" से ऐप में लॉगिन करें।\n" +
+            "\n" +
+            "\"रेफ़र ऐप\" सेक्शन में जाकर अपना यूनिक रेफ़रल कोड पाएं।\n" +
+            "\n" +
+            "नए माता-पिता को ऐप डाउनलोड कराएं और रजिस्ट्रेशन के समय आपका कोड इस्तेमाल करने को कहें।\n" +
+            "\n" +
+            "जैसे ही वे प्रीमियम सेवा लेते हैं, ₹50 आपके अकाउंट में जुड़ जाएंगे।"
 
     // Fetch commission based on user role once
     LaunchedEffect(Unit) {
         val driverId = if (viewModel.userRole.value == Constants.USER_PARENT) {
             viewModel.assignedVehicleId.value.toString()
-
         } else {
             viewModel.userId.value.toString()
         }
         viewModel.getCommission(driverId, userRole = userRole)
     }
 
+    /*    Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+
+                // Referral Code Card with animation
+                var scale by remember { mutableStateOf(1f) }
+                LaunchedEffect(Unit) {
+                    scale = 1.1f
+                    delay(500L)
+                    scale = 1f
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .scale(scale),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Your Referral Code", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            referralCode,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Commission Summary", style = MaterialTheme.typography.titleMedium)
+                        Text("Total Earned: ₹%.2f".format(totalEarned), color = Color(0xFF2E7D32))
+                        Text("Withdrawn: ₹%.2f".format(totalWithdrawn), color = Color(0xFFEF6C00))
+                        Text("Remaining: ₹%.2f".format(remaining), color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
+                    }
+                }
+
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { showSheet.value = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Withdraw Commission")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val parentContent  = "\uD83D\uDE90 बच्चा स्कूल वैन/ऑटो से जाता है?\n" +
+                        "\n" +
+                        "अब उसकी वैन की लाइव लोकेशन, ड्राइवर डिटेल और अलर्ट्स सब मिलेंगे एक ऐप में \uD83D\uDCF1\n" +
+                        "\n" +
+                        "\uD83D\uDCF2 *MyKidVan – पैरेंट्स के लिए Peace of Mind!*\n" +
+                        "\n" +
+                        "✅ GPS से वैन की LIVE ट्रैकिंग  \n" +
+                        "✅ ड्राइवर/वैन की जानकारी  \n" +
+                        "✅ पिकअप-ड्रॉप नोटिफिकेशन  \n" +
+                        "✅ इमरजेंसी के लिए सिक्योर फीचर्स\n" +
+                        "\n" +
+                        "\uD83D\uDCB0 सिर्फ ₹199/- साल भर की ट्रैकिंग (50 पैसे/दिन से भी कम!)\n" +
+                        "\n" +
+                        "\uD83D\uDC49 अभी Play Store से डाउनलोड करें:  \n" +
+                        "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
+                        "\n" +
+                        "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
+                        "(पेमेंट के बाद आपको ₹50 का फायदा मिलेगा!) \uD83D\uDCB8\n" +
+                        "\n" +
+                        "\uD83D\uDCE2 कृपया इसे अपने किसी जानने वाले पैरेंट तक भेजें या ग्रुप में शेयर करें –  \n" +
+                        "**एक ऐप, बच्चों की सुरक्षा और आपकी कमाई – दोनों!**"
+
+                val driverContent = "\uD83D\uDE4F हेलो पैरेंट्स,\n" +
+                        "\n" +
+                        "मैंने अपनी स्कूल वैन/ऑटो **MyKidVan ऐप** में रजिस्टर कर दी है \uD83D\uDE90  \n" +
+                        "अब आप मुझे ऐप में ढूंढकर मेरी वैन की **LIVE GPS ट्रैकिंग** शुरू कर सकते हैं।\n" +
+                        "\n" +
+                        "\uD83D\uDCF2 ऐप से मिलते हैं:\n" +
+                        "✅ वैन की लाइव लोकेशन  \n" +
+                        "✅ पिकअप/ड्रॉप अलर्ट  \n" +
+                        "✅ ड्राइवर की जानकारी  \n" +
+                        "✅ बच्चों की सुरक्षा के लिए खास फीचर्स\n" +
+                        "\n" +
+                        "✅ **रजिस्ट्रेशन और वैन सर्च करना बिल्कुल फ्री है**  \n" +
+                        "\uD83D\uDCB0 **सिर्फ ट्रैकिंग फीचर के लिए ₹199/- सालाना देना होता है**  \n" +
+                        "(1 दिन = 50 पैसे से भी कम!)\n" +
+                        "\n" +
+                        "\uD83D\uDC47 ऐप डाउनलोड करें:  \n" +
+                        "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
+                        "\n" +
+                        "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
+                        "(इससे मुझे ₹50 का बोनस मिलेगा – धन्यवाद \uD83D\uDE0A)\n" +
+                        "\n" +
+                        "\uD83D\uDD01 **आप भी ऐप शेयर करके ₹50 कमा सकते हैं — जब कोई व्यक्ति आपका कोड डालकर पेमेंट करता है!**\n" +
+                        "\n" +
+                        "\uD83D\uDCE2 बच्चों की सुरक्षा और आपकी कमाई — अब एक ही ऐप में!"
+
+                // Share Button
+                Button(
+                    onClick = {
+                        val message = if (userRole.equals(Constants.USER_DRIVER)) driverContent else parentContent
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, message)
+                            `package` = "com.whatsapp"
+                        }
+
+                        // Check if WhatsApp is installed
+                        if (intent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
+                        }
+
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: ActivityNotFoundException) {
+                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                ) {
+                    Text(text = "Share Now", color = Color.White)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Commission State UI
+                when (val state = commissionState) {
+                    is Resource.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
+
+                    is Resource.Success -> {
+                        if (userRole == Constants.USER_DRIVER) {
+                            val commissions = (state.data as CommissionResponse).data
+                            if (commissions.isNotEmpty()) {
+                                val totalAmount = commissions.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                                Text(
+                                    text = "Total Commission Earned: ₹%.2f".format(totalAmount),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFF2E7D32),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "No commissions yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                        } else if (userRole == Constants.USER_PARENT) {
+                            val commissionsP = (state.data as CommissionParentResponse).data
+                            if (commissionsP.isNotEmpty()) {
+                                val totalAmountP = commissionsP.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                                Text(
+                                    text = "Total Commission Earned: ₹%.2f".format(totalAmountP),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFF1565C0),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "No commission records available.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    is Resource.Error -> {
+                        val message = (commissionState as Resource.Error).message
+                        Text(
+                            text = "No commission available",
+                            color = Color.Red,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    is Resource.Idle<*> -> {
+
+                    }
+
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Info Text
+                Text(
+                    text = if(userRole.equals(Constants.USER_DRIVER))driverReferalText else parentReferalText, // see below for the constant
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                if (showSheet.value) {
+                    ModalBottomSheet(
+                        onDismissRequest = { showSheet.value = false },
+                        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text("Withdraw Commission", style = MaterialTheme.typography.titleLarge)
+
+                            OutlinedTextField(
+                                value = withdrawAmount.value,
+                                onValueChange = { withdrawAmount.value = it },
+                                label = { Text("Withdraw Amount") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = bankName.value,
+                                onValueChange = { bankName.value = it },
+                                label = { Text("Bank Name") },
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = ifscCode.value,
+                                onValueChange = { ifscCode.value = it },
+                                label = { Text("IFSC Code") },
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = accountNumber.value,
+                                onValueChange = { accountNumber.value = it },
+                                label = { Text("Account Number") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+
+                            Text("OR", modifier = Modifier.align(Alignment.CenterHorizontally))
+
+                            OutlinedTextField(
+                                value = upiId.value,
+                                onValueChange = { upiId.value = it },
+                                label = { Text("UPI ID (Optional)") },
+                                singleLine = true
+                            )
+
+                            Button(
+                                onClick = {
+                                    // TODO: Validate and Submit Withdraw Request
+                                    showSheet.value = false
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Submit", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    }
+                }
+
+            }
+        }*/
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-
-            // Referral Code Card with animation
+            // Referral Code Animation Card
             var scale by remember { mutableStateOf(1f) }
             LaunchedEffect(Unit) {
                 scale = 1.1f
@@ -203,91 +524,49 @@ val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रे
                     .padding(8.dp)
                     .scale(scale),
                 shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(6.dp)
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
+                        .fillMaxWidth() // Ensures Column takes full width of Card
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Your Referral Code", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        referralCode,
+                        "Your Referral Code",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF1565C0)
+                    )
+                    Text(
+                        text = referralCode,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp),
+                        color = Color(0xFF1565C0)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val parentContent  = "\uD83D\uDE90 बच्चा स्कूल वैन/ऑटो से जाता है?\n" +
-                    "\n" +
-                    "अब उसकी वैन की लाइव लोकेशन, ड्राइवर डिटेल और अलर्ट्स सब मिलेंगे एक ऐप में \uD83D\uDCF1\n" +
-                    "\n" +
-                    "\uD83D\uDCF2 *MyKidVan – पैरेंट्स के लिए Peace of Mind!*\n" +
-                    "\n" +
-                    "✅ GPS से वैन की LIVE ट्रैकिंग  \n" +
-                    "✅ ड्राइवर/वैन की जानकारी  \n" +
-                    "✅ पिकअप-ड्रॉप नोटिफिकेशन  \n" +
-                    "✅ इमरजेंसी के लिए सिक्योर फीचर्स\n" +
-                    "\n" +
-                    "\uD83D\uDCB0 सिर्फ ₹199/- साल भर की ट्रैकिंग (50 पैसे/दिन से भी कम!)\n" +
-                    "\n" +
-                    "\uD83D\uDC49 अभी Play Store से डाउनलोड करें:  \n" +
-                    "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
-                    "\n" +
-                    "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
-                    "(पेमेंट के बाद आपको ₹50 का फायदा मिलेगा!) \uD83D\uDCB8\n" +
-                    "\n" +
-                    "\uD83D\uDCE2 कृपया इसे अपने किसी जानने वाले पैरेंट तक भेजें या ग्रुप में शेयर करें –  \n" +
-                    "**एक ऐप, बच्चों की सुरक्षा और आपकी कमाई – दोनों!**"
-
-            val driverContent = "\uD83D\uDE4F हेलो पैरेंट्स,\n" +
-                    "\n" +
-                    "मैंने अपनी स्कूल वैन/ऑटो **MyKidVan ऐप** में रजिस्टर कर दी है \uD83D\uDE90  \n" +
-                    "अब आप मुझे ऐप में ढूंढकर मेरी वैन की **LIVE GPS ट्रैकिंग** शुरू कर सकते हैं।\n" +
-                    "\n" +
-                    "\uD83D\uDCF2 ऐप से मिलते हैं:\n" +
-                    "✅ वैन की लाइव लोकेशन  \n" +
-                    "✅ पिकअप/ड्रॉप अलर्ट  \n" +
-                    "✅ ड्राइवर की जानकारी  \n" +
-                    "✅ बच्चों की सुरक्षा के लिए खास फीचर्स\n" +
-                    "\n" +
-                    "✅ **रजिस्ट्रेशन और वैन सर्च करना बिल्कुल फ्री है**  \n" +
-                    "\uD83D\uDCB0 **सिर्फ ट्रैकिंग फीचर के लिए ₹199/- सालाना देना होता है**  \n" +
-                    "(1 दिन = 50 पैसे से भी कम!)\n" +
-                    "\n" +
-                    "\uD83D\uDC47 ऐप डाउनलोड करें:  \n" +
-                    "https://play.google.com/store/apps/details?id=com.vihaanshika.mykidsvan.android\n" +
-                    "\n" +
-                    "\uD83E\uDDFE **रजिस्ट्रेशन के समय मेरा रेफरल कोड डालें:** \uD83D\uDC49 **$referralCode**  \n" +
-                    "(इससे मुझे ₹50 का बोनस मिलेगा – धन्यवाद \uD83D\uDE0A)\n" +
-                    "\n" +
-                    "\uD83D\uDD01 **आप भी ऐप शेयर करके ₹50 कमा सकते हैं — जब कोई व्यक्ति आपका कोड डालकर पेमेंट करता है!**\n" +
-                    "\n" +
-                    "\uD83D\uDCE2 बच्चों की सुरक्षा और आपकी कमाई — अब एक ही ऐप में!"
-
-            // Share Button
+            // Share Now Button
             Button(
                 onClick = {
-                    val message = if (userRole.equals(Constants.USER_DRIVER)) driverContent else parentContent
+                    val message =
+                        if (userRole == Constants.USER_DRIVER) driverReferalText else parentReferalText
                     val intent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
                         putExtra(Intent.EXTRA_TEXT, message)
                         `package` = "com.whatsapp"
                     }
 
-                    // Check if WhatsApp is installed
-                    if (intent.resolveActivity(context.packageManager) != null) {
-                        context.startActivity(intent)
-                    } else {
-                        Toast.makeText(context, "WhatsApp is not installed", Toast.LENGTH_SHORT).show()
-                    }
-
                     try {
-                        context.startActivity(intent)
+                        if (intent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT)
+                                .show()
+                        }
                     } catch (e: ActivityNotFoundException) {
                         Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
                     }
@@ -296,28 +575,70 @@ val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रे
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                elevation = ButtonDefaults.buttonElevation(8.dp)
+                elevation = ButtonDefaults.buttonElevation(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
             ) {
-                Text(text = "Share Now", color = Color.White)
+                Text("Share Now", color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Commission State UI
-            when (val state = commissionState) {
-                is Resource.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            // Commission Summary Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth() // Ensures full width for proper horizontal centering
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally, // Centers content horizontally
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Commission Summary",
+                        color = Color(0xFF1565C0),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text("Total Earned: ₹%.2f".format(totalEarned), color = Color(0xFF2E7D32))
+                    Text("Withdrawn: ₹%.2f".format(totalWithdrawn), color = Color(0xFFF57C00))
+                    Text(
+                        "Remaining: ₹%.2f".format(remaining),
+                        color = Color(0xFF1976D2),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { showSheet.value = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+            ) {
+                Text("Withdraw Commission", color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Commission State
+            when (val state = commissionState) {
+                is Resource.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                 is Resource.Success -> {
                     if (userRole == Constants.USER_DRIVER) {
                         val commissions = (state.data as CommissionResponse).data
                         if (commissions.isNotEmpty()) {
-                            val totalAmount = commissions.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                            val totalAmount =
+                                commissions.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
                             Text(
                                 text = "Total Commission Earned: ₹%.2f".format(totalAmount),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color(0xFF2E7D32),
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         } else {
@@ -330,11 +651,11 @@ val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रे
                     } else if (userRole == Constants.USER_PARENT) {
                         val commissionsP = (state.data as CommissionParentResponse).data
                         if (commissionsP.isNotEmpty()) {
-                            val totalAmountP = commissionsP.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
+                            val totalAmountP =
+                                commissionsP.sumOf { it.amount?.toDoubleOrNull() ?: 0.0 }
                             Text(
                                 text = "Total Commission Earned: ₹%.2f".format(totalAmountP),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color(0xFF1565C0),
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         } else {
@@ -347,31 +668,122 @@ val parentReferalText = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 रे
                     }
                 }
 
-                is Resource.Error -> {
-                    val message = (commissionState as Resource.Error).message
-                    Text(
-                        text = "No commission available",
-                        color = Color.Red,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                is Resource.Error -> Text(
+                    "No commission available",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center
+                )
 
-                is Resource.Idle<*> -> {
-
-                }
-
+                is Resource.Idle<*> -> {}
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Info Text
             Text(
-                text = if(userRole.equals(Constants.USER_DRIVER))driverReferalText else parentReferalText, // see below for the constant
+                text = if (userRole == Constants.USER_DRIVER) driverReferalText else parentReferalText,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            if (showSheet.value) {
+                ModalBottomSheet(
+                    onDismissRequest = { showSheet.value = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    val scrollState = rememberScrollState()
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .verticalScroll(scrollState)
+                            .imePadding() // 👈 adds padding when keyboard is visible
+                            .padding(bottom = 32.dp) // 👈 manual bottom padding for Submit button spacing
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            "Withdraw Commission",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+
+                        val fieldModifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = withdrawAmount.value,
+                            onValueChange = { withdrawAmount.value = it },
+                            label = { Text("Withdraw Amount") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldModifier
+                        )
+
+                        OutlinedTextField(
+                            value = bankName.value,
+                            onValueChange = { bankName.value = it },
+                            label = { Text("Bank Name") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldModifier
+                        )
+
+                        OutlinedTextField(
+                            value = ifscCode.value,
+                            onValueChange = { ifscCode.value = it },
+                            label = { Text("IFSC Code") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldModifier
+                        )
+
+                        OutlinedTextField(
+                            value = accountNumber.value,
+                            onValueChange = { accountNumber.value = it },
+                            label = { Text("Account Number") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldModifier
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("OR", modifier = Modifier.align(Alignment.CenterHorizontally))
+
+                        OutlinedTextField(
+                            value = upiId.value,
+                            onValueChange = { upiId.value = it },
+                            label = { Text("UPI ID (Optional)") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldModifier
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Button(
+                            onClick = {
+                                // TODO: Withdraw logic
+                                showSheet.value = false
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+                        ) {
+                            Text("Submit", color = Color.White)
+                        }
+                    }
+                }
+            }
         }
     }
+
 }
 

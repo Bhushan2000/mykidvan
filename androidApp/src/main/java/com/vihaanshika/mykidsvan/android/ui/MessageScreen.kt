@@ -143,11 +143,18 @@ fun MessageScreen(
             viewModel.resetGetAllParent()
         }
     }
+    val listState = rememberLazyListState()
+
+    // Show FAB only if user is NOT at the bottom (first visible item index != 0)
+    val showScrollToBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
-//            .verticalScroll(rememberScrollState())
             .imePadding()
     ) {
 

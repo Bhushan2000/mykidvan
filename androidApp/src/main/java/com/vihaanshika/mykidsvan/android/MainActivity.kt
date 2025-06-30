@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,9 +57,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
+import com.example.maptracking.LatLngViewModel
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.AppUpdateType.IMMEDIATE
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
@@ -98,6 +102,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.util.UUID
 
 
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
@@ -112,7 +117,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         super.onCreate(savedInstanceState)
         Checkout.preload(applicationContext)
         checkForUpdate()
-
         setContent {
             MyApplicationTheme {
                 // Capture intent data
@@ -168,6 +172,9 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
         appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+            Log.d("AppUpdate", "Update Availability: ${appUpdateInfo.updateAvailability()}")
+            Log.d("AppUpdate", "Is Immediate Update Allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)}")
+            Log.d("AppUpdate", "Available Version Code: ${appUpdateInfo.availableVersionCode()}")
             if (
                 appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                 appUpdateInfo.isUpdateTypeAllowed(IMMEDIATE)
@@ -233,6 +240,7 @@ fun MyApp(
 
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
     val messagesViewModel: MessagesViewModel = getViewModel()
+    val latViewModel: LatLngViewModel = getViewModel()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -250,7 +258,7 @@ fun MyApp(
 
     // Collect your flag
     val openMessageScreen by loginViewModel.navigateToMessageScreen.collectAsState()
-
+    var refreshKey by remember { mutableStateOf(UUID.randomUUID().toString()) }
     LaunchedEffect(userId) {
         if (userId != null) {
             Log.d(
@@ -433,9 +441,14 @@ fun MyApp(
                     }
                     // Drawer items
                     composable(DrawerItem.Home.route) {
-                        MapScreen(
-                            userRole = userRole.toString(), userId = userId.toString()
-                        )
+                        key(refreshKey) {
+                            MapScreen(
+                                viewModel = latViewModel,
+                                userRole = userRole.toString(),
+                                userId = userId.toString(),
+                                onRefresh = { refreshKey = UUID.randomUUID().toString() } // 🔁 Refresh handler
+                            )
+                        }
                     }
 
                     composable(DrawerItem.Profile.route) {
@@ -618,10 +631,12 @@ fun CustomTopAppBar(
 ) {
     val topBarPadding = 12.dp
     val horizontalPadding = 12.dp
+    val appBarHeight = 64.dp // You can reduce this (default is ~64.dp)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(appBarHeight)
             .padding(
                 top = topBarPadding,
                 start = horizontalPadding,

@@ -144,7 +144,7 @@ fun FindVehicleScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Tab Navigation

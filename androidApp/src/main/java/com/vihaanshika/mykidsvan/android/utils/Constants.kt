@@ -105,6 +105,6 @@ object Constants {
     const val TRACKING_REQUEST_CHANNEL = "tracking_request_channel"
     const val LOCATION_CHANNEL = "location_channel"
     const val ACTION_STOP_TRACKING = "ACTION_STOP_TRACKING"
-
-
+    const val ACTION_START_POLLING ="ACTION_START_POLLING"
+    const val ACTION_STOP_POLLING = "ACTION_STOP_POLLING"
 }

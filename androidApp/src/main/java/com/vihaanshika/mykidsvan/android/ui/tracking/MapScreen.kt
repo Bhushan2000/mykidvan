@@ -5,7 +5,6 @@ import com.google.android.gms.maps.model.JointType
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +19,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -57,6 +57,9 @@ import com.google.android.gms.location.LocationServices
 import org.koin.androidx.compose.koinViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -78,17 +81,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 
-fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, userId: String) {
+fun MapScreen(
+    viewModel: LatLngViewModel = koinViewModel(),
+    userRole: String,
+    userId: String,
+    onRefresh: () -> Unit
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val parentLatLngList by viewModel.latLngList.collectAsState()
     val driverLatLngList by viewModel.localLatLngList.collectAsState()
-    val trackingStatus by viewModel.trackingStatus.collectAsState()
     val latLngList = if (userRole == Constants.USER_PARENT) {
         parentLatLngList
     } else {
@@ -111,25 +119,30 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
     val timer = remember { mutableStateOf(0) }
     // Track changes to last LatLng
     var lastKnownPoint by remember { mutableStateOf(latLngList.lastOrNull()) }
-    val fullPolylineList by viewModel.visiblePolylinePath.collectAsState()
+    val fullPolylineListDriver by viewModel.visiblePolylinePath.collectAsState()
+    val fullPolylineListParent by viewModel.visiblePolylinePathParent.collectAsState()
+    val fullPolylineList = if (userRole == Constants.USER_PARENT) {
+        fullPolylineListParent
+    } else {
+        fullPolylineListDriver
+    }
 
     var showExitDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isTracking) {
         if (isTracking) {
             viewModel.registerLocationReceiverIfNeeded(context, userRole.toString())
-            Log.d("TAG", "MapScreen: trackingStatus - $trackingStatus")
         } else {
             viewModel.unregisterLocationReceiverIfNeeded(context, userRole.toString())
         }
     }
 
     // this destroy service when page is leave
-    DisposableEffect(userRole) {
-        onDispose {
-            viewModel.stopTracking() // Stop LiveData/StateFlow updates
-        }
-    }
+//    DisposableEffect(userRole) {
+//        onDispose {
+//            viewModel.stopTracking() // Stop LiveData/StateFlow updates
+//        }
+//    }
 
     val locationSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -278,9 +291,10 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
     // Follow the latest location update to animate camera
     LaunchedEffect(latLngList.lastOrNull()) {
         latLngList.lastOrNull()?.let { newLatLng ->
-            if (isTracking) {
-                cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(newLatLng, 18f), 1000)
-            }
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(newLatLng, 18f),
+                1000
+            )
         }
     }
 
@@ -383,7 +397,7 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
                     context = context
                 )
         }
-    ) {
+    ) { paddingValue->
         Box(Modifier.fillMaxSize()) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -459,11 +473,102 @@ fun MapScreen(viewModel: LatLngViewModel = koinViewModel(), userRole: String, us
             if (userRole == Constants.USER_PARENT && !assignedVehicleId.isNullOrBlank() && vehicleTrackingStatus.equals(
                     PlaceHolders.ACCEPTED
                 )
-            )
+            ) {
                 RadarTimerWithProgress(
                     timer = timer.value,
                     isDriverInactive = isDriverInactive.value
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (isDriverInactive.value && !isTracking) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 80.dp),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Text(
+                            text = "🚌❌ Vehicle owner hasn't started tracking yet",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp), // Optional side padding
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            viewModel.stopTracking()
+                            viewModel.clearParentRoute()
+                            latLngList.lastOrNull()?.let { latestLatLng ->
+                                coroutineScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(latestLatLng, 18f),
+                                        1000
+                                    )
+                                }
+                            }
+                            onRefresh() // 🔁 Triggers full screen recomposition
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 150.dp, end = 16.dp)
+                            .size(48.dp) // Circular button size
+                            .background(Color(0xFF2196F3), shape = CircleShape)
+                            .shadow(6.dp, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                } else if (isDriverInactive.value) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 80.dp),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Text(
+                            text = "😞 Live Tracking not shown\nRefresh the Screen",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp), // Optional side padding
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            viewModel.stopTracking()
+                            viewModel.clearParentRoute()
+                            latLngList.lastOrNull()?.let { latestLatLng ->
+                                coroutineScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(latestLatLng, 18f),
+                                        1000
+                                    )
+                                }
+                            }
+                            onRefresh() // 🔁 Triggers full screen recomposition
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 150.dp, end = 16.dp)
+                            .size(48.dp) // Circular button size
+                            .background(Color(0xFF2196F3), shape = CircleShape)
+                            .shadow(6.dp, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
 
             // 🟢 Driver-only Start/Stop button
             if (userRole == Constants.USER_DRIVER) {

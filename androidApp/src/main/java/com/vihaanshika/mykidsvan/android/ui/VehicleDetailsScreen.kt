@@ -104,7 +104,7 @@ fun VehicleDetailsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+            .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         when {
             assignVehicleId == null -> {

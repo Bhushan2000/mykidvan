@@ -160,26 +160,12 @@ fun ChatScreen(
             viewModel.resetGetAllParent()
         }
     }
-    Scaffold(
-        topBar = {
-            SmallTopAppBar(
-                title = {
-                    Text(text = parentIdOrName ?: "All Parents")
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = paddingValues.calculateTopPadding() + 24.dp,
-                )
+                .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                .imePadding()
         ) {
 
             // Message List
@@ -489,7 +475,7 @@ fun ChatScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             )
             {
@@ -551,5 +537,5 @@ fun ChatScreen(
                 }
             }
         }
-    }
+
 }

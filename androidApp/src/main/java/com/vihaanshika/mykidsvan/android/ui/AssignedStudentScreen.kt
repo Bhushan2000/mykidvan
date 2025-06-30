@@ -64,7 +64,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
         userId?.let { viewModel.loadDriverRequests(it) }
     }
 
-    Box(modifier = Modifier.fillMaxSize().padding( top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+    Box(modifier = Modifier.fillMaxSize().padding( top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

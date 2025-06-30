@@ -94,7 +94,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding( top = 100.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .padding( top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Text("Tap to upload each vehicle photo", fontSize = 16.sp, fontWeight = FontWeight.Medium)

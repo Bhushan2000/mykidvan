@@ -51,6 +51,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.authapp.presentation.viewmodel.AuthViewModel
@@ -238,7 +239,7 @@ fun ParentSignupScreen(
         }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Parents Registration Form") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(text = "Parents Registration", textAlign= TextAlign.Center) }) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

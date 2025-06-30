@@ -67,7 +67,7 @@ fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 100.dp, start = 16.dp),
+                .padding(top = 150.dp, start = 16.dp),
             contentAlignment = Alignment.TopStart
         ) {
             // 🔵 Radar Pulse

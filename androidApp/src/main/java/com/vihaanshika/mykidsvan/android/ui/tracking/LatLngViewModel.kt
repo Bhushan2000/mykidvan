@@ -60,6 +60,10 @@ class LatLngViewModel(
     private val _visiblePolylinePath = MutableStateFlow<List<LatLng>>(emptyList())
     val visiblePolylinePath: StateFlow<List<LatLng>> = _visiblePolylinePath
 
+    // for parent
+    private val _visiblePolylinePathParent = MutableStateFlow<List<LatLng>>(emptyList())
+    val visiblePolylinePathParent: StateFlow<List<LatLng>> = _visiblePolylinePathParent
+
     // for driver
     private val _localLatLngList = MutableStateFlow<List<LatLng>>(emptyList())
     val localLatLngList: StateFlow<List<LatLng>> = _localLatLngList
@@ -91,9 +95,6 @@ class LatLngViewModel(
 
     private val kalmanFilter = SimpleKalmanLatLong(qMetresPerSecond = 3.0f)
     private var lastValidBearing: Float? = null
-    private val _trackingStatus =
-        MutableStateFlow("") // or null if you want to start with unknown
-    val trackingStatus: StateFlow<String> = _trackingStatus
     var speed: Double? = 0.00
 
     init {
@@ -200,7 +201,7 @@ class LatLngViewModel(
                                     Log.d("DEBUG", "Inside USER_PARENT block")
 
                                     if (latLng.latitude != 0.0 && latLng.longitude != 0.0) {
-                                        val lastVisible = _visiblePolylinePath.value.lastOrNull()
+                                        val lastVisible = _visiblePolylinePathParent.value.lastOrNull()
                                         val lastLatLng = _latLngList.value.lastOrNull()
 
                                         val isNewPoint = lastLatLng?.let {
@@ -218,7 +219,7 @@ class LatLngViewModel(
 
                                             // ✅ Add to _visiblePolylinePath if not already last
                                             if (lastVisible?.latitude != latLng.latitude || lastVisible.longitude != latLng.longitude) {
-                                                _visiblePolylinePath.update { oldList -> oldList + latLng }
+                                                _visiblePolylinePathParent.update { oldList -> oldList + latLng }
                                             }
 
                                             // ✅ Add to _latLngList
@@ -263,11 +264,6 @@ class LatLngViewModel(
                                     sendCurrentLocationToServer(location, speed)
                                 }
                             }
-
-                            Constants.TRACKING_STATUS_CHANGED -> {
-                                val newStatus = intent.getStringExtra("tracking_status") ?: "stop"
-                                updateTrackingStatus(newStatus)
-                            }
                         }
                     }
                 }
@@ -303,9 +299,6 @@ class LatLngViewModel(
         stopTrackingService(context)
     }
 
-    fun updateTrackingStatus(newStatus: String) {
-        _trackingStatus.value = newStatus
-    }
 
     // This avoids sudden backward turns unless the user is truly reversing
     fun isBearingAcceptable(oldBearing: Float, newBearing: Float): Boolean {
@@ -602,4 +595,21 @@ class LatLngViewModel(
             }
         }
     }
+
+    fun clearParentRoute(){
+        _visiblePolylinePathParent.value = emptyList<LatLng>()
+        _latLngList.value = emptyList<LatLng>()
+    }
+
+    private val _trackingState = MutableStateFlow<String>("")
+    val trackingState: StateFlow<String> = _trackingState
+
+    fun refreshTracking(driverId: String) {
+        viewModelScope.launch {
+            val result = repository.getLatLong(driverId)
+            val status = result.data.firstOrNull()?.lat_status ?: "unknown"
+            _trackingState.value = status
+        }
+    }
+
 }

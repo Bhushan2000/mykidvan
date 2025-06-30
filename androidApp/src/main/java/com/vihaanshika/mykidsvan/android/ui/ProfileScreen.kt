@@ -186,7 +186,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 80.dp)
+            .padding(top = 64.dp)
     ) {
         if (viewModel.isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
