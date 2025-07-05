@@ -57,7 +57,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import coil.compose.AsyncImage
 import com.vihaanshika.mykidsvan.android.MainActivity
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverMob
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -66,8 +65,12 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.DisposableEffect
+import coil.compose.AsyncImage
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Resource
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +80,9 @@ fun FindVehicleScreen(
     userId: String,
     onPaymentSuccess: (PaymentData) -> Unit,
     onPaymentFailure: (Int, String?) -> Unit,
-    requestAssignedStatus: String?
+    requestAssignedStatus: String?,
+    trialDate: String?,
+    paymentStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -90,6 +95,10 @@ fun FindVehicleScreen(
     val orderIdState by viewModel.getOrderId.collectAsState()
     var razorOrderId by remember { mutableStateOf<String?>(null) }
     var razorAmount by remember { mutableStateOf<Int?>(null) }
+
+    val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+    val today = dateFormat.parse(dateFormat.format(Date()))
+    val trial = dateFormat.parse(trialDate)
 
     LaunchedEffect(Unit) {
         if (requestAssignedStatus == null)
@@ -114,7 +123,7 @@ fun FindVehicleScreen(
                 viewModel.updatePaymentStatus(
                     id = userId.toInt(),
                     paymentId = paymentData.paymentId ?: "TXN",
-                    amount = (razorAmount?.toInt()?.div(100)).toString(),
+                    amount = (razorAmount?.div(100)).toString(),
                     paymentStatus = "Paid",
                     expireDate = expireDate,
                     paymentDate = paymentDate,
@@ -165,7 +174,6 @@ fun FindVehicleScreen(
                 0 -> FindBySchoolSection(
                     assignVehicleId,
                     razorAmount ?: 0,
-                    currentDate,
                     expireDate,
                     viewModel = viewModel,
                     userId = userId,
@@ -178,13 +186,15 @@ fun FindVehicleScreen(
                                 Toast.LENGTH_SHORT
                             ).show()
                     },
-                    requestAssignedStatus
+                    requestAssignedStatus,
+                    today,
+                    trial,
+                    paymentStatus
                 )
 
                 1 -> FindByMobileSection(
                     assignVehicleId,
                     razorAmount ?: 0,
-                    currentDate,
                     expireDate,
                     viewModel = viewModel,
                     userId = userId,
@@ -197,7 +207,10 @@ fun FindVehicleScreen(
                                 Toast.LENGTH_SHORT
                             ).show()
                     },
-                    requestAssignedStatus
+                    requestAssignedStatus,
+                    today,
+                    trial,
+                    paymentStatus
                 )
             }
         }
@@ -209,12 +222,14 @@ fun FindVehicleScreen(
 fun FindByMobileSection(
     assignVehicleId: String?,
     paymentAmountInPaise: Int,
-    currentDate: LocalDate,
     expireDate: String,
     viewModel: AuthViewModel,
     userId: String,
     onStartPayment: (driverId: String) -> Unit,
-    requestAssignedStatus: String?
+    requestAssignedStatus: String?,
+    today: Date?,
+    trial: Date?,
+    paymentStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -291,14 +306,16 @@ fun FindByMobileSection(
             DriverCard(
                 assignVehicleId = assignVehicleId,
                 paymentAmountInPaise,
-                currentDate,
                 expireDate,
                 driver = foundDriver!!,
                 viewModel = viewModel,
                 userId = userId,
                 onStartPayment = onStartPayment,
                 isLoading = isLoading,
-                requestAssignedStatus
+                requestAssignedStatus,
+                today = today,
+                trial = trial,
+                paymentStatus = paymentStatus
             )
         }
     }
@@ -324,12 +341,14 @@ fun FindByMobileSection(
 fun FindBySchoolSection(
     assignVehicleId: String?,
     paymentAmountInPaise: Int,
-    currentDate: LocalDate,
     expireDate: String,
     viewModel: AuthViewModel,
     userId: String,
     onStartPayment: (driverId: String) -> Unit,
-    requestAssignedStatus: String?
+    requestAssignedStatus: String?,
+    today: Date?,
+    trial: Date?,
+    paymentStatus: String?
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -450,13 +469,15 @@ fun FindBySchoolSection(
                         DriverCard(
                             assignVehicleId,
                             paymentAmountInPaise,
-                            currentDate,
                             expireDate,
                             driver = driver,
                             viewModel = viewModel,
                             userId = userId,
                             onStartPayment = onStartPayment,
                             requestAssignedStatus = requestAssignedStatus,
+                            today = today,
+                            trial = trial,
+                            paymentStatus = paymentStatus
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -591,14 +612,16 @@ fun DriverCard(
 fun DriverCard(
     assignVehicleId: String?,
     paymentAmountInPaise: Int,
-    currentDate: LocalDate,
     expireDate: String,
     driver: DriverMob,
     viewModel: AuthViewModel,
     userId: String,
     onStartPayment: (String) -> Unit,
     isLoading: Boolean = false,
-    requestAssignedStatus: String?
+    requestAssignedStatus: String?,
+    today: Date?,
+    trial: Date?,
+    paymentStatus: String?
 ) {
     val context = LocalContext.current
     val openDialog = remember { mutableStateOf(false) }
@@ -707,22 +730,35 @@ fun DriverCard(
                 // Send Request Button
                 Button(
                     onClick = {
-                        if (requestAssignedStatus.equals("pending")) {
+                        if (today != null && trial != null && (today.before(trial) || today == trial)) {// trial period send assigned request to driver
+                            // Execute code before or on the trial date
+                            viewModel.sendAssignRequest(driver.id.toString(), userId)
+
+                        } else if (requestAssignedStatus.equals(Constants.REQUEST_PENDING)
+                            && paymentStatus.equals("Paid")
+                        ) { // request in process
                             Toast.makeText(
                                 context,
                                 "Your request is already in Process",
                                 Toast.LENGTH_SHORT
                             ).show()
-                        } else if (requestAssignedStatus == null) {
+                        } else if (requestAssignedStatus == null && paymentStatus == null) { // assign status null and payment status null then pay only
                             showSheet.value = true
-                        } else if (assignVehicleId != null && requestAssignedStatus.equals("rejected")) {
+                        } else if (assignVehicleId != null &&
+                            requestAssignedStatus.equals(Constants.REQUEST_REJECTED) &&
+                            paymentStatus.equals("Paid")
+                        ) { // for rejected condition
                             viewModel.sendAssignRequest(driver.id.toString(), userId)
-                        } else
+                        } else if (assignVehicleId != null &&
+                            requestAssignedStatus.equals(Constants.REQUEST_ACCEPTED)
+                        ) { // for accepted condition
                             Toast.makeText(
                                 context,
                                 "Already Vehicle Owner Assigned",
                                 Toast.LENGTH_SHORT
                             ).show()
+                        }
+
                     },
                     enabled = !isLoading,
                     modifier = Modifier.weight(1f),
@@ -870,5 +906,3 @@ fun DetailItem(label: String, value: String) {
         )
     }
 }
-
-

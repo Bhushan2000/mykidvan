@@ -19,6 +19,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateTokenRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
@@ -49,15 +50,29 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawRequestStatus
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawResponse
 
 
 class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
-    override suspend fun login(username: String, password: String, token: String): LoginResponse {
+    override suspend fun login(
+        username: String,
+        password: String,
+        token: String,
+        app_version: String,
+        os_version: String,
+        device_model: String,
+        last_seen: String
+    ): LoginResponse {
         return api.login(
             mapOf(
                 "number" to username,
                 "password" to password,
-                "device_token" to token
+                "device_token" to token,
+                "app_version" to app_version,
+                "os_version" to os_version,
+                "device_model" to device_model,
+                "last_seen" to last_seen
             )
         )
     }
@@ -88,7 +103,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         availabilityStatus: String,
         termsAccepted: String,
         referalCode: String,
-        referby: String
+        referby: String,
+        registeration_date: String
     ): RegistrationResponse {
         val requestBodyMap = mapOf(
             "driver_name" to ownerName,
@@ -118,7 +134,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             "availability_status" to availabilityStatus,
             "terms_and_condition" to termsAccepted,
             "refer_id" to referalCode,
-            "refer_by" to referby
+            "refer_by" to referby,
+            "registeration_date" to registeration_date
         )
         return api.registerDriver(requestBodyMap)
     }
@@ -143,7 +160,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         emergencyContact: String,
         termsAccepted: String,
         referalCode: String,
-        referby: String
+        referby: String,
+        registeration_date: String
     ): RegistrationResponse {
         val registerParentRequest = ParentRegistrationRequest(
             parentName,
@@ -164,7 +182,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             emergencyContact,
             termsAccepted,
             referalCode,
-            referby
+            referby,
+            registeration_date = registeration_date
         )
         return api.registerParent(registerParentRequest)
     }
@@ -474,5 +493,13 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun getClasses(): GetClassesResponse {
         return api.getClasses()
+    }
+
+    override suspend fun withdrawCommission(request: WithdrawRequest): WithdrawResponse {
+        return api.withdrawCommission(request)
+    }
+
+    override suspend fun withdrawCommissionStatus(parentId: String): WithdrawRequestStatus {
+        return api.withdrawCommissionRequests(parentId)
     }
 }

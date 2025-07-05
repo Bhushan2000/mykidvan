@@ -19,5 +19,6 @@ data class ParentRegistrationRequest(
     val emergency_contact: String,
     val terms_condition: String,        // Assuming "true"/"false" as String
     val refer_id: String,
-    val refer_by: String
+    val refer_by: String,
+    val registeration_date: String
 )

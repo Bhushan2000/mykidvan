@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.maptracking.LatLngViewModel
 import com.vihaanshika.mykidsvan.android.R
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -75,25 +76,39 @@ import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
+import com.razorpay.PaymentData
+import com.vihaanshika.mykidsvan.android.MainActivity
 import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 @SuppressLint("MissingPermission")
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 
 fun MapScreen(
+    paymentStatus: String?,
+    requestAssignedStatus: String?,
     viewModel: LatLngViewModel = koinViewModel(),
+    authViewModel: AuthViewModel,
     userRole: String,
     userId: String,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    trialDate: String?,
+    onPaymentSuccess: (PaymentData) -> Unit,
+    onPaymentFailure: (Int, String?) -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = context as? MainActivity
     val coroutineScope = rememberCoroutineScope()
     val parentLatLngList by viewModel.latLngList.collectAsState()
     val driverLatLngList by viewModel.localLatLngList.collectAsState()
@@ -128,6 +143,63 @@ fun MapScreen(
     }
 
     var showExitDialog by remember { mutableStateOf(false) }
+    val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+    val today = dateFormat.parse(dateFormat.format(Date()))
+    val trial = if (!trialDate.isNullOrBlank()) {
+        dateFormat.parse(trialDate)
+    } else {
+        Log.e("MapScreen", "trialDate is null or blank!")
+        null
+    }
+
+    // payments
+    var showPaymentDialog by remember { mutableStateOf(false) }
+    var redirectToPayment by remember { mutableStateOf(false) }
+    val hasTriggeredPaymentDialog = remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val showSheet = remember { mutableStateOf(false) }
+    val currentDate = LocalDate.now()
+    val paymentDate = currentDate.format(DateTimeFormatter.ISO_DATE)
+    val expireDate = currentDate.plusYears(1).format(DateTimeFormatter.ISO_DATE)
+
+    val orderIdState by authViewModel.getOrderId.collectAsState()
+    var razorOrderId by remember { mutableStateOf<String?>(null) }
+    var razorAmount by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(orderIdState) {
+        if (orderIdState is Resource.Success) {
+            val data = (orderIdState as Resource.Success).data
+            data.let {
+                razorOrderId = it.orderId
+                razorAmount = it.amountPaise
+            }
+        }
+    }
+
+    // Razorpay Callbacks Setup
+    LaunchedEffect(Unit) {
+        activity?.onPaymentSuccessCallback = { paymentData ->
+            onPaymentSuccess(paymentData)
+            authViewModel.updatePaymentStatus(
+                id = userId.toInt(),
+                paymentId = paymentData.paymentId ?: "TXN",
+                amount = (razorAmount?.div(100)).toString(),
+                paymentStatus = "Paid",
+                expireDate = expireDate,
+                paymentDate = paymentDate,
+                assignStatus = "Assigned",
+                assignDate = paymentDate,
+                signature = paymentData.signature,
+                orderId = paymentData.orderId
+            )
+        }
+
+        activity?.onPaymentFailureCallback = { code, message ->
+            Toast.makeText(context, "Payment failed", Toast.LENGTH_SHORT).show()
+            Log.e("TAG", "MapScreen: $message")
+            onPaymentFailure(code, message)
+        }
+    }
 
     LaunchedEffect(isTracking) {
         if (isTracking) {
@@ -137,12 +209,12 @@ fun MapScreen(
         }
     }
 
-    // this destroy service when page is leave
-//    DisposableEffect(userRole) {
-//        onDispose {
-//            viewModel.stopTracking() // Stop LiveData/StateFlow updates
-//        }
-//    }
+    /*     this destroy service when page is leave
+        DisposableEffect(userRole) {
+            onDispose {
+                viewModel.stopTracking() // Stop LiveData/StateFlow updates
+            }
+        }*/
 
     val locationSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -397,7 +469,7 @@ fun MapScreen(
                     context = context
                 )
         }
-    ) { paddingValue->
+    ) { paddingValue ->
         Box(Modifier.fillMaxSize()) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
@@ -630,11 +702,114 @@ fun MapScreen(
                     PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
                     PlaceHolders.MSG_REQUEST_DRIVER_REJECTED
                 )
+            } else if (today != null && trial != null && paymentStatus == null && today.after(trial) || today == trial) {// trial period send assigned request to driver
+                LaunchedEffect(Unit) {
+                    showPaymentDialog = true
+                    hasTriggeredPaymentDialog.value = true
+                }
             }
         }
     }
     BackHandler(enabled = isTracking && userRole.equals(Constants.USER_DRIVER)) {
         showExitDialog = true
+    }
+    if (showPaymentDialog) {
+        AlertDialog(
+            onDismissRequest = { showPaymentDialog = false },
+            title = { Text("Trial Expired") },
+            text = {
+                Text("Your trial period has ended. Please complete payment to continue using the app.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        authViewModel.getRazorPayOrderId()
+                        showPaymentDialog = false
+                        redirectToPayment = true // trigger Razorpay bottom sheet
+                        showSheet.value = true
+                    }
+                ) {
+                    Text("Proceed to Payment")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPaymentDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (redirectToPayment) {
+        val fees = razorAmount?.div(100)
+        val duration = "12 Months"
+        val total = fees ?: 0
+
+        if (showSheet.value) {
+            ModalBottomSheet(
+                onDismissRequest = { showSheet.value = false },
+                sheetState = sheetState,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        "\uD83D\uDE90 Complete the Payment",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(16.dp))
+
+                    Text("Duration: $duration", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        "Total: ₹$total",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(Modifier.height(24.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedButton(
+                            onClick = { showSheet.value = false },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+
+                        Button(
+                            onClick = {
+                                showSheet.value = false
+                                redirectToPayment = false // Reset state to avoid repeat triggering
+                                if (activity != null) {
+                                    activity.startPayment(razorAmount, razorOrderId)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Unable to start payment.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Continue")
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
     }
 }
 

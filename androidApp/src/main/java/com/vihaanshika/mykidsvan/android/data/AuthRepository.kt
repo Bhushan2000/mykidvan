@@ -5,6 +5,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.SchoolRegistrationRequ
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendMessageRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.SendRequestToDriverResponse
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
@@ -36,11 +37,15 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawRequestStatus
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawResponse
 
 // Domain Layer: AuthRepository.kt
 interface AuthRepository {
 
-    suspend fun login(email: String, password: String, token: String): LoginResponse
+    suspend fun login(email: String, password: String, token: String,
+                      app_version: String, os_version: String,
+                      device_model: String,last_seen: String): LoginResponse
 
     suspend fun sendOtp(number: String, purpose: String): OtpResponse
 
@@ -100,7 +105,8 @@ interface AuthRepository {
         availabilityStatus: String,
         termsAccepted: String,
         referalCode: String,
-        referby: String
+        referby: String,
+        registeration_date: String
     ): RegistrationResponse
 
     suspend fun registerParent(
@@ -122,7 +128,8 @@ interface AuthRepository {
         emergencyContact: String,
         termsAccepted: String,
         refralCode: String,
-        refralby: String
+        refralby: String,
+        registeration_date:String
     ): RegistrationResponse
 
     suspend fun assignedVehicle(school_id: String, id: String): AssignedResponse
@@ -236,4 +243,8 @@ interface AuthRepository {
     suspend fun updateFCMToken(id: Int?, role: String, token: String): UpdateTokenResponse
 
     suspend fun getClasses(): GetClassesResponse
+
+    suspend fun withdrawCommission(request: WithdrawRequest): WithdrawResponse
+    suspend fun withdrawCommissionStatus(parentId: String): WithdrawRequestStatus
+
 }

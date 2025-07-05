@@ -73,6 +73,7 @@ fun VehicleDetailsScreen(
     val ownerName = remember { mutableStateOf("") }
     val vehicleType = remember { mutableStateOf("") }
     val model = remember { mutableStateOf("") }
+    val mobNumber = remember { mutableStateOf("") }
     val vehicleRegistration = remember { mutableStateOf("") }
     val vehiclePhotosState = remember { mutableStateOf("") }
 
@@ -95,6 +96,7 @@ fun VehicleDetailsScreen(
                 vehicleNumber.value = data.vehicleNumber.orEmpty()
                 vehicleType.value = data.driverType.orEmpty()
                 model.value = data.vehicleModel.orEmpty()
+                mobNumber.value = data.number.orEmpty()
                 vehicleRegistration.value = data.vehicleRegistration.orEmpty()
                 vehiclePhotosState.value = data.photoOfVehicle.orEmpty()
             }
@@ -217,16 +219,16 @@ fun VehicleDetailsScreen(
                             .height(64.dp)
                     )
 
-/*                    OutlinedTextField(
-                        value = vehicleRegistration.value,
+                    OutlinedTextField(
+                        value = mobNumber.value,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Registration Number") },
+                        label = { Text("Mobile Number") },
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                    )*/
+                    )
 
                     val photoList = vehiclePhotosState.value
                         .split(",")

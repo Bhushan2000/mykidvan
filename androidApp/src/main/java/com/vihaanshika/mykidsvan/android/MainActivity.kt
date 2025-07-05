@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
@@ -45,8 +46,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,6 +60,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.maptracking.LatLngViewModel
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -69,6 +75,7 @@ import com.razorpay.Checkout
 import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
 import com.vihaanshika.mykidsvan.android.data.MessagesViewModel
+import com.vihaanshika.mykidsvan.android.ui.AboutDeveloperScreen
 import com.vihaanshika.mykidsvan.android.ui.AssignedStudentScreen
 import com.vihaanshika.mykidsvan.android.ui.ChatScreen
 import com.vihaanshika.mykidsvan.android.ui.DriverSignupScreen
@@ -81,6 +88,7 @@ import com.vihaanshika.mykidsvan.android.ui.ParentSignupScreen
 import com.vihaanshika.mykidsvan.android.ui.PhoneLoginScreen
 import com.vihaanshika.mykidsvan.android.ui.ProfileScreen
 import com.vihaanshika.mykidsvan.android.ui.ReferAppScreen
+import com.vihaanshika.mykidsvan.android.ui.RemoteImageWithProgress
 import com.vihaanshika.mykidsvan.android.ui.SchoolOnRegistrationScreen
 import com.vihaanshika.mykidsvan.android.ui.SchoolRegistrationScreen
 import com.vihaanshika.mykidsvan.android.ui.SplashScreen
@@ -89,6 +97,7 @@ import com.vihaanshika.mykidsvan.android.ui.UpdatePasswordScreen
 import com.vihaanshika.mykidsvan.android.ui.UploadDocumentsScreen
 import com.vihaanshika.mykidsvan.android.ui.VehicleDetailsScreen
 import com.vihaanshika.mykidsvan.android.ui.VehiclePhotoScreen
+import com.vihaanshika.mykidsvan.android.ui.WithDrawRequests
 import com.vihaanshika.mykidsvan.android.ui.tracking.MapScreen
 import com.vihaanshika.mykidsvan.android.utils.Arguments
 import com.vihaanshika.mykidsvan.android.utils.Constants
@@ -110,6 +119,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     var onPaymentSuccessCallback: ((PaymentData) -> Unit)? = null
     var onPaymentFailureCallback: ((Int, String?) -> Unit)? = null
     val loginViewModel: AuthViewModel by viewModel()
+
     // app updater
     private val appUpdateManager by lazy { AppUpdateManagerFactory.create(this) }
     private val REQUEST_CODE = 777
@@ -165,6 +175,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         Log.e("Razorpay", "Error: $message")
         onPaymentFailureCallback?.invoke(code, message)
     }
+
     private fun checkForUpdate() {
 //        Types of In-App Updates:
 //        Flexible update – App can be used while downloading update.
@@ -173,7 +184,10 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
         appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
             Log.d("AppUpdate", "Update Availability: ${appUpdateInfo.updateAvailability()}")
-            Log.d("AppUpdate", "Is Immediate Update Allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)}")
+            Log.d(
+                "AppUpdate",
+                "Is Immediate Update Allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)}"
+            )
             Log.d("AppUpdate", "Available Version Code: ${appUpdateInfo.availableVersionCode()}")
             if (
                 appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
@@ -252,6 +266,10 @@ fun MyApp(
     val assignVehicleId by loginViewModel.assignedVehicleId.collectAsState()
     val requestAssignedStatus by loginViewModel.vehicleStatus.collectAsState()
     val userRole by loginViewModel.userRole.collectAsState()
+    val trialDate by loginViewModel.trialDate.collectAsState()
+    val paymentStatus by loginViewModel.paymentStatus.collectAsState()
+    val schoolPictureUrl by loginViewModel.schoolPictureUrl.collectAsState()
+    val referCode by loginViewModel.referCode.collectAsState()
 
     var selectedMenuTitle by remember { mutableStateOf(Constants.MY_KID_VAN) } // Initial title
     var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
@@ -262,8 +280,15 @@ fun MyApp(
     LaunchedEffect(userId) {
         if (userId != null) {
             Log.d(
-                "UserID",
-                "Logged-in user ID: $userId & user role - $userRole assigned vehicle id - $assignVehicleId  assign status - $requestAssignedStatus"
+                "UserDetails :) ",
+                "user ID - $userId \n" +
+                        "user role - $userRole  \n" +
+                        "assigned vehicle id - $assignVehicleId   \n" +
+                        "assign status - $requestAssignedStatus   \n" +
+                        "trialDate - $trialDate  \n" +
+                        "payment status - $paymentStatus  \n" +
+                        "schoolPictureUrl - $schoolPictureUrl  \n" +
+                        "refer code - $referCode"
             )
         }
     }
@@ -315,7 +340,9 @@ fun MyApp(
                             DrawerItem.VehicleDetails,
                             DrawerItem.Message,
                             DrawerItem.ReferApp,
-                            DrawerItem.SupportHelp
+                            DrawerItem.WithDrawRequests,
+                            DrawerItem.SupportHelp,
+                            DrawerItem.AboutDeveloper
                         )
 
                         Constants.USER_DRIVER -> listOf(
@@ -326,7 +353,9 @@ fun MyApp(
                             DrawerItem.VehiclePhoto,
                             DrawerItem.Message,
                             DrawerItem.ReferApp,
-                            DrawerItem.SupportHelp
+                            DrawerItem.WithDrawRequests,
+                            DrawerItem.SupportHelp,
+                            DrawerItem.AboutDeveloper
                         )
 
                         else -> emptyList()
@@ -357,7 +386,8 @@ fun MyApp(
                     CustomTopAppBar(
                         title = selectedMenuTitle,
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        onLogoutClick = { showLogoutDialog = true }
+                        onLogoutClick = { showLogoutDialog = true },
+                        schoolPictureUrl = schoolPictureUrl
                     )
                 }
             },
@@ -443,10 +473,22 @@ fun MyApp(
                     composable(DrawerItem.Home.route) {
                         key(refreshKey) {
                             MapScreen(
+                                paymentStatus = paymentStatus,
+                                requestAssignedStatus = requestAssignedStatus,
                                 viewModel = latViewModel,
+                                authViewModel = loginViewModel,
                                 userRole = userRole.toString(),
                                 userId = userId.toString(),
-                                onRefresh = { refreshKey = UUID.randomUUID().toString() } // 🔁 Refresh handler
+                                onRefresh = {
+                                    refreshKey = UUID.randomUUID().toString()
+                                }, // 🔁 Refresh handler
+                                trialDate = trialDate,
+                                onPaymentSuccess = { paymentData ->
+                                    onPaymentSuccessCallback?.invoke(paymentData)
+                                },
+                                onPaymentFailure = { code, message ->
+                                    onPaymentFailureCallback?.invoke(code, message)
+                                }
                             )
                         }
                     }
@@ -475,7 +517,8 @@ fun MyApp(
                     composable(DrawerItem.ReferApp.route) {
                         ReferAppScreen(
                             loginViewModel,
-                            userRole.toString()
+                            userRole.toString(),
+                            userId.toString()
                         )
                     }
                     composable(DrawerItem.FindVehicle.route) {
@@ -485,6 +528,8 @@ fun MyApp(
                                 assignVehicleId = assignVehicleId,
                                 viewModel = loginViewModel,
                                 userId = it1,
+                                trialDate = trialDate,
+                                paymentStatus = paymentStatus,
                                 onPaymentSuccess = { paymentData ->
                                     onPaymentSuccessCallback?.invoke(paymentData)
                                 },
@@ -534,6 +579,8 @@ fun MyApp(
                         )
                     }
                     composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
+                    composable(DrawerItem.AboutDeveloper.route) { AboutDeveloperScreen() }
+                    composable(DrawerItem.WithDrawRequests.route) { WithDrawRequests(loginViewModel,userId.toString()) }
                 }
             }
         )
@@ -559,7 +606,7 @@ fun MyApp(
                             loginViewModel.resetLoginState()  // Reset the login state to avoid automatic redirection
                             // Clear user session or token and reset login state
                             loginViewModel.logout()
-
+                            latViewModel.stopTracking() // stop tracking
                             // Add slight delay to ensure state flows are reset
                             CoroutineScope(Dispatchers.Main).launch {
                                 delay(100) // 100ms
@@ -627,7 +674,8 @@ fun DrawerItemRow(
 fun CustomTopAppBar(
     title: String,
     onMenuClick: () -> Unit,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    schoolPictureUrl: String?
 ) {
     val topBarPadding = 12.dp
     val horizontalPadding = 12.dp
@@ -667,12 +715,13 @@ fun CustomTopAppBar(
                         painter = painterResource(R.drawable.app_icon),
                         contentDescription = PlaceHolders.MENU,
                         modifier = Modifier
-                             .padding(start = 8.dp), // Add start padding ,
+                            .padding(start = 8.dp), // Add start padding ,
                         tint = Color.Unspecified
                     )
                 }
             },
             actions = {
+                RemoteImageWithProgress(schoolPictureUrl)
                 IconButton(onClick = onLogoutClick) {
                     Icon(Icons.Default.ExitToApp, contentDescription = PlaceHolders.LOGOUT)
                 }

@@ -92,6 +92,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     var district by remember { mutableStateOf("") }
     var taluka by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
+    var validity by remember { mutableStateOf("") }
 
     val isUpdating by viewModel.isProfileUpdating.collectAsState()
     val updateMessage by viewModel.updateMessage.collectAsState()
@@ -137,6 +138,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                         taluka = data.taluka.orEmpty()
                         city = data.city.orEmpty()
                         schoolName = data.schoolId.orEmpty()
+                        validity = data.expireDate.orEmpty()
                     }
 
                     is DriverMob -> {
@@ -397,6 +399,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 ) { schoolName = it }
 
                                             } else {
+                                                ProfileDetailRow("Valid till", validity)
                                                 ProfileDetailRow("Parent Name", name)
                                                 ProfileDetailRow("Contact Number", contact)
                                                 ProfileDetailRow("Address", address)

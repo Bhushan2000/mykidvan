@@ -9,8 +9,9 @@ data class SendRequestToDriverResponse(
 )
 
 data class SentData(
-    @SerializedName("vehicles_id") var vehicleId: String? = null,
-    @SerializedName("search_specific") var searchSpecific: String? = null, // individual // all
+    @SerializedName("vehicle_id") var vehicleId: String? = null,
+    @SerializedName("parent_id") var parentId: String? = null,
     @SerializedName("message") var message: String? = null,
+    @SerializedName("status") var status: String? = null,
     @SerializedName("created_at") var createdAt: String? = null
 )

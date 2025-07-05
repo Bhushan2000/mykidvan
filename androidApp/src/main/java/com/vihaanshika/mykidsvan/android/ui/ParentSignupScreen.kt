@@ -64,6 +64,7 @@ import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -549,6 +550,7 @@ fun ParentSignupScreen(
                         ).show()
                     } else {
                         isLoading = true  // Start loading when the button is clicked
+                        val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
                         viewModel.registerParent(
                             parentName.value,
                             contactNumber,
@@ -568,7 +570,8 @@ fun ParentSignupScreen(
                             emergencyContact.value,
                             termsAccepted.value.toString(),
                             referralCode.value,
-                            enteredReferralCode.value
+                            enteredReferralCode.value,
+                            dateFormat.format(Date())
                         )
                     }
                 }, enabled = !isLoading,  // Disable button when loading to prevent multiple clicks

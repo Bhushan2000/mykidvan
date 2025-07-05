@@ -2,7 +2,6 @@ package com.vihaanshika.mykidsvan.android.utils
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -19,10 +18,13 @@ class UserPreferences(context: Context) {
         private val USER_ID = stringPreferencesKey("user_id")
         private val USER_NAME = stringPreferencesKey("user_name")
         private val USER_ROLE = stringPreferencesKey("user_role")
-        private val ASSIGNED_VEHICLE_ID = stringPreferencesKey("assign_vehicle_id")
-        private val STATUS = stringPreferencesKey("status")
+        private var ASSIGNED_VEHICLE_ID = stringPreferencesKey("assign_vehicle_id")
+        private var STATUS = stringPreferencesKey("status")
+        private var PAYMENT_STATUS = stringPreferencesKey("payment_status")
         private val REFER_CODE = stringPreferencesKey("refer_code")
-        private val TRACKING_STATUS = stringPreferencesKey("tracking_status")
+        private var TRACKING_STATUS = stringPreferencesKey("tracking_status")
+        private val TRIAL_DATE = stringPreferencesKey("trial_date")
+        private val SCHOOL_PROFILE_URL = stringPreferencesKey("school_profile_url")
     }
 
     // Save login state (suspend function)
@@ -30,31 +32,40 @@ class UserPreferences(context: Context) {
         dataStore.edit { prefs -> prefs[IS_LOGGED_IN] = isLoggedIn }
     }
 
-    suspend fun saveLoginUserDetails(id: String, name: String,role:String,refer_code: String) {
+    suspend fun saveLoginUserDetails(
+        id: String,
+        name: String,
+        role: String,
+        refer_code: String,
+        trialDate: String,
+        school_profile_url: String
+    ) {
         dataStore.edit { prefs ->
             prefs[IS_LOGGED_IN] = true
             prefs[USER_ID] = id
             prefs[USER_NAME] = name
             prefs[USER_ROLE] = role
             prefs[REFER_CODE] = refer_code
+            prefs[TRIAL_DATE] = trialDate
+            prefs[SCHOOL_PROFILE_URL] = school_profile_url
         }
     }
 
-    suspend fun updateVehicleDetails(vehicleId: String, status: String) {
+    suspend fun updateVehicleDetails(vehicleId: String, status: String, paymentStatus: String?) {
         dataStore.edit { prefs ->
             prefs[ASSIGNED_VEHICLE_ID] = vehicleId
             prefs[STATUS] = status
+            prefs[PAYMENT_STATUS] = paymentStatus ?: ""
         }
     }
 
-    suspend fun saveTrackingStatus(status: String){
-        dataStore.edit { prefs->
+    suspend fun saveTrackingStatus(status: String) {
+        dataStore.edit { prefs ->
             prefs[TRACKING_STATUS] = status
         }
     }
 
-    val assignVehicleIdFlow: Flow<String?> = dataStore.data.map { it[ASSIGNED_VEHICLE_ID] }
-    val statusFlow: Flow<String?> = dataStore.data.map { it[STATUS] }
+
     val trackingStatusFlow: Flow<String?> = dataStore.data.map { it[TRACKING_STATUS] }
 
     suspend fun clearUserData() {
@@ -75,9 +86,11 @@ class UserPreferences(context: Context) {
     }
 
     val userIdFlow: Flow<String?> = dataStore.data.map { it[USER_ID] }
-
-    val userRole:Flow<String?> = dataStore.data.map { it[USER_ROLE] }
-
-    val referCode:Flow<String?> = dataStore.data.map { it[REFER_CODE] }
-
- }
+    val assignVehicleIdFlow: Flow<String?> = dataStore.data.map { it[ASSIGNED_VEHICLE_ID] }
+    val statusFlow: Flow<String?> = dataStore.data.map { it[STATUS] }
+    val userRole: Flow<String?> = dataStore.data.map { it[USER_ROLE] }
+    val referCode: Flow<String?> = dataStore.data.map { it[REFER_CODE] }
+    val schoolPictureUrl: Flow<String?> = dataStore.data.map { it[SCHOOL_PROFILE_URL] }
+    val trialDate: Flow<String?> = dataStore.data.map { it[TRIAL_DATE] }
+    val paymentStatus: Flow<String?> = dataStore.data.map { it[PAYMENT_STATUS] }
+}

@@ -64,6 +64,12 @@ object Constants {
     const val TITLE_REFER_APP = "Refer App"
     const val ROUTE_REFER_APP = "refer_app"
 
+    const val TITLE_ABOUT_DEVELOPER = "About Developer"
+    const val ROUTE_ABOUT_DEVELOPER = "about_developer"
+
+    const val TITLE_WTIHDRAW_REQUEST = "Withdraw Request"
+    const val ROUTE_WTIHDRAW_REQUEST = "withdraw_request"
+
     // user types
     const val USER_DRIVER = "driver"
     const val USER_PARENT = "parent"

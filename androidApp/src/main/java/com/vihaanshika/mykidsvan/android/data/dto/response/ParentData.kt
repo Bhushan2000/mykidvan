@@ -65,6 +65,14 @@ data class ParentData(
     @SerializedName("status") var status: String? = null,
     @SerializedName("refer_id") var referId: String? = null,
     @SerializedName("refer_by") var referBy: String? = null,
-
-
+    @SerializedName("profile_picture") var profile_picture: String? = null,
+    @SerializedName("device_token") var device_token: String? = null,
+    @SerializedName("topic") var topic: String? = null,
+    @SerializedName("school_topic") var school_topic: String? = null,
+    @SerializedName("registeration_date") var registeration_date: String? = null,
+    @SerializedName("trial_date") var trial_date: String? = null,
+    @SerializedName("app_version") var app_version: String? = null,
+    @SerializedName("os_version") var os_version: String? = null,
+    @SerializedName("device_model") var device_model: String? = null,
+    @SerializedName("last_seen") var last_seen: String? = null,
 )

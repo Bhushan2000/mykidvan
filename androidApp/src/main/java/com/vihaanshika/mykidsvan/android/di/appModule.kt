@@ -47,6 +47,6 @@ val appModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<LatLngRepository> { LatLngRepositoryImpl(get()) }
     viewModel { LatLngViewModel(get(), get(), androidContext()) }
-    viewModel { AuthViewModel(get(), get()) }
+    viewModel { AuthViewModel(get(), get(),androidContext()) }
     viewModel { MessagesViewModel(get()) }
 }

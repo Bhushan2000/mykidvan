@@ -2,6 +2,7 @@ package com.example.authapp.presentation.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -37,14 +38,17 @@ import com.vihaanshika.mykidsvan.android.utils.Resource
 import com.vihaanshika.mykidsvan.android.utils.UpdatePasswordState
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.gson.Gson
+import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RegisterSchoolResponse
-import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawRequestStatus
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawResponse
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
+import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +56,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.net.UnknownHostException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class UserSessionData(
     val isLoggedIn: Boolean,
@@ -59,11 +66,16 @@ data class UserSessionData(
     val userRole: String?,
     val assignVehicleId: String?,
     val status: String?,
-    val referCode: String?
+    val referCode: String?,
+    val trialDate: String?,
+    val paymentStatus: String?,
+    val schoolPictureUrl: String?
 )
 
 class AuthViewModel(
-    private val repository: AuthRepository, private val userPreferences: UserPreferences
+    private val repository: AuthRepository,
+    private val userPreferences: UserPreferences,
+    private val context: Context
 ) : ViewModel() {
     // login
     private val _loginState = MutableStateFlow(LoginState())
@@ -154,6 +166,15 @@ class AuthViewModel(
     private val _referCode = MutableStateFlow<String?>(null)
     val referCode: StateFlow<String?> = _referCode
 
+    private val _trialDate = MutableStateFlow<String?>(null)
+    val trialDate: StateFlow<String?> = _trialDate
+
+    private val _schoolPictureUrl = MutableStateFlow<String?>(null)
+    val schoolPictureUrl: StateFlow<String?> = _schoolPictureUrl
+
+    private val _paymentStatus = MutableStateFlow<String?>(null)
+    val paymentStatus: StateFlow<String?> = _paymentStatus
+
     private var _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
@@ -166,20 +187,29 @@ class AuthViewModel(
             userPreferences.userIdFlow,
             userPreferences.userRole,
             userPreferences.assignVehicleIdFlow,
-            userPreferences.statusFlow
+            userPreferences.statusFlow,
         ) { isLoggedIn, id, role, vehicleId, status ->
             arrayOf(isLoggedIn, id, role, vehicleId, status)
         }
 
         viewModelScope.launch {
-            combine(combined, userPreferences.referCode) { array, referCode ->
+            combine(
+                combined,
+                userPreferences.referCode,
+                userPreferences.trialDate,
+                userPreferences.paymentStatus,
+                userPreferences.schoolPictureUrl
+            ) { array, referCode, trialDate, paymentStatus, schoolPictureUrl ->
                 UserSessionData(
                     isLoggedIn = array[0] as Boolean,
                     userId = array[1] as String?,
                     userRole = array[2] as String?,
                     assignVehicleId = array[3] as String?,
                     status = array[4] as String?,
-                    referCode = referCode
+                    referCode = referCode,
+                    trialDate = trialDate,
+                    paymentStatus = paymentStatus,
+                    schoolPictureUrl = schoolPictureUrl
                 )
             }.collect { session ->
                 // same as above...
@@ -190,11 +220,13 @@ class AuthViewModel(
                     _assignedVehicleId.value = session.assignVehicleId
                     _vehicleStatus.value = session.status
                     _referCode.value = session.referCode
-//                    session.userId?.let { loadAllRequests(it) }
+                    _trialDate.value = session.trialDate
+                    _paymentStatus.value = session.paymentStatus
+                    _schoolPictureUrl.value = session.schoolPictureUrl
                 }
             }
         }
-     }
+    }
 
     private val _navigateToMessageScreen = MutableStateFlow(false)
     val navigateToMessageScreen = _navigateToMessageScreen.asStateFlow()
@@ -260,6 +292,21 @@ class AuthViewModel(
     }
 
     fun login(username: String, password: String) {
+        // device info
+        val packageManager = context.packageManager
+        val packageName = context.packageName
+
+        val appVersion = try {
+            val pInfo = packageManager.getPackageInfo(packageName, 0)
+            pInfo.versionName ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
+
+        val osVersion = "Android ${Build.VERSION.RELEASE}" // e.g. "Android 14"
+        val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}" // e.g. "Samsung SM-A525F"
+        val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val lastSeen = formatter.format(Date())
         _loginState.value = LoginState(isLoading = true)
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -267,7 +314,15 @@ class AuthViewModel(
                 // send `token` to your server using an API
                 viewModelScope.launch {
                     try {
-                        val response = repository.login(username, password, token)
+                        val response = repository.login(
+                            username,
+                            password,
+                            token,
+                            appVersion,
+                            osVersion,
+                            deviceModel,
+                            lastSeen
+                        )
 
                         if (response.status == true) {
                             val role = when {
@@ -296,12 +351,16 @@ class AuthViewModel(
                                             driver = driverData
                                         )
                                         userPreferences.saveLoginState(true)  // Save login state
+                                        val url =
+                                            APIEndpoints.SCHOOL_PICTURE_URL + response.school_image
 
                                         userPreferences.saveLoginUserDetails(
-                                            driverData.id,
-                                            driverData.driver_name,
-                                            it,
-                                            driverData.refer_id.toString()
+                                            id = driverData.id,
+                                            name = driverData.driver_name,
+                                            role = it,
+                                            refer_code = driverData.refer_id.toString(),
+                                            trialDate = driverData.trial_date.toString(),
+                                            url
                                         )
                                     }
 
@@ -316,23 +375,30 @@ class AuthViewModel(
                                             parent = parentData
                                         )
                                         userPreferences.saveLoginState(true)  // Save login state
+                                        val url =
+                                            APIEndpoints.SCHOOL_PICTURE_URL + response.school_image
 
                                         parentData.id?.let { it1 ->
                                             parentData.parentName?.let { it2 ->
                                                 parentData.referId?.let { refer_code ->
-                                                    userPreferences.saveLoginUserDetails(
-                                                        it1, it2, it, refer_code
-                                                    )
+                                                    parentData.trial_date?.let { trial ->
+                                                        userPreferences.saveLoginUserDetails(
+                                                            it1,
+                                                            it2,
+                                                            it,
+                                                            refer_code,
+                                                            trial,
+                                                            url
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
-                                        parentData.vehicleId?.let { it1 ->
-                                            parentData.status?.let { it2 ->
-                                                userPreferences.updateVehicleDetails(
-                                                    it1, it2
-                                                )
-                                            }
-                                        }
+                                        userPreferences.updateVehicleDetails(
+                                            parentData.vehicleId.toString(),
+                                            parentData.status.toString(),
+                                            parentData.paymentStatus.toString()
+                                        )
                                     }
 
                                     else -> {}
@@ -672,7 +738,8 @@ class AuthViewModel(
         availabilityStatus: String,
         termsAccepted: String,
         referCode: String,
-        referby: String
+        referby: String,
+        registrationDate: String
     ) = viewModelScope.launch {
         try {
             val response = repository.registerDriver(
@@ -701,7 +768,8 @@ class AuthViewModel(
                 availabilityStatus,
                 termsAccepted,
                 referCode,
-                referby
+                referby,
+                registrationDate
             )
             if (response.status == true) {
                 _driverRegistrationSuccess.value = response
@@ -736,7 +804,8 @@ class AuthViewModel(
         emergencyContact: String,
         termsAccepted: String,
         referCode: String,
-        referby: String
+        referby: String,
+        registrationDate: String
     ) = viewModelScope.launch {
         try {
             val response = repository.registerParent(
@@ -758,7 +827,8 @@ class AuthViewModel(
                 emergencyContact,
                 termsAccepted,
                 referCode,
-                referby
+                referby,
+                registrationDate
             )
             if (response.status == true) {
                 _parentRegistrationSuccess.value = response
@@ -913,6 +983,11 @@ class AuthViewModel(
             try {
                 val response = repository.sendAssignRequest(vehicleId, parentId)
                 _assignRequestResponse.value = response
+                userPreferences.updateVehicleDetails(
+                    vehicleId,
+                    response.sentData?.status.toString(),
+                    null
+                )
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -949,11 +1024,14 @@ class AuthViewModel(
                                 Log.e("FCM", "Subscription failed: ${task.exception}")
                             }
                         }
+                    userPreferences.updateVehicleDetails(
+                        assignedVehicleId.value.toString(),
+                        if (status == PlaceHolders.OK) Constants.REQUEST_ACCEPTED else Constants.REQUEST_REJECTED,
+                        "Paid"
+                    )
                 }
-
                 // 👇 Reload list after update
                 loadDriverRequests(userId.value.toString())
-
             } catch (e: Exception) {
                 updateMessage.value = e.message ?: "Failed to update"
             } finally {
@@ -1087,6 +1165,11 @@ class AuthViewModel(
                 )
                 if (response.status == "success") {
                     _paymentStatusState.value = PaymentState.Success(response.message)
+                    userPreferences.updateVehicleDetails(
+                        assignedVehicleId.value.toString(),
+                        Constants.REQUEST_PENDING,
+                        "Paid"
+                    )
                 } else {
                     _paymentStatusState.value =
                         PaymentState.Error(response.message ?: "Unknown error")
@@ -1109,7 +1192,6 @@ class AuthViewModel(
 
                 if (response.status == true) {
                     // Clean and normalize URLs
-                    val baseUrl = "https://avschoolerp.com/"
                     val formattedPhotos = response.photos.map { photo ->
                         if (photo.startsWith("http")) photo else APIEndpoints.BASE_URL + photo
                     }
@@ -1254,11 +1336,13 @@ class AuthViewModel(
                     _schoolRegistrationPSuccess.value = Resource.Success(response)
                 } else {
                     Log.e("TAG", "School Registration (Parent) Failed: ${response.message}")
-                    _schoolRegistrationPSuccess.value = Resource.Error(response.message ?: "Unknown error")
+                    _schoolRegistrationPSuccess.value =
+                        Resource.Error(response.message ?: "Unknown error")
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "Error during school registration (Parent)", e)
-                _schoolRegistrationPSuccess.value = Resource.Error(e.message ?: "Exception occurred")
+                _schoolRegistrationPSuccess.value =
+                    Resource.Error(e.message ?: "Exception occurred")
             }
         }
     }
@@ -1294,22 +1378,25 @@ class AuthViewModel(
                     _schoolRegistrationDSuccess.value = Resource.Success(response)
                 } else {
                     Log.e("TAG", "School Registration (Driver) Failed: ${response.message}")
-                    _schoolRegistrationDSuccess.value = Resource.Error(response.message ?: "Unknown error")
+                    _schoolRegistrationDSuccess.value =
+                        Resource.Error(response.message ?: "Unknown error")
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "Error during school registration (Driver)", e)
-                _schoolRegistrationDSuccess.value = Resource.Error(e.message ?: "Exception occurred")
+                _schoolRegistrationDSuccess.value =
+                    Resource.Error(e.message ?: "Exception occurred")
             }
         }
     }
 
-    fun resetSchoolRegistration(){
+    fun resetSchoolRegistration() {
         _schoolRegistrationDSuccess.value = Resource.Idle()
         _schoolRegistrationPSuccess.value = Resource.Idle()
     }
 
 
-    private val _uploadDocSuccess = MutableStateFlow<Resource<DocumentUploadResponse>>(Resource.Idle())
+    private val _uploadDocSuccess =
+        MutableStateFlow<Resource<DocumentUploadResponse>>(Resource.Idle())
     val uploadDocSuccess: StateFlow<Resource<DocumentUploadResponse>> = _uploadDocSuccess
 
     fun uploadDocumentsToDatabase(data: Map<String, String>) {
@@ -1411,7 +1498,7 @@ class AuthViewModel(
     private val _getClassDetails = MutableStateFlow<Resource<GetClassesResponse>>(Resource.Idle())
     val getClassDetails: StateFlow<Resource<GetClassesResponse>> = _getClassDetails
 
-    fun getClasses(){
+    fun getClasses() {
         viewModelScope.launch {
             _getClassDetails.value = Resource.Loading() // Optional: show loading again
             try {
@@ -1419,15 +1506,59 @@ class AuthViewModel(
                 if (response.status == true) {
                     _getClassDetails.value = Resource.Success(response)
                 } else {
-                    _getClassDetails.value = Resource.Error(response.message ?: "Unknown error occurred")
+                    _getClassDetails.value =
+                        Resource.Error(response.message ?: "Unknown error occurred")
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "getRazorPayOrderId: ${e.localizedMessage}", e)
-                _getClassDetails.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
+                _getClassDetails.value =
+                    Resource.Error(e.localizedMessage ?: "Something went wrong")
             }
         }
     }
-    fun clearClasses(){
+
+    fun clearClasses() {
         _getClassDetails.value = Resource.Idle()
     }
+
+    private val _withdraw = MutableStateFlow<Resource<WithdrawResponse>>(Resource.Idle())
+    val withdraw: StateFlow<Resource<WithdrawResponse>> = _withdraw
+
+    fun withdrawRequest(request: WithdrawRequest) {
+        viewModelScope.launch {
+            try {
+                val response = repository.withdrawCommission(request)
+                if (response.status == true) {
+                    _withdraw.value = Resource.Success(response)
+                } else {
+                    _withdraw.value = Resource.Error(response.message ?: "Unknown error occurred")
+                }
+            } catch (e: Exception) {
+                _withdraw.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+
+    fun resetWithdrawRequest() {
+        _withdraw.value = Resource.Idle()
+    }
+
+    private val _withdrawStatus = MutableStateFlow<Resource<WithdrawRequestStatus>>(Resource.Idle())
+    val withdrawStatus: StateFlow<Resource<WithdrawRequestStatus>> = _withdrawStatus
+
+    fun withdrawRequestStatus(userId: String) {
+        viewModelScope.launch {
+            try {
+                val response = repository.withdrawCommissionStatus(userId)
+                if (response.status == true) {
+                    _withdrawStatus.value = Resource.Success(response)
+                } else {
+                    _withdrawStatus.value = Resource.Error( "Unknown error occurred")
+                }
+            } catch (e: Exception) {
+                _withdrawStatus.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+
 }

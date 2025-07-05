@@ -1,12 +1,10 @@
 package com.vihaanshika.mykidsvan.android.data.dto.response
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
+import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
 
-data class LoginResponse(
+data class WithdrawResponse(
     @SerializedName("status") var status: Boolean? = null,
     @SerializedName("message") var message: String? = null,
-    @SerializedName("school_image") var school_image: String? = null,
-    val data: JsonElement // Handle polymorphically
+    @SerializedName("data") var data: WithdrawRequest? = WithdrawRequest()
 )

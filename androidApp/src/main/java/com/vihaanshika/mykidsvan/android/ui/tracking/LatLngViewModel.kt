@@ -97,6 +97,9 @@ class LatLngViewModel(
     private var lastValidBearing: Float? = null
     var speed: Double? = 0.00
 
+    private var lastBearingUpdateTime: Long = 0L
+    private val MAX_RECENT_POINTS = 3
+
     init {
         // Collect user role
         viewModelScope.launch {
@@ -414,47 +417,102 @@ class LatLngViewModel(
                 _visiblePolylinePath.value = updatedPath
             }
 
-            // ✅ Update last two points for bearing
-            val recentPoints = _localLatLngList.value.toMutableList()
-            if (recentPoints.isEmpty() || recentPoints.last() != filteredLatLng) {
-                if (recentPoints.size >= 2) recentPoints.removeFirst()
-                recentPoints.add(filteredLatLng)
-                _localLatLngList.value = recentPoints
-            }
+            updateLocationAndBearing(filteredLatLng)
 
-            // ✅ Bearing calculation
-            if (recentPoints.size == 2) {
-                val point1 = recentPoints[0]
-                val point2 = recentPoints[1]
-
-                val loc1 = Location("").apply {
-                    latitude = point1.latitude
-                    longitude = point1.longitude
-                }
-                val loc2 = Location("").apply {
-                    latitude = point2.latitude
-                    longitude = point2.longitude
-                }
-
-                val distance = loc1.distanceTo(loc2)
-                val newBearing = calculateBearing(point1, point2)
-
-                val isValidDirection =
-                    lastValidBearing == null || isBearingAcceptable(lastValidBearing!!, newBearing)
-
-                if (distance > 8f && isValidDirection) {
-                    _bearing.value = newBearing
-                    lastValidBearing = newBearing
-                    Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
-                } else {
-                    Log.d(
-                        "TAG",
-                        "❌ Skipped bearing: $newBearing (Distance = $distance, Last = $lastValidBearing)"
-                    )
-                }
-            }
+//            // ✅ Update last two points for bearing
+//            val recentPoints = _localLatLngList.value.toMutableList()
+//            if (recentPoints.isEmpty() || recentPoints.last() != filteredLatLng) {
+//                if (recentPoints.size >= 2) recentPoints.removeFirst()
+//                recentPoints.add(filteredLatLng)
+//                _localLatLngList.value = recentPoints
+//            }
+//
+//            // ✅ Bearing calculation
+//            if (recentPoints.size == 2) {
+//                val point1 = recentPoints[0]
+//                val point2 = recentPoints[1]
+//
+//                val loc1 = Location("").apply {
+//                    latitude = point1.latitude
+//                    longitude = point1.longitude
+//                }
+//                val loc2 = Location("").apply {
+//                    latitude = point2.latitude
+//                    longitude = point2.longitude
+//                }
+//
+//                val distance = loc1.distanceTo(loc2)
+//                val newBearing = calculateBearing(point1, point2)
+//
+//                val isValidDirection =
+//                    lastValidBearing == null || isBearingAcceptable(lastValidBearing!!, newBearing)
+//
+//                if (distance > 8f && isValidDirection) {
+//                    _bearing.value = newBearing
+//                    lastValidBearing = newBearing
+//                    Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
+//                } else {
+//                    Log.d(
+//                        "TAG",
+//                        "❌ Skipped bearing: $newBearing (Distance = $distance, Last = $lastValidBearing)"
+//                    )
+//                }
+//            }
         } catch (e: Exception) {
             Log.e("TAG", "Exception: ${e.localizedMessage}", e)
+        }
+    }
+
+    fun updateLocationAndBearing(filteredLatLng: LatLng) {
+        // ✅ Update last two points for bearing
+        val recentPoints = _localLatLngList.value.toMutableList()
+
+        // Add new point only if it's not duplicate
+        if (recentPoints.lastOrNull() != filteredLatLng) {
+            if (recentPoints.size >= MAX_RECENT_POINTS) {
+                recentPoints.removeAt(0)
+            }
+            recentPoints.add(filteredLatLng)
+            _localLatLngList.value = recentPoints
+        }
+
+        // ✅ Bearing calculation
+        // Only update bearing if we have at least 2 points
+        if (recentPoints.size >= 2) {
+            val point1 = recentPoints[recentPoints.size - 2]
+            val point2 = recentPoints[recentPoints.size - 1]
+
+            val loc1 = Location("").apply {
+                latitude = point1.latitude
+                longitude = point1.longitude
+            }
+
+            val loc2 = Location("").apply {
+                latitude = point2.latitude
+                longitude = point2.longitude
+            }
+
+            val distance = loc1.distanceTo(loc2)
+            val newBearing = calculateBearing(point1, point2)
+
+            val now = System.currentTimeMillis()
+            val timeSinceLast = now - lastBearingUpdateTime
+
+            val angleDiff = lastValidBearing?.let {
+                val diff = abs(it - newBearing) % 360
+                if (diff > 180) 360 - diff else diff
+            } ?: 0f
+
+            val isValidDirection = (angleDiff < if (distance > 30f) 135 else 90) || timeSinceLast > 8000
+
+            if (distance > 8f && isValidDirection) {
+                _bearing.value = newBearing
+                lastValidBearing = newBearing
+                lastBearingUpdateTime = now
+                Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
+            } else {
+                Log.d("TAG", "❌ Skipped bearing: $newBearing (Distance = $distance m, AngleDiff = $angleDiff°)")
+            }
         }
     }
 

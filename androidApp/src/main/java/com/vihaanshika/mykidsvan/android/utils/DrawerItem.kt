@@ -24,5 +24,7 @@ sealed class DrawerItem(val title: String, val route: String, val iconRes: Int) 
     object AssignedStudent : DrawerItem(Constants.TITLE_ASSIGNED_STUDENT, Constants.ROUTE_ASSIGNED_STUDENT, R.drawable.ic_assigned_student)
     object VehiclePhoto : DrawerItem(Constants.TITLE_VEHICLE_PHOTO, Constants.ROUTE_VEHICLE_PHOTO, R.drawable.ic_find_vehicle)
     object ReferApp : DrawerItem(Constants.TITLE_REFER_APP, Constants.ROUTE_REFER_APP, R.drawable.ic_share)
+    object AboutDeveloper : DrawerItem(Constants.TITLE_ABOUT_DEVELOPER, Constants.ROUTE_ABOUT_DEVELOPER, R.drawable.about_developer)
+    object WithDrawRequests : DrawerItem(Constants.TITLE_WTIHDRAW_REQUEST, Constants.ROUTE_WTIHDRAW_REQUEST, R.drawable.withdraw_request_list)
 }
 

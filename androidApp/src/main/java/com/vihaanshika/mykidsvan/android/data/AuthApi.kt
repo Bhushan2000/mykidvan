@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateAssignRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdatePasswordRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateTokenRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.UpdateVehicleImageRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
 import com.vihaanshika.mykidsvan.android.data.dto.response.AllSchoolResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
@@ -58,6 +59,8 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePasswordRespons
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdatePaymentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.UpdateTokenResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.VehiclePhotosResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawRequestStatus
+import com.vihaanshika.mykidsvan.android.data.dto.response.WithdrawResponse
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import retrofit2.http.Body
 import retrofit2.http.FieldMap
@@ -211,5 +214,13 @@ interface AuthApi {
     suspend fun updateDeviceToken(@Body request: UpdateTokenRequest): UpdateTokenResponse
 
     @GET(APIEndpoints.GET_ClASSES)
-    suspend fun getClasses():GetClassesResponse
+    suspend fun getClasses(): GetClassesResponse
+
+    @POST(APIEndpoints.WITHDRAW_REQUEST)
+    suspend fun withdrawCommission(@Body request: WithdrawRequest): WithdrawResponse
+
+    @GET(APIEndpoints.WITHDRAW_REQUEST_STATUS)
+    suspend fun withdrawCommissionRequests(@Path(APIEndpoints.PATH_PARENT_ID) id: String): WithdrawRequestStatus
+
+
 }

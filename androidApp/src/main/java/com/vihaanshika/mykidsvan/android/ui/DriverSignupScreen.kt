@@ -76,6 +76,9 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.OtpState
 import com.vihaanshika.mykidsvan.android.utils.Resource
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -476,6 +479,7 @@ fun DriverSignupScreen(
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
+                        val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
                         isLoading = true
                         viewModel.registerDriver(
                             ownerName,
@@ -503,7 +507,8 @@ fun DriverSignupScreen(
                             availabilityStatus,
                             termsAccepted.toString(),
                             referralCode.value,
-                            enteredReferralCode.value
+                            enteredReferralCode.value,
+                            dateFormat.format(Date())
                         )
                     }
                 },

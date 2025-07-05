@@ -1,5 +1,7 @@
 package com.vihaanshika.mykidsvan.android.data.dto.response
 
+import com.google.gson.annotations.SerializedName
+
 data class DriverData(
     val id: String,
     val driver_name: String,
@@ -35,5 +37,15 @@ data class DriverData(
     val status: String?,
     val school_id: String?,
     val refer_id: String?,
-    val refer_by: String?
-)
+    val refer_by: String?,
+    val amount: String?,
+    val device_token: String?,
+    val topic: String?,
+    val school_topic: String?,
+    val registeration_date: String?,
+    val trial_date: String?,
+    var app_version: String? = null,
+    val os_version: String? = null,
+    val device_model: String? = null,
+    val last_seen: String? = null,
+ )

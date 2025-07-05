@@ -5,6 +5,8 @@ object APIEndpoints {
     // live api
     const val BASE_URL = "https://avschoolerp.com/"
 
+    const val SCHOOL_PICTURE_URL = "https://avschoolerp.com/assetsNew/img/school_profile/"
+
     // Path Keys
     const val PATH_STATE_ID = "state_id"
     const val PATH_DISTRICT_ID = "district_id"
@@ -72,4 +74,8 @@ object APIEndpoints {
 
     const val UPDATE_DEVICE_TOKEN = "index.php/api/AccountsController/updateDeviceToken"
     const val GET_ClASSES = "index.php/api/AccountsController/get_classes"
-}
+    const val WITHDRAW_REQUEST = "index.php/api/AccountsController/withdraw"
+
+    const val WITHDRAW_REQUEST_STATUS = "index.php/api/AccountsController/get_withdraw/{parent_id}/parent"
+
+ }
