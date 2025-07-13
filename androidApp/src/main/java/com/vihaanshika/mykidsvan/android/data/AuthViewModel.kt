@@ -39,6 +39,7 @@ import com.vihaanshika.mykidsvan.android.utils.UpdatePasswordState
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.gson.Gson
 import com.vihaanshika.mykidsvan.android.data.dto.request.WithdrawRequest
+import com.vihaanshika.mykidsvan.android.data.dto.response.CouponValidationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.GetClassesResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
@@ -59,6 +60,8 @@ import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.text.equals
 
 data class UserSessionData(
     val isLoggedIn: Boolean,
@@ -69,7 +72,8 @@ data class UserSessionData(
     val referCode: String?,
     val trialDate: String?,
     val paymentStatus: String?,
-    val schoolPictureUrl: String?
+    val schoolPictureUrl: String?,
+    val payAmount: String?
 )
 
 class AuthViewModel(
@@ -175,6 +179,9 @@ class AuthViewModel(
     private val _paymentStatus = MutableStateFlow<String?>(null)
     val paymentStatus: StateFlow<String?> = _paymentStatus
 
+    private val _payAmount = MutableStateFlow<String?>(null)
+    val payAmount: StateFlow<String?> = _payAmount
+
     private var _assignedVehicleId = MutableStateFlow<String?>(null)
     val assignedVehicleId: StateFlow<String?> = _assignedVehicleId
 
@@ -182,37 +189,47 @@ class AuthViewModel(
     val vehicleStatus: StateFlow<String?> = _vehicleStatus
 
     init {
-        val combined = combine(
-            userPreferences.isLoggedInFlow,
-            userPreferences.userIdFlow,
-            userPreferences.userRole,
-            userPreferences.assignVehicleIdFlow,
-            userPreferences.statusFlow,
-        ) { isLoggedIn, id, role, vehicleId, status ->
-            arrayOf(isLoggedIn, id, role, vehicleId, status)
-        }
-
         viewModelScope.launch {
-            combine(
-                combined,
-                userPreferences.referCode,
-                userPreferences.trialDate,
-                userPreferences.paymentStatus,
-                userPreferences.schoolPictureUrl
-            ) { array, referCode, trialDate, paymentStatus, schoolPictureUrl ->
-                UserSessionData(
-                    isLoggedIn = array[0] as Boolean,
-                    userId = array[1] as String?,
-                    userRole = array[2] as String?,
-                    assignVehicleId = array[3] as String?,
-                    status = array[4] as String?,
-                    referCode = referCode,
-                    trialDate = trialDate,
-                    paymentStatus = paymentStatus,
-                    schoolPictureUrl = schoolPictureUrl
+            val combinedFlow = combine(
+                userPreferences.isLoggedInFlow,
+                userPreferences.userIdFlow,
+                userPreferences.userRoleFlow,
+                userPreferences.assignVehicleIdFlow,
+                userPreferences.statusFlow
+            ) { isLoggedIn, userId, userRole, assignVehicleId, status ->
+                listOf<Any?>(
+                    isLoggedIn, userId, userRole, assignVehicleId, status
                 )
-            }.collect { session ->
-                // same as above...
+            }.combine(
+                combine(
+                    userPreferences.referCodeFlow,
+                    userPreferences.trialDateFlow,
+                    userPreferences.paymentStatusFlow,
+                    userPreferences.schoolPictureUrlFlow,
+                    userPreferences.payAmountFlow
+                ) { referCode, trialDate, paymentStatus, pictureUrl, payAmount ->
+                    listOf<Any?>(
+                        referCode, trialDate, paymentStatus, pictureUrl, payAmount
+                    )
+                }
+            ) { firstList, secondList ->
+                firstList + secondList
+            }
+
+            combinedFlow.collect { combinedList ->
+                val session = UserSessionData(
+                    isLoggedIn = combinedList[0] as Boolean,
+                    userId = combinedList[1] as? String,
+                    userRole = combinedList[2] as? String,
+                    assignVehicleId = combinedList[3] as? String,
+                    status = combinedList[4] as? String,
+                    referCode = combinedList[5] as? String,
+                    trialDate = combinedList[6] as? String,
+                    paymentStatus = combinedList[7] as? String,
+                    schoolPictureUrl = combinedList[8] as? String,
+                    payAmount = combinedList[9] as? String
+                )
+
                 if (session.isLoggedIn) {
                     _loginState.value = LoginState(success = true, message = "Welcome Back!")
                     _userId.value = session.userId
@@ -223,10 +240,12 @@ class AuthViewModel(
                     _trialDate.value = session.trialDate
                     _paymentStatus.value = session.paymentStatus
                     _schoolPictureUrl.value = session.schoolPictureUrl
+                    _payAmount.value = session.payAmount
                 }
             }
         }
     }
+
 
     private val _navigateToMessageScreen = MutableStateFlow(false)
     val navigateToMessageScreen = _navigateToMessageScreen.asStateFlow()
@@ -292,7 +311,6 @@ class AuthViewModel(
     }
 
     fun login(username: String, password: String) {
-        // device info
         val packageManager = context.packageManager
         val packageName = context.packageName
 
@@ -303,15 +321,17 @@ class AuthViewModel(
             "unknown"
         }
 
-        val osVersion = "Android ${Build.VERSION.RELEASE}" // e.g. "Android 14"
-        val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}" // e.g. "Samsung SM-A525F"
+        val osVersion = "Android ${Build.VERSION.RELEASE}"
+        val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
         val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val lastSeen = formatter.format(Date())
+
         _loginState.value = LoginState(isLoading = true)
+
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val token = task.result
-                // send `token` to your server using an API
+
                 viewModelScope.launch {
                     try {
                         val response = repository.login(
@@ -324,95 +344,73 @@ class AuthViewModel(
                             lastSeen
                         )
 
-                        if (response.status == true) {
-                            val role = when {
-                                response.message?.contains(
-                                    "vehicle",
-                                    ignoreCase = true
-                                ) == true -> "driver"
+                        if (response.status) {
 
-                                response.message?.contains(
-                                    "parent",
-                                    ignoreCase = true
-                                ) == true -> "parent"
+                            val role = if (response.userRole?.lowercase()
+                                    .equals(Constants.USER_PARENT)
+                            ) Constants.USER_PARENT else Constants.USER_DRIVER
 
-                                else -> null
-                            }
+                            when (role) {
+                                Constants.USER_DRIVER -> {
+                                    val driverData =
+                                        Gson().fromJson(response.data, DriverData::class.java)
+                                    val imageUrl =
+                                        APIEndpoints.SCHOOL_PICTURE_URL + (response.school_image
+                                            ?: "")
+                                    _loginState.value = LoginState(
+                                        success = true,
+                                        message = "Vehicle Owner login success",
+                                        driver = driverData
+                                    )
 
-                            role?.let {
-                                when (it) {
-                                    "driver" -> {
-                                        Log.d("TAG", "login driver Token - $token")
-                                        val driverData =
-                                            Gson().fromJson(response.data, DriverData::class.java)
-                                        _loginState.value = LoginState(
-                                            success = true,
-                                            message = "Vehicle Owner login success",
-                                            driver = driverData
-                                        )
-                                        userPreferences.saveLoginState(true)  // Save login state
-                                        val url =
-                                            APIEndpoints.SCHOOL_PICTURE_URL + response.school_image
-
-                                        userPreferences.saveLoginUserDetails(
-                                            id = driverData.id,
-                                            name = driverData.driver_name,
-                                            role = it,
-                                            refer_code = driverData.refer_id.toString(),
-                                            trialDate = driverData.trial_date.toString(),
-                                            url
-                                        )
-                                    }
-
-                                    "parent" -> {
-                                        Log.d("TAG", "login parent Token - $token")
-
-                                        val parentData =
-                                            Gson().fromJson(response.data, ParentData::class.java)
-                                        _loginState.value = LoginState(
-                                            success = true,
-                                            message = "Parent login success",
-                                            parent = parentData
-                                        )
-                                        userPreferences.saveLoginState(true)  // Save login state
-                                        val url =
-                                            APIEndpoints.SCHOOL_PICTURE_URL + response.school_image
-
-                                        parentData.id?.let { it1 ->
-                                            parentData.parentName?.let { it2 ->
-                                                parentData.referId?.let { refer_code ->
-                                                    parentData.trial_date?.let { trial ->
-                                                        userPreferences.saveLoginUserDetails(
-                                                            it1,
-                                                            it2,
-                                                            it,
-                                                            refer_code,
-                                                            trial,
-                                                            url
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        userPreferences.updateVehicleDetails(
-                                            parentData.vehicleId.toString(),
-                                            parentData.status.toString(),
-                                            parentData.paymentStatus.toString()
-                                        )
-                                    }
-
-                                    else -> {}
+                                    userPreferences.saveLoginState(true)
+                                    userPreferences.saveLoginUserDetails(
+                                        id = driverData.id,
+                                        name = driverData.driver_name,
+                                        role = Constants.USER_DRIVER,
+                                        referCode = driverData.refer_id ?: "",
+                                        trialDate = driverData.trial_date ?: "",
+                                        schoolProfileUrl = imageUrl,
+                                        payAmount = response.pay_amount ?: ""
+                                    )
                                 }
-                            } ?: run {
-                                _loginState.value = LoginState(error = "Unknown user type")
-                            }
 
+                                Constants.USER_PARENT -> {
+                                    val parentData =
+                                        Gson().fromJson(response.data, ParentData::class.java)
+                                    val imageUrl =
+                                        APIEndpoints.SCHOOL_PICTURE_URL + (response.school_image
+                                            ?: "")
+
+                                    _loginState.value = LoginState(
+                                        success = true,
+                                        message = "Parent login success",
+                                        parent = parentData
+                                    )
+
+                                    userPreferences.saveLoginState(true)
+                                    userPreferences.saveLoginUserDetails(
+                                        id = parentData.id ?: "",
+                                        name = parentData.parentName ?: "",
+                                        role = Constants.USER_PARENT,
+                                        referCode = parentData.referId ?: "",
+                                        trialDate = parentData.trial_date ?: "",
+                                        schoolProfileUrl = imageUrl,
+                                        payAmount = response.pay_amount ?: "",
+                                        vehicleId = parentData.vehicleId ?: "",
+                                        status = parentData.status ?: "",
+                                        paymentStatus = parentData.paymentStatus ?: ""
+                                    )
+                                }
+
+                                else -> {
+                                    _loginState.value = LoginState(error = "Unknown user role")
+                                }
+                            }
                         } else {
                             _loginState.value =
                                 LoginState(error = response.message ?: "Login failed.")
                         }
-
-
                     } catch (e: Exception) {
                         val errorMessage = when (e) {
                             is HttpException -> {
@@ -433,7 +431,6 @@ class AuthViewModel(
                         Log.e("LoginViewModel", "Login error", e)
                     }
                 }
-
             } else {
                 _loginState.value = LoginState(error = "Unable to generate device token")
             }
@@ -983,11 +980,21 @@ class AuthViewModel(
             try {
                 val response = repository.sendAssignRequest(vehicleId, parentId)
                 _assignRequestResponse.value = response
-                userPreferences.updateVehicleDetails(
-                    vehicleId,
-                    response.sentData?.status.toString(),
-                    null
-                )
+                val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                val today = dateFormat.parse(dateFormat.format(Date()))
+                val trial = trialDate.value?.let { dateFormat.parse(it) }
+                if (today != null && trial != null
+                    && today.before(trial)
+                    && paymentStatus.value != "Paid"
+                ) {
+                    // ✅ User is in trial period and has not paid yet
+                    // Run your logic here
+                    userPreferences.updateVehicleDetails(
+                        vehicleId,
+                        response.sentData?.status.toString(),
+                        Constants.PAYMENT_STATUS_NOT_PAID
+                    )
+                }
             } catch (e: Exception) {
                 _errorMessage.value = e.message
             } finally {
@@ -1546,14 +1553,14 @@ class AuthViewModel(
     private val _withdrawStatus = MutableStateFlow<Resource<WithdrawRequestStatus>>(Resource.Idle())
     val withdrawStatus: StateFlow<Resource<WithdrawRequestStatus>> = _withdrawStatus
 
-    fun withdrawRequestStatus(userId: String) {
+    fun withdrawRequestStatus(userId: String, role: String) {
         viewModelScope.launch {
             try {
-                val response = repository.withdrawCommissionStatus(userId)
+                val response = repository.withdrawCommissionStatus(userId, role)
                 if (response.status == true) {
                     _withdrawStatus.value = Resource.Success(response)
                 } else {
-                    _withdrawStatus.value = Resource.Error( "Unknown error occurred")
+                    _withdrawStatus.value = Resource.Error("Unknown error occurred")
                 }
             } catch (e: Exception) {
                 _withdrawStatus.value = Resource.Error(e.localizedMessage ?: "Something went wrong")
@@ -1561,4 +1568,59 @@ class AuthViewModel(
         }
     }
 
+    private val _couponCodeValidation =
+        MutableStateFlow<Resource<CouponValidationResponse>>(Resource.Idle())
+    val couponCodeValidation: StateFlow<Resource<CouponValidationResponse>> = _couponCodeValidation
+
+    fun couponValidation(parentId: String, couponCode: String) {
+        viewModelScope.launch {
+            try {
+                val response = repository.couponValidation(parentId, couponCode)
+                if (response.status) {
+                    _couponCodeValidation.value = Resource.Success(response)
+                } else {
+                    _couponCodeValidation.value = Resource.Error("Unknown error occurred")
+                }
+            } catch (e: Exception) {
+                _couponCodeValidation.value =
+                    Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+
+    fun formatDate(input: String): String {
+        return try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val outputFormat = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
+            val date = inputFormat.parse(input)
+            outputFormat.format(date!!)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Invalid Date"
+        }
+    }
+
+    fun daysBetweenDates(startDateStr: String, endDateStr: String): String {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val startDate = format.parse(startDateStr)
+            val endDate = format.parse(endDateStr)
+            val diffInMillis = endDate!!.time - startDate!!.time
+            val daysDiff = TimeUnit.MILLISECONDS.toDays(diffInMillis)
+            "$daysDiff days left"
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Invalid Date Range"
+        }
+    }
+
+    fun getTodayDate(): String {
+        return try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            dateFormat.format(Date())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Invalid Date"
+        }
+    }
 }

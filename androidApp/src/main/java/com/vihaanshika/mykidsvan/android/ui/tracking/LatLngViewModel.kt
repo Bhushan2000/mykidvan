@@ -24,6 +24,7 @@ import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.UserPreferences
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
+import com.vihaanshika.mykidsvan.android.data.dto.response.ParentActiveInactiveResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.StopTrackingResponse
 import com.vihaanshika.mykidsvan.android.ui.tracking.SimpleKalmanLatLong
 import com.vihaanshika.mykidsvan.android.utils.Resource
@@ -100,10 +101,13 @@ class LatLngViewModel(
     private var lastBearingUpdateTime: Long = 0L
     private val MAX_RECENT_POINTS = 3
 
+    private val _parentPollingStatus = MutableStateFlow<String?>(Constants.INACTIVE_TRACKING)
+    val parentPollingStatus: StateFlow<String?> = _parentPollingStatus
+
     init {
         // Collect user role
         viewModelScope.launch {
-            userPreferences.userRole.collect { role ->
+            userPreferences.userRoleFlow.collect { role ->
                 _userRole.value = role
 
                 // 👇 After role is fetched, update driverId if role is "driver"
@@ -170,7 +174,7 @@ class LatLngViewModel(
                 val role = userRole.value
                 if (role == Constants.USER_DRIVER) {
                     val location = getLastKnownLocation() // fallback
-                    location?.let { sendCurrentLocationToServer(it,speed) }
+                    location?.let { sendCurrentLocationToServer(it, speed) }
                 }
 //                else if (role == Constants.USER_PARENT) {
 //                    fetchLatLngFromServer()
@@ -204,7 +208,13 @@ class LatLngViewModel(
                                     Log.d("DEBUG", "Inside USER_PARENT block")
 
                                     if (latLng.latitude != 0.0 && latLng.longitude != 0.0) {
-                                        val lastVisible = _visiblePolylinePathParent.value.lastOrNull()
+                                        // update tracking status
+                                        val status = intent.getStringExtra("tracking_status")
+                                        _parentPollingStatus.value = status
+                                        Log.e("Broadcast", "Tracking status: ${parentPollingStatus.value}")
+
+                                        val lastVisible =
+                                            _visiblePolylinePathParent.value.lastOrNull()
                                         val lastLatLng = _latLngList.value.lastOrNull()
 
                                         val isNewPoint = lastLatLng?.let {
@@ -228,6 +238,12 @@ class LatLngViewModel(
                                             // ✅ Add to _latLngList
                                             _latLngList.update { it + latLng }
                                             Log.d("Fetch----if", "onReceive: ${_latLngList.value}")
+                                            // mark parent as active when new lat long added to list
+                                            updateParentActiveInactiveStatus(
+                                                userId.value.toString(),
+                                                Constants.ACTIVE_PARENT
+                                            )
+                                            Log.d("ParentActiveInactive", "Parent Status - Updated to Active")
                                         } else {
                                             Log.d("DEBUG", "Duplicate latLng skipped: $latLng")
                                             // Do NOT reset _bearing here — preserve previous
@@ -352,18 +368,6 @@ class LatLngViewModel(
 
             // ✅ Skip filters for the very first location
             if (isFirstLocationSent) {
-                // Accuracy Check
-                if (location.accuracy > 15f) {
-                    Log.d("TAG", "Low accuracy: ${location.accuracy}, skipping.")
-                    return
-                }
-
-                // Speed Check
-                if (location.hasSpeed() && location.speed < 0.5f) {
-                    Log.d("TAG", "Speed < 0.5m/s (${location.speed}), skipping.")
-                    return
-                }
-
                 // Distance Check
                 val lastLatLng = _visiblePolylinePath.value.lastOrNull()
                 if (lastLatLng != null) {
@@ -373,8 +377,8 @@ class LatLngViewModel(
                     }
 
                     val distance = lastLocation.distanceTo(filteredLocation)
-                    if (distance < 8f) {
-                        Log.d("TAG", "Moved <$distance m, skipping.")
+                    if (distance < 5f) {
+                        Log.d("LatLngViewModel", "🌀 Moved < 5m (${distance}m), skipping.")
                         return
                     }
                 }
@@ -503,7 +507,8 @@ class LatLngViewModel(
                 if (diff > 180) 360 - diff else diff
             } ?: 0f
 
-            val isValidDirection = (angleDiff < if (distance > 30f) 135 else 90) || timeSinceLast > 8000
+            val isValidDirection =
+                (angleDiff < if (distance > 30f) 135 else 90) || timeSinceLast > 8000
 
             if (distance > 8f && isValidDirection) {
                 _bearing.value = newBearing
@@ -511,7 +516,10 @@ class LatLngViewModel(
                 lastBearingUpdateTime = now
                 Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
             } else {
-                Log.d("TAG", "❌ Skipped bearing: $newBearing (Distance = $distance m, AngleDiff = $angleDiff°)")
+                Log.d(
+                    "TAG",
+                    "❌ Skipped bearing: $newBearing (Distance = $distance m, AngleDiff = $angleDiff°)"
+                )
             }
         }
     }
@@ -654,19 +662,29 @@ class LatLngViewModel(
         }
     }
 
-    fun clearParentRoute(){
+    fun clearParentRoute() {
         _visiblePolylinePathParent.value = emptyList<LatLng>()
         _latLngList.value = emptyList<LatLng>()
     }
 
-    private val _trackingState = MutableStateFlow<String>("")
-    val trackingState: StateFlow<String> = _trackingState
-
-    fun refreshTracking(driverId: String) {
+    private val _parentActInActStatus =
+        MutableStateFlow<Resource<ParentActiveInactiveResponse>>(Resource.Idle())
+    val parentActInActStatus: StateFlow<Resource<ParentActiveInactiveResponse>> =
+        _parentActInActStatus
+    fun updateParentActiveInactiveStatus(parentId: String, status: String) {
         viewModelScope.launch {
-            val result = repository.getLatLong(driverId)
-            val status = result.data.firstOrNull()?.lat_status ?: "unknown"
-            _trackingState.value = status
+            try {
+                val response = repository.parentActiveInactiveStatus(parentId, status)
+                if (response.status == true) {
+                    _parentActInActStatus.value = Resource.Success(response)
+                } else {
+                    _parentActInActStatus.value =
+                        Resource.Error(response.message ?: "Unknown error occurred")
+                }
+            } catch (e: Exception) {
+                _parentActInActStatus.value =
+                    Resource.Error(e.localizedMessage ?: "Something went wrong")
+            }
         }
     }
 

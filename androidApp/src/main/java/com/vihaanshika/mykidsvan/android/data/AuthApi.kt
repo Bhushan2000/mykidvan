@@ -1,11 +1,13 @@
 package com.vihaanshika.mykidsvan.android.data
 
 import com.vihaanshika.mykidsvan.android.data.dto.request.AssignRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.CouponValidationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToAllParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverMessageToIndividualParentsRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpVerificationRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.ParentActiveInactiveRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentMessageToDriverRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentUpdateRequest
@@ -30,6 +32,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejRe
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CouponValidationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -44,6 +47,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.ParentActiveInactiveResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentMessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
@@ -220,7 +224,18 @@ interface AuthApi {
     suspend fun withdrawCommission(@Body request: WithdrawRequest): WithdrawResponse
 
     @GET(APIEndpoints.WITHDRAW_REQUEST_STATUS)
-    suspend fun withdrawCommissionRequests(@Path(APIEndpoints.PATH_PARENT_ID) id: String): WithdrawRequestStatus
+    suspend fun withdrawCommissionRequests(
+        @Path(APIEndpoints.PATH_USER_ID) id: String,
+        @Path(APIEndpoints.PATH_ROLE) role: String
+    ): WithdrawRequestStatus
 
+    @POST(APIEndpoints.PARENT_STATUS)
+    suspend fun parentActiveInactiveStatus(
+        @Body request: ParentActiveInactiveRequest
+    ): ParentActiveInactiveResponse
 
+    @PUT(APIEndpoints.COUPON_VALIDATION)
+    suspend fun couponValidation(
+        @Body request : CouponValidationRequest
+    ) : CouponValidationResponse
 }

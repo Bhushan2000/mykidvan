@@ -101,8 +101,7 @@ fun FindVehicleScreen(
     val trial = dateFormat.parse(trialDate)
 
     LaunchedEffect(Unit) {
-        if (requestAssignedStatus == null)
-            viewModel.getRazorPayOrderId()
+        if (requestAssignedStatus.isNullOrEmpty()) viewModel.getRazorPayOrderId()
     }
 
     LaunchedEffect(orderIdState) {
@@ -162,8 +161,7 @@ fun FindVehicleScreen(
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
-                        text = { Text(title) }
-                    )
+                        text = { Text(title) })
                 }
             }
 
@@ -179,12 +177,9 @@ fun FindVehicleScreen(
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(razorAmount, razorOrderId)
-                            ?: Toast.makeText(
-                                context,
-                                "Unable to start payment.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        activity?.startPayment(razorAmount, razorOrderId) ?: Toast.makeText(
+                            context, "Unable to start payment.", Toast.LENGTH_SHORT
+                        ).show()
                     },
                     requestAssignedStatus,
                     today,
@@ -200,12 +195,9 @@ fun FindVehicleScreen(
                     userId = userId,
                     onStartPayment = { driverId ->
                         selectedDriverId.value = driverId
-                        activity?.startPayment(razorAmount, razorOrderId)
-                            ?: Toast.makeText(
-                                context,
-                                "Unable to start payment.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        activity?.startPayment(razorAmount, razorOrderId) ?: Toast.makeText(
+                            context, "Unable to start payment.", Toast.LENGTH_SHORT
+                        ).show()
                     },
                     requestAssignedStatus,
                     today,
@@ -267,9 +259,7 @@ fun FindByMobileSection(
                     viewModel.findDriverByMobile(mobileNumber)
                 } else {
                     Toast.makeText(
-                        context,
-                        "Enter valid 10-digit mobile number",
-                        Toast.LENGTH_SHORT
+                        context, "Enter valid 10-digit mobile number", Toast.LENGTH_SHORT
                     ).show()
                 }
             },
@@ -323,9 +313,7 @@ fun FindByMobileSection(
     LaunchedEffect(assignResponse) {
         assignResponse?.let { response ->
             Toast.makeText(
-                context,
-                "Assigned Request Sent Successfully",
-                Toast.LENGTH_SHORT
+                context, "Assigned Request Sent Successfully", Toast.LENGTH_SHORT
             ).show()
             viewModel.clearResponses()
         }
@@ -373,8 +361,7 @@ fun FindBySchoolSection(
             options = stateOptions.map { it.state_name },
             onValueChange = { name ->
                 stateOptions.find { it.state_name == name }?.let { viewModel.onStateSelected(it) }
-            }
-        )
+            })
         DropdownField(
             label = "District",
             selectedValue = selectedDistrict?.district_name.orEmpty(),
@@ -382,8 +369,7 @@ fun FindBySchoolSection(
             onValueChange = { name ->
                 districtOptions.find { it.district_name == name }
                     ?.let { viewModel.onDistrictSelected(it) }
-            }
-        )
+            })
 
         DropdownField(
             label = "Taluka",
@@ -392,8 +378,7 @@ fun FindBySchoolSection(
             onValueChange = { name ->
                 talukaOptions.find { it.taluka_name == name }
                     ?.let { viewModel.onTalukaSelected(it) }
-            }
-        )
+            })
 
         DropdownField(
             label = "School",
@@ -401,8 +386,7 @@ fun FindBySchoolSection(
             options = schoolOptions.map { it.schoolName },
             onValueChange = { name ->
                 schoolOptions.find { it.schoolName == name }?.let { viewModel.onSchoolSelected(it) }
-            }
-        )
+            })
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -426,9 +410,7 @@ fun FindBySchoolSection(
         ) {
             if (isSearching) {
                 CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
+                    color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp
                 )
             } else {
                 Text("Search", color = Color.White)
@@ -627,11 +609,9 @@ fun DriverCard(
     val openDialog = remember { mutableStateOf(false) }
     val selectedImage = remember { mutableStateOf<String?>(null) }
 
-    val vehiclePhotos = driver.photoOfVehicle
-        ?.split(",")
-        ?.map { it.trim() }
-        ?.filter { it.isNotBlank() }
-        ?: emptyList()
+    val vehiclePhotos =
+        driver.photoOfVehicle?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
+            ?: emptyList()
 
     // Bottom sheet state
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -643,6 +623,32 @@ fun DriverCard(
     val expiryDate = expireDate
     val total = fees
 
+    // coupon code
+    var showInitialDialog by remember { mutableStateOf(false) }
+    var showCouponInputDialog by remember { mutableStateOf(false) }
+    var couponCode by remember { mutableStateOf("") }
+    val couponState by viewModel.couponCodeValidation.collectAsState()
+    var payAmountToUse by remember { mutableStateOf(total) } // `total` is original price
+
+    LaunchedEffect(couponState) {
+        when (val result = couponState) {
+            is Resource.Success -> {
+                val payAmount = result.data.payAmount?.toDoubleOrNull()
+                if (payAmount != null) {
+                    payAmountToUse = payAmount.toInt()  // This will safely truncate, e.g., 189.99 -> 189
+                }
+                showCouponInputDialog = false
+                showSheet.value = true
+            }
+
+            is Resource.Error -> {
+                Toast.makeText(context, result.message ?: "Invalid coupon", Toast.LENGTH_SHORT)
+                    .show()
+            }
+
+            else -> {}
+        }
+    }
     // UI Box with Driver Info
     Box(
         modifier = Modifier
@@ -654,8 +660,7 @@ fun DriverCard(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
                     )
-                ),
-                shape = RoundedCornerShape(24.dp)
+                ), shape = RoundedCornerShape(24.dp)
             )
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -718,9 +723,7 @@ fun DriverCard(
                             data = Uri.parse("tel:${driver.number}")
                         }
                         context.startActivity(intent)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Call, contentDescription = "Call", tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -730,35 +733,38 @@ fun DriverCard(
                 // Send Request Button
                 Button(
                     onClick = {
-                        if (today != null && trial != null && (today.before(trial) || today == trial)) {// trial period send assigned request to driver
-                            // Execute code before or on the trial date
-                            viewModel.sendAssignRequest(driver.id.toString(), userId)
-
-                        } else if (requestAssignedStatus.equals(Constants.REQUEST_PENDING)
-                            && paymentStatus.equals("Paid")
+                        Log.d(
+                            "TAG", "requestAssignedStatus - $requestAssignedStatus \n " +
+                                    "paymentStatus - $paymentStatus \n " +
+                                    "assignVehicleId - $assignVehicleId \n " +
+                                    "today - $today \n " +
+                                    "trial - $trial "
+                        )
+                        if (requestAssignedStatus.equals(Constants.REQUEST_PENDING) && paymentStatus.equals(
+                                "Paid"
+                            )
                         ) { // request in process
                             Toast.makeText(
-                                context,
-                                "Your request is already in Process",
-                                Toast.LENGTH_SHORT
+                                context, "Your request is already in Process", Toast.LENGTH_SHORT
                             ).show()
-                        } else if (requestAssignedStatus == null && paymentStatus == null) { // assign status null and payment status null then pay only
-                            showSheet.value = true
-                        } else if (assignVehicleId != null &&
-                            requestAssignedStatus.equals(Constants.REQUEST_REJECTED) &&
-                            paymentStatus.equals("Paid")
+                        } else if (assignVehicleId != null && requestAssignedStatus.equals(Constants.REQUEST_ACCEPTED)) { // for accepted condition
+                            Toast.makeText(
+                                context, "Already Vehicle Owner Assigned", Toast.LENGTH_SHORT
+                            ).show()
+                        } else if (requestAssignedStatus.isNullOrEmpty() && paymentStatus.isNullOrEmpty()) { // assign status null and payment status null then pay only
+                            showInitialDialog = true
+                        } else if (assignVehicleId != null && requestAssignedStatus.equals(Constants.REQUEST_REJECTED) && paymentStatus.equals(
+                                "Paid"
+                            )
                         ) { // for rejected condition
                             viewModel.sendAssignRequest(driver.id.toString(), userId)
-                        } else if (assignVehicleId != null &&
-                            requestAssignedStatus.equals(Constants.REQUEST_ACCEPTED)
-                        ) { // for accepted condition
-                            Toast.makeText(
-                                context,
-                                "Already Vehicle Owner Assigned",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        } else if (today != null && trial != null && (today.before(trial)) && !paymentStatus.equals(
+                                "Paid"
+                            )
+                        ) {// trial period send assigned request to driver
+                            // Execute code before or on the trial date
+                            viewModel.sendAssignRequest(driver.id.toString(), userId)
                         }
-
                     },
                     enabled = !isLoading,
                     modifier = Modifier.weight(1f),
@@ -766,9 +772,7 @@ fun DriverCard(
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(18.dp)
+                            color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp)
                         )
                     } else {
                         Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
@@ -790,8 +794,7 @@ fun DriverCard(
             confirmButton = {},
             text = {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
                         model = selectedImage.value,
@@ -806,6 +809,60 @@ fun DriverCard(
             shape = RoundedCornerShape(16.dp),
             containerColor = MaterialTheme.colorScheme.background
         )
+    }
+
+    if (showInitialDialog) {
+        AlertDialog(
+            onDismissRequest = { showInitialDialog = false },
+            title = { Text("Coupon Code") },
+            text = { Text("Do you have a coupon code?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showInitialDialog = false
+                    showCouponInputDialog = true
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showInitialDialog = false
+                    showSheet.value = true
+                }) {
+                    Text("No")
+                }
+            })
+    }
+
+    if (showCouponInputDialog) {
+        AlertDialog(
+            onDismissRequest = { showCouponInputDialog = false },
+            title = { Text("Enter Coupon Code") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = couponCode,
+                        onValueChange = { couponCode = it },
+                        label = { Text("Coupon Code") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.couponValidation(parentId = userId, couponCode = couponCode)
+                }) {
+                    Text("Submit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCouponInputDialog = false
+                    showSheet.value = true
+                }) {
+                    Text("Cancel")
+                }
+            })
     }
 
     // Bottom Sheet
@@ -830,11 +887,7 @@ fun DriverCard(
 
 
                 val paymentDetailsText =
-                    "If you’ve finalized this driver, send a tracking request now.\n" +
-                            "Once the driver accepts, you’ll be able to track your child’s school van live through the app.\n" +
-                            "\n" +
-                            "✅ Yearly Subscription Fee: ₹$total/-\n" +
-                            "(That’s less than the price of a pizza for peace of mind all year!)"
+                    "If you’ve finalized this driver, send a tracking request now.\n" + "Once the driver accepts, you’ll be able to track your child’s school van live through the app.\n" + "\n" + "✅ Yearly Subscription Fee: ₹$payAmountToUse/-\n" + "(That’s less than the price of a pizza for peace of mind all year!)"
 
                 Text(
                     paymentDetailsText, style = MaterialTheme.typography.bodyLarge
@@ -850,7 +903,7 @@ fun DriverCard(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    "Total: ₹$total",
+                    "Total: ₹$payAmountToUse",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
 
@@ -871,10 +924,8 @@ fun DriverCard(
                     Button(
                         onClick = {
                             showSheet.value = false
-                            onStartPayment(driver.id.toString()) // Trigger Razorpay
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                            onStartPayment(payAmountToUse.toString()) // Trigger Razorpay
+                        }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Continue")
                     }

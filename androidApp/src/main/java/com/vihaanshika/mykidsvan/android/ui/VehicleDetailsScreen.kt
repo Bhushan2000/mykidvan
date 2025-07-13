@@ -9,14 +9,18 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -202,7 +206,6 @@ fun VehicleDetailsScreen(
                         readOnly = true,
                         label = { Text("Vehicle Type") },
                         shape = RoundedCornerShape(14.dp),
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
@@ -239,7 +242,7 @@ fun VehicleDetailsScreen(
                     if (photoList.isNotEmpty()) {
                         Text(
                             text = "Vehicle Photos:",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
 
@@ -278,15 +281,14 @@ fun VehicleDetailsScreen(
 fun ZoomableImageViewer(photoUrl: String, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 4.dp
         ) {
             ZoomableImage(
                 imageUrl = photoUrl,
                 modifier = Modifier
-                    .padding(16.dp)
-                    .wrapContentSize()
+                     .wrapContentSize()
                     .sizeIn(maxWidth = 360.dp, maxHeight = 480.dp) // adjust as needed
             )
         }
@@ -315,6 +317,7 @@ fun ZoomableImage(imageUrl: String, modifier: Modifier = Modifier) {
 
     Box(
         modifier = modifier
+            .size(width = 400.dp, height = 200.dp) // Fixed size box
             .clipToBounds()
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { /* Optional tap handler */ })
@@ -332,8 +335,8 @@ fun ZoomableImage(imageUrl: String, modifier: Modifier = Modifier) {
             contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .wrapContentSize()
-                .clip(RoundedCornerShape(16.dp))
+                .fillMaxSize() // Matches parent box size exactly
+                .clip(RoundedCornerShape(8.dp))
         )
     }
 }

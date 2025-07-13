@@ -11,6 +11,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejRe
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CouponValidationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -24,6 +25,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.ParentActiveInactiveResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
@@ -245,6 +247,9 @@ interface AuthRepository {
     suspend fun getClasses(): GetClassesResponse
 
     suspend fun withdrawCommission(request: WithdrawRequest): WithdrawResponse
-    suspend fun withdrawCommissionStatus(parentId: String): WithdrawRequestStatus
+
+    suspend fun withdrawCommissionStatus(userId: String,role: String): WithdrawRequestStatus
+
+    suspend fun couponValidation(parentId:String, couponCode:String): CouponValidationResponse
 
 }

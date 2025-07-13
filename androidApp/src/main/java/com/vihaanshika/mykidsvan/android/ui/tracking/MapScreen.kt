@@ -19,25 +19,18 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.os.SystemClock
+import android.os.Looper
 import android.util.Log
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,39 +56,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.maptracking.LatLngViewModel
 import com.vihaanshika.mykidsvan.android.R
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import com.vihaanshika.mykidsvan.android.utils.PlaceHolders
 import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.razorpay.PaymentData
 import com.vihaanshika.mykidsvan.android.MainActivity
-import com.vihaanshika.mykidsvan.android.utils.LocationFetcher
 import com.vihaanshika.mykidsvan.android.utils.Resource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-
 fun MapScreen(
+    drawerState: DrawerState,
     paymentStatus: String?,
     requestAssignedStatus: String?,
     viewModel: LatLngViewModel = koinViewModel(),
@@ -165,6 +151,17 @@ fun MapScreen(
     val orderIdState by authViewModel.getOrderId.collectAsState()
     var razorOrderId by remember { mutableStateOf<String?>(null) }
     var razorAmount by remember { mutableStateOf<Int?>(null) }
+    val parentPollingStatus by viewModel.parentPollingStatus.collectAsState()
+    val isDriverInactive = remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val voiceAssistant = remember { VoiceAssistant(context) }
+
+    // Shut down TTS when Composable leaves composition
+    DisposableEffect(Unit) {
+        onDispose {
+            voiceAssistant.shutdown()
+        }
+    }
 
     LaunchedEffect(orderIdState) {
         if (orderIdState is Resource.Success) {
@@ -220,20 +217,43 @@ fun MapScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            coroutineScope.launch {
-                val location = viewModel.getLastKnownLocation()
-                location?.let {
-                    val latLng = LatLng(it.latitude, it.longitude)
-                    currentLocation.value = latLng
-                    cameraPositionState.animate(
-                        CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
-                                .build()
-                        ), durationMs = 1000
-                    )
-                    viewModel.startTracking()
-                }
+            // GPS is enabled now ✅
+            // wait for accurate location using requestLocationUpdates
+            val locationRequest = LocationRequest.create().apply {
+                priority = Priority.PRIORITY_HIGH_ACCURACY
+                interval = 1000 // 1 second
+                numUpdates = 1 // only once
             }
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                object : LocationCallback() {
+                    override fun onLocationResult(result: LocationResult) {
+                        val location = result.lastLocation ?: return
+                        val latLng = LatLng(location.latitude, location.longitude)
+                        // Move camera to location
+                        coroutineScope.launch {
+                            currentLocation.value = latLng
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.builder()
+                                        .target(latLng)
+                                        .zoom(20f)
+                                        .tilt(0f)
+                                        .bearing(0f)
+                                        .build()
+                                ), durationMs = 1000
+                            )
+                            // Start tracking
+                            viewModel.startTrackingService(context)
+                            viewModel.startTracking()
+                        }
+                        // Remove updates
+                        fusedLocationClient.removeLocationUpdates(this)
+                    }
+                },
+                Looper.getMainLooper()
+            )
         } else {
             Toast.makeText(context, PlaceHolders.GPS_REQUIRED_MESSAGE, Toast.LENGTH_SHORT).show()
         }
@@ -256,7 +276,7 @@ fun MapScreen(
                     currentLocation.value = latLng
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
+                            CameraPosition.builder().target(latLng).zoom(20f).tilt(0f).bearing(0f)
                                 .build()
                         ), durationMs = 1000
                     )
@@ -290,9 +310,6 @@ fun MapScreen(
     }
 
     // 🔴 Track if the driver is inactive for 40 seconds
-    val isDriverInactive = remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-
     LaunchedEffect(latLngList.lastOrNull()) {
         if (userRole == Constants.USER_PARENT) {
             val currentPoint = latLngList.lastOrNull()
@@ -310,7 +327,9 @@ fun MapScreen(
         while (true) {
             delay(1000)
             if (userRole == Constants.USER_PARENT) {
-                if (timer.value < 40) {
+                if (parentPollingStatus.equals(Constants.INACTIVE_TRACKING))
+                    isDriverInactive.value = true
+                else if (timer.value < 40) {
                     timer.value++
                 } else {
                     isDriverInactive.value = true
@@ -351,7 +370,7 @@ fun MapScreen(
                     currentLocation.value = latLng
                     cameraPositionState.animate(
                         CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.builder().target(latLng).zoom(20f).tilt(45f).bearing(0f)
+                            CameraPosition.builder().target(latLng).zoom(20f).tilt(0f).bearing(0f)
                                 .build()
                         ), durationMs = 1000
                     )
@@ -460,7 +479,8 @@ fun MapScreen(
         } else null // Default Google Map Light style
     }
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, floatingActionButton = {
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
             if (userRole == Constants.USER_DRIVER)
                 CurrentLocationFab(
                     viewModel = viewModel,
@@ -509,7 +529,7 @@ fun MapScreen(
                 }
             }
 
-            if (showExitDialog && userRole.equals(Constants.USER_DRIVER)) {
+            if (showExitDialog) {
                 AlertDialog(
                     onDismissRequest = { showExitDialog = false },
                     title = {
@@ -524,6 +544,15 @@ fun MapScreen(
                             viewModel.stopTracking()
                             if (userRole == Constants.USER_DRIVER) {
                                 viewModel.stopDriverTracking(userId, Constants.INACTIVE_TRACKING)
+                            } else if (userRole == Constants.USER_PARENT) {
+                                viewModel.updateParentActiveInactiveStatus(
+                                    userId,
+                                    Constants.INACTIVE_PARENT
+                                )
+                                Log.d(
+                                    "ParentActiveInactive MapScreeen",
+                                    "Parent Status - Updated to InActive"
+                                )
                             }
                             // Exit the screen (use NavController if you're using Navigation)
                             (context as? Activity)?.finish()
@@ -551,18 +580,23 @@ fun MapScreen(
                     isDriverInactive = isDriverInactive.value
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                if (isDriverInactive.value && !isTracking) {
-                    Box(
+                if (isDriverInactive.value && parentPollingStatus.equals(Constants.INACTIVE_TRACKING)) {
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 80.dp),
-                        contentAlignment = Alignment.TopCenter
+                            .padding(top = 80.dp, end = 16.dp, bottom = 16.dp, start = 16.dp)
+                            .wrapContentSize(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.6f)
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
                     ) {
                         Text(
-                            text = "🚌❌ Vehicle owner hasn't started tracking yet",
+                            text = "🚌 Vehicle owner hasn't started tracking.",
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp), // Optional side padding
+                                .padding(8.dp), // Optional side padding
                             textAlign = TextAlign.Center
                         )
                     }
@@ -595,19 +629,23 @@ fun MapScreen(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                } else if (isDriverInactive.value) {
-                    Box(
+                } else if (isDriverInactive.value && parentPollingStatus.equals(Constants.ACTIVE_TRACKING)) {
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 80.dp),
-                        contentAlignment = Alignment.TopCenter
+                            .padding(top = 80.dp, end = 16.dp, bottom = 16.dp, start = 16.dp)
+                            .wrapContentSize(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.6f)
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
                     ) {
                         Text(
-                            text = "😞 Live Tracking not shown\nRefresh the Screen",
+                            text = "⏳ Please wait a while...tracking is loading ",
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp), // Optional side padding
-                            textAlign = TextAlign.Center
+                                .padding(8.dp),
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
 
@@ -650,11 +688,13 @@ fun MapScreen(
                 Button(
                     onClick = {
                         if (isTracking) {
+                            voiceAssistant.speak("Tracking stopped")
                             viewModel.stopTracking()
                             viewModel.stopDriverTracking(userId, Constants.INACTIVE_TRACKING)
                         } else {
                             if (locationPermissionState.status.isGranted) {
                                 checkAndPromptEnableGps()
+                                voiceAssistant.speak("Tracking started")
                             } else {
                                 locationPermissionState.launchPermissionRequest()
                             }
@@ -702,7 +742,10 @@ fun MapScreen(
                     PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
                     PlaceHolders.MSG_REQUEST_DRIVER_REJECTED
                 )
-            } else if (today != null && trial != null && paymentStatus == null && today.after(trial) || today == trial) {// trial period send assigned request to driver
+            } else if (!paymentStatus.equals("Paid") && today != null && trial != null && today.after(
+                    trial
+                )
+            ) {// trial period send assigned request to driver
                 LaunchedEffect(Unit) {
                     showPaymentDialog = true
                     hasTriggeredPaymentDialog.value = true
@@ -710,8 +753,20 @@ fun MapScreen(
             }
         }
     }
-    BackHandler(enabled = isTracking && userRole.equals(Constants.USER_DRIVER)) {
-        showExitDialog = true
+    BackHandler(
+        enabled = (isTracking && userRole.equals(Constants.USER_DRIVER))
+                || (userRole.equals(Constants.USER_PARENT)
+                && parentPollingStatus.equals(Constants.ACTIVE_TRACKING))
+    ) {
+        if (drawerState.isOpen) {
+            // Close the drawer first
+            coroutineScope.launch {
+                drawerState.close()
+            }
+        } else {
+            // Show exit dialog
+            showExitDialog = true
+        }
     }
     if (showPaymentDialog) {
         AlertDialog(
@@ -763,7 +818,19 @@ fun MapScreen(
                     )
                     Spacer(Modifier.height(16.dp))
 
+
+
+                    Text(
+                        "Your free trial has ended.\n" +
+                                "To continue using the MyKidVan Live Tracking service, please activate your annual subscription.\n" +
+                                "\uD83D\uDCB0 Subscription Fee: ₹$total/year only",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
                     Text("Duration: $duration", style = MaterialTheme.typography.bodyLarge)
+
                     Spacer(Modifier.height(8.dp))
 
                     Text(

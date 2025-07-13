@@ -73,7 +73,7 @@ class LocationTrackingService : Service() {
 
         serviceScope.launch {
             combine(
-                userPreferences.userRole,
+                userPreferences.userRoleFlow,
                 userPreferences.assignVehicleIdFlow,
             ) { role, id ->
                 Pair(role, id)
@@ -153,18 +153,21 @@ class LocationTrackingService : Service() {
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation ?: return
-            if (location.accuracy > 50f) {
+            // 🔍 Avoid bad GPS
+            if (location.accuracy > 25f) { // accuracy > 25f is practical for driving
                 Log.d("Service", "Too low accuracy: ${location.accuracy}, skipping broadcast.")
                 return
             }
-
-            if (location.speed < 0.5f) {
+            // 🚶 Ignore idle/crawling
+            if (location.hasSpeed() && location.speed < 0.5f) { // speed < 0.5 m/s filters idle
                 Log.d("Service", "Speed < 0.5 m/s, likely idle or creeping. Skipping.")
                 return
             }
-
-            if (isRedundantLocation(location)) return // 🔥 Skip sending duplicate/noisy updates
-
+            // 🌀 Filter redundant jitter
+            if (isRedundantLocation(location)) { // isRedundantLocation() filters jitter
+                Log.d("Service", "Redundant or similar to previous point. Skipping.")
+                return // 🔥 Skip sending duplicate/noisy updates
+            }
             speedInKmh = location.speed * 3.6  // Float in m/s -> Double in km/h
             Log.d("TAG", "onLocationResult: ${speedInKmh?.format(2)} km/h")
 
@@ -313,7 +316,8 @@ class LocationTrackingService : Service() {
                         putExtra("latitude", latLng.latitude)
                         putExtra("longitude", latLng.longitude)
                         putExtra("speed", fetchedSpeed?.toDouble())
-                     }
+                        putExtra("tracking_status", trackingStatus)
+                    }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
                 }
                 // ✅ Update notification with latest speed

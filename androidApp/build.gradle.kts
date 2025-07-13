@@ -95,8 +95,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     //coil
     implementation("io.coil-kt:coil-compose:2.4.0") // Use the latest version if available
-    // Accompanist Navigation Animation dependency :
-    implementation("com.google.accompanist:accompanist-navigation-animation:0.30.1")
     // lottie
     implementation("com.airbnb.android:lottie-compose:6.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
@@ -126,4 +124,5 @@ dependencies {
     implementation("com.google.android.play:app-update:2.1.0")
     // For Kotlin users also import the Kotlin extensions library for Play In-App Update:
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.36.0")
 }

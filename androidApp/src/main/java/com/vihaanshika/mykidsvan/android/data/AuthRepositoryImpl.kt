@@ -1,9 +1,11 @@
 package com.vihaanshika.mykidsvan.android.data
 
 import com.vihaanshika.mykidsvan.android.data.dto.request.AssignRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.CouponValidationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.DriverUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.OtpVerificationRequest
+import com.vihaanshika.mykidsvan.android.data.dto.request.ParentActiveInactiveRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentRegistrationRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.ParentUpdateRequest
 import com.vihaanshika.mykidsvan.android.data.dto.request.PaymentUpdateRequest
@@ -25,6 +27,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.AssignRequestAcpRejRe
 import com.vihaanshika.mykidsvan.android.data.dto.response.AssignedResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionParentResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.CommissionResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.CouponValidationResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DistrictsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DocumentUploadResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.DriverByMobResponse
@@ -38,6 +41,7 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.LoginResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.MessageResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.OtpVerificationResponse
+import com.vihaanshika.mykidsvan.android.data.dto.response.ParentActiveInactiveResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ParentsResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.ProfileUpdateResponse
 import com.vihaanshika.mykidsvan.android.data.dto.response.RazorpayOrderCreationResponse
@@ -499,7 +503,20 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return api.withdrawCommission(request)
     }
 
-    override suspend fun withdrawCommissionStatus(parentId: String): WithdrawRequestStatus {
-        return api.withdrawCommissionRequests(parentId)
+    override suspend fun withdrawCommissionStatus(
+        userId: String,
+        role: String
+    ): WithdrawRequestStatus {
+        return api.withdrawCommissionRequests(userId, role)
+    }
+
+    override suspend fun couponValidation(
+        parentId: String,
+        couponCode: String
+    ): CouponValidationResponse {
+        val request = CouponValidationRequest(
+            parentId, couponCode
+        )
+        return api.couponValidation(request)
     }
 }

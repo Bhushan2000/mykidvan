@@ -52,7 +52,7 @@ fun WithdrawRequestList(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(dataList) { request ->

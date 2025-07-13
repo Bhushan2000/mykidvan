@@ -69,6 +69,8 @@ import com.vihaanshika.mykidsvan.android.data.dto.response.Parent
 import com.vihaanshika.mykidsvan.android.utils.APIEndpoints
 import com.vihaanshika.mykidsvan.android.utils.Constants
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
@@ -93,6 +95,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     var taluka by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var validity by remember { mutableStateOf("") }
+    var paymentDate by remember { mutableStateOf("") }
 
     val isUpdating by viewModel.isProfileUpdating.collectAsState()
     val updateMessage by viewModel.updateMessage.collectAsState()
@@ -118,6 +121,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
     }
 
     LaunchedEffect(Unit) {
+        viewModel.loadStateOptions()
         viewModel.loadProfile(userId, userType)
     }
 
@@ -139,6 +143,7 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                         city = data.city.orEmpty()
                         schoolName = data.schoolId.orEmpty()
                         validity = data.expireDate.orEmpty()
+                        paymentDate = data.paymentDate.orEmpty()
                     }
 
                     is DriverMob -> {
@@ -399,7 +404,32 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                                                 ) { schoolName = it }
 
                                             } else {
-                                                ProfileDetailRow("Valid till", validity)
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 6.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Text(
+                                                        text = "Valid till".uppercase(), // Optional: uppercase for better distinction
+                                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        ),
+                                                        textAlign = TextAlign.Center,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                    Text(
+                                                        text = "${viewModel.formatDate(validity)} (${viewModel.daysBetweenDates( viewModel.getTodayDate() , validity)})"?: "N/A",
+                                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                        ),
+                                                        textAlign = TextAlign.Center,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(top = 2.dp)
+                                                    )
+                                                }
                                                 ProfileDetailRow("Parent Name", name)
                                                 ProfileDetailRow("Contact Number", contact)
                                                 ProfileDetailRow("Address", address)

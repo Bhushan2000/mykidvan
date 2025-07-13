@@ -64,8 +64,8 @@ fun ChatListItem(
                 )
             )
             .clickable(
-                interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true),
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, // already provided by `.ripple()`
                 onClick = onClick
             )
             .padding(horizontal = 20.dp, vertical = 10.dp)

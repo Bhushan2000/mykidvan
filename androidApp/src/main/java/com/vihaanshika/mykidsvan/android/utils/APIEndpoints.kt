@@ -15,7 +15,8 @@ object APIEndpoints {
     const val PATH_PARENT_ID = "parent_id"
     const val PATH_DRIVER_ID = "driver_id"
     const val PATH_MOBILE_NO = "mobile_no"
-
+    const val PATH_USER_ID = "user_id"
+    const val PATH_ROLE = "role"
     // Path
     const val LOGIN = "index.php/api/Logincontroller/login"
 
@@ -76,6 +77,8 @@ object APIEndpoints {
     const val GET_ClASSES = "index.php/api/AccountsController/get_classes"
     const val WITHDRAW_REQUEST = "index.php/api/AccountsController/withdraw"
 
-    const val WITHDRAW_REQUEST_STATUS = "index.php/api/AccountsController/get_withdraw/{parent_id}/parent"
+    const val WITHDRAW_REQUEST_STATUS = "index.php/api/AccountsController/get_withdraw/{user_id}/{role}"
+    const val PARENT_STATUS = "index.php/api/AccountsController/activeinactive"
 
+    const val COUPON_VALIDATION = "index.php/api/AccountsController/couponvalidation"
  }

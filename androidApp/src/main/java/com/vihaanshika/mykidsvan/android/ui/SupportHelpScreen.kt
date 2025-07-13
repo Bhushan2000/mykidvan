@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,100 +72,228 @@ fun SupportHelpScreen() {
                 .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-                Column(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                // Logo + Text
+                Box(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Logo + Text
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.mkv),
                             contentDescription = "Logo",
                             tint = Color.Unspecified,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(80.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Designed & Developed by\nVihaanshika Tech Solutions",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = " MyKidVan",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             color = colors.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Website
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_WEBSITE))
-                            context.startActivity(intent)
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.website),
-                            contentDescription = "Website",
-                            tint = colors.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = Constants.SUPPORT_WEBSITE,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = colors.primary,
-                                textDecoration = TextDecoration.Underline
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Phone
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            openDialog.value = true
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = "Phone",
-                            tint = colors.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = Constants.SUPPORT_PHONE_NO,
-                            style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Email
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("mailto:${Constants.SUPPORT_EMAIL}")
-                            }
-                            context.startActivity(intent)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = "Email",
-                            tint = colors.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = Constants.SUPPORT_EMAIL,
-                            style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Website
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_WEBSITE))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.website),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_WEBSITE_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Phone
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        openDialog.value = true
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Phone",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_PHONE_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Email
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:${Constants.SUPPORT_EMAIL}")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Email",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_EMAIL_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = colors.primary)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // YouTube
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_YOUTUBE))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.youtube),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_YOUTUBE_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Instagram
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_INSTAGRAM))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.instagram),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_INSTAGRAM_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Facebook
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW, Uri.parse(Constants.SUPPORT_FACEBOOK))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.facebook),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.SUPPORT_FACEBOOK_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // FAQ Driver
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.FAQ_DRIVER))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.faq),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.FAQ_DRIVER_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // FAQ Parent
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.FAQ_PARENT))
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(com.vihaanshika.mykidsvan.android.R.drawable.conversation),
+                        contentDescription = "Website",
+                        tint = colors.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = Constants.FAQ_PARENT_PLACEHOLDER,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = colors.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -188,7 +317,11 @@ fun SupportHelpScreen() {
                 TextButton(onClick = {
                     openDialog.value = false
                     val whatsappIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("https://wa.me/${Constants.SUPPORT_PHONE_NO.replace("+", "").replace(" ", "")}")
+                        data = Uri.parse(
+                            "https://wa.me/${
+                                Constants.SUPPORT_PHONE_NO.replace("+", "").replace(" ", "")
+                            }"
+                        )
                     }
                     context.startActivity(whatsappIntent)
                 }) {

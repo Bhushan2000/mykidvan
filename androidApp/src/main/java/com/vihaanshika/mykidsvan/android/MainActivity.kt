@@ -1,12 +1,22 @@
 package com.vihaanshika.mykidsvan.android
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,7 +27,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
@@ -46,25 +55,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.maptracking.LatLngViewModel
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
@@ -112,7 +117,7 @@ import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.UUID
-
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
@@ -250,16 +255,16 @@ fun MyApp(
     onPaymentSuccessCallback: ((PaymentData) -> Unit)?,
     onPaymentFailureCallback: ((Int, String?) -> Unit)?,
 ) {
-    val navController = rememberAnimatedNavController() // Use Animated NavController
-
+    val context = LocalContext.current
+    val navController = rememberNavController()
     val loginViewModel: AuthViewModel = getViewModel()  // Inject ViewModel using Koin
     val messagesViewModel: MessagesViewModel = getViewModel()
     val latViewModel: LatLngViewModel = getViewModel()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val isMapScreen = currentRoute == Constants.ROUTE_HOME
 
     // user id from preferences
     val userId by loginViewModel.userId.collectAsState()
@@ -270,6 +275,7 @@ fun MyApp(
     val paymentStatus by loginViewModel.paymentStatus.collectAsState()
     val schoolPictureUrl by loginViewModel.schoolPictureUrl.collectAsState()
     val referCode by loginViewModel.referCode.collectAsState()
+    val payAmount by loginViewModel.payAmount.collectAsState()
 
     var selectedMenuTitle by remember { mutableStateOf(Constants.MY_KID_VAN) } // Initial title
     var selectedDrawerItem by remember { mutableStateOf<DrawerItem?>(null) }
@@ -277,23 +283,61 @@ fun MyApp(
     // Collect your flag
     val openMessageScreen by loginViewModel.navigateToMessageScreen.collectAsState()
     var refreshKey by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    val coroutineScope = rememberCoroutineScope()
+    var showExitDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(userId) {
-        if (userId != null) {
+        if (userId != null && userRole.equals(Constants.USER_PARENT)) {
             Log.d(
                 "UserDetails :) ",
                 "user ID - $userId \n" +
                         "user role - $userRole  \n" +
+                        "trialDate - $trialDate  \n" +
+                        "schoolPictureUrl - $schoolPictureUrl  \n" +
+                        "refer code - $referCode  \n" +
+                        "current route - $currentRoute \n" +
+                        "payment status - $paymentStatus  \n" +
                         "assigned vehicle id - $assignVehicleId   \n" +
                         "assign status - $requestAssignedStatus   \n" +
+                        "payAmount - $payAmount \n"
+            )
+        } else if (userId != null && userRole.equals(Constants.USER_DRIVER)) {
+
+            Log.d(
+                "UserDetails :) ",
+                "user ID - $userId \n" +
+                        "user role - $userRole  \n" +
                         "trialDate - $trialDate  \n" +
-                        "payment status - $paymentStatus  \n" +
                         "schoolPictureUrl - $schoolPictureUrl  \n" +
-                        "refer code - $referCode"
+                        "refer code - $referCode  \n" +
+                        "current route - $currentRoute \n" +
+                        "payAmount - $payAmount \n"
+
             )
         }
     }
-    // Navigate only once after launch if needed
 
+    LaunchedEffect(currentRoute) {
+        selectedDrawerItem = when (currentRoute) {
+            DrawerItem.Home.route -> DrawerItem.Home
+            DrawerItem.Profile.route -> DrawerItem.Profile
+            DrawerItem.FindVehicle.route -> DrawerItem.FindVehicle
+            DrawerItem.VehicleDetails.route -> DrawerItem.VehicleDetails
+            DrawerItem.Message.route -> DrawerItem.Message
+            DrawerItem.Commission.route -> DrawerItem.Commission
+            DrawerItem.ReferApp.route -> DrawerItem.ReferApp
+            DrawerItem.SupportHelp.route -> DrawerItem.SupportHelp
+            DrawerItem.AboutDeveloper.route -> DrawerItem.AboutDeveloper
+            DrawerItem.FindStudent.route -> DrawerItem.FindStudent
+            DrawerItem.AssignedStudent.route -> DrawerItem.AssignedStudent
+            DrawerItem.VehiclePhoto.route -> DrawerItem.VehiclePhoto
+            else -> null
+        }
+        selectedMenuTitle = selectedDrawerItem?.title ?: Constants.MY_KID_VAN
+    }
+
+
+    // Navigate only once after launch if needed
     LaunchedEffect(openMessageScreen) {
         if (openMessageScreen) {
             navController.navigate(Constants.ROUTE_MESSAGES) {
@@ -317,10 +361,24 @@ fun MyApp(
         Routes.FILE_UPLOAD
     )
 
+    fun onDrawerItemClick(route: String) {
+        coroutineScope.launch {
+            drawerState.close()
+            if (navController.currentDestination?.route != route) {
+                navController.navigate(route) {
+                    launchSingleTop = true
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = false
+                    }
+                }
+            }
+        }
+    }
 
     // Handle navigation with ModalNavigationDrawer and NavHost
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isMapScreen,
         drawerContent = {
             if (!hideTopBarAndDrawer) {
                 ModalDrawerSheet {
@@ -339,8 +397,8 @@ fun MyApp(
                             DrawerItem.FindVehicle,
                             DrawerItem.VehicleDetails,
                             DrawerItem.Message,
+                            DrawerItem.Commission,
                             DrawerItem.ReferApp,
-                            DrawerItem.WithDrawRequests,
                             DrawerItem.SupportHelp,
                             DrawerItem.AboutDeveloper
                         )
@@ -352,8 +410,8 @@ fun MyApp(
                             DrawerItem.AssignedStudent,
                             DrawerItem.VehiclePhoto,
                             DrawerItem.Message,
+                            DrawerItem.Commission,
                             DrawerItem.ReferApp,
-                            DrawerItem.WithDrawRequests,
                             DrawerItem.SupportHelp,
                             DrawerItem.AboutDeveloper
                         )
@@ -365,11 +423,10 @@ fun MyApp(
                         DrawerItemRow(
                             item = item,
                             isSelected = item == selectedDrawerItem,
-                            onClick = { clickedItem ->
+                            onClick = {
                                 selectedDrawerItem = item
-                                selectedMenuTitle = item.title // Updates AppBar title
-                                scope.launch { drawerState.close() }
-                                navController.navigate(item.route)
+                                selectedMenuTitle = item.title
+                                onDrawerItemClick(item.route) // ✅ delegate navigation
                             }
                         )
                     }
@@ -379,7 +436,15 @@ fun MyApp(
         }
     ) {
         var showLogoutDialog by remember { mutableStateOf(false) }  // Logout dialog state
+        val ultraSmoothFadeSpec = tween<Float>(
+            durationMillis = 1000,
+            easing = FastOutSlowInEasing // smoother than LinearOutSlowInEasing
+        )
 
+        val ultraSmoothScaleSpec = tween<Float>(
+            durationMillis = 1000,
+            easing = CubicBezierEasing(0.2f, 0f, 0f, 1f) // soft spring-like smoothness
+        )
         Scaffold(
             topBar = {
                 if (!hideTopBarAndDrawer) {
@@ -400,10 +465,44 @@ fun MyApp(
                     end = 0.dp,
                     bottom = innerPadding.calculateBottomPadding()
                 )
-                NavHost(
+                AnimatedNavHost(
                     navController = navController,
                     startDestination = Routes.SPLASH,
-                    modifier = Modifier.padding(contentPadding)
+                    modifier = Modifier.padding(contentPadding),
+
+                    enterTransition = {
+                        fadeIn(animationSpec = ultraSmoothFadeSpec) +
+                                scaleIn(
+                                    animationSpec = ultraSmoothScaleSpec,
+                                    initialScale = 0.98f // smaller zoom-in effect
+                                )
+                    },
+
+                    exitTransition = {
+                        fadeOut(animationSpec = ultraSmoothFadeSpec) +
+                                scaleOut(
+                                    animationSpec = ultraSmoothScaleSpec,
+                                    targetScale = 1.01f // softer zoom-out
+                                )
+                    },
+
+                    popEnterTransition = {
+                        fadeIn(animationSpec = ultraSmoothFadeSpec) +
+                                scaleIn(
+                                    animationSpec = ultraSmoothScaleSpec,
+                                    initialScale = 0.98f
+                                )
+                    },
+
+                    popExitTransition = {
+                        fadeOut(animationSpec = ultraSmoothFadeSpec) +
+                                scaleOut(
+                                    animationSpec = ultraSmoothScaleSpec,
+                                    targetScale = 1.01f
+                                )
+                    }
+
+
                 ) {
                     composable(Routes.SPLASH) {
                         SplashScreen(
@@ -473,6 +572,7 @@ fun MyApp(
                     composable(DrawerItem.Home.route) {
                         key(refreshKey) {
                             MapScreen(
+                                drawerState = drawerState,
                                 paymentStatus = paymentStatus,
                                 requestAssignedStatus = requestAssignedStatus,
                                 viewModel = latViewModel,
@@ -580,7 +680,13 @@ fun MyApp(
                     }
                     composable(DrawerItem.SupportHelp.route) { SupportHelpScreen() }
                     composable(DrawerItem.AboutDeveloper.route) { AboutDeveloperScreen() }
-                    composable(DrawerItem.WithDrawRequests.route) { WithDrawRequests(loginViewModel,userId.toString()) }
+                    composable(DrawerItem.Commission.route) {
+                        WithDrawRequests(
+                            loginViewModel,
+                            userId.toString(),
+                            userRole.toString()
+                        )
+                    }
                 }
             }
         )
@@ -607,6 +713,13 @@ fun MyApp(
                             // Clear user session or token and reset login state
                             loginViewModel.logout()
                             latViewModel.stopTracking() // stop tracking
+                            if (userRole == Constants.USER_PARENT) {
+                                latViewModel.updateParentActiveInactiveStatus(
+                                    userId.toString(),
+                                    Constants.INACTIVE_PARENT
+                                )
+                                Log.d("ParentActiveInactive MainActivity On Logout", "Parent Status - Updated to InActive")
+                            }
                             // Add slight delay to ensure state flows are reset
                             CoroutineScope(Dispatchers.Main).launch {
                                 delay(100) // 100ms
@@ -628,13 +741,71 @@ fun MyApp(
         }
     }
 
+    BackHandler {
+        coroutineScope.launch {
+            when {
+                drawerState.isOpen -> {
+                    drawerState.close()
+                }
+
+                currentRoute != DrawerItem.Home.route -> { // or Constants.ROUTE_HOME
+                    navController.navigate(DrawerItem.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+
+                else -> {
+                    showExitDialog = true
+                }
+            }
+        }
+    }
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Exit App") },
+            text = { Text("Are you sure you want to exit the app?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    latViewModel.stopTracking()
+                    if (userRole == Constants.USER_DRIVER) {
+                        latViewModel.stopDriverTracking(
+                            userId.toString(),
+                            Constants.INACTIVE_TRACKING
+                        )
+                    } else if (userRole == Constants.USER_PARENT) {
+                        latViewModel.updateParentActiveInactiveStatus(
+                            userId.toString(),
+                            Constants.INACTIVE_PARENT
+                        )
+                        Log.d("ParentActiveInactive MainActivity", "Parent Status - Updated to InActive")
+                    }
+                    showExitDialog = false
+                    // Exit the screen (use NavController if you're using Navigation)
+                    (context as? Activity)?.finish()
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
 }
 
 
 @Composable
 fun DrawerItemRow(
-    item: DrawerItem, isSelected: Boolean,
-    onClick: (DrawerItem) -> Unit
+    item: DrawerItem,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     else Color.Transparent
@@ -647,7 +818,7 @@ fun DrawerItemRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(backgroundColor, shape = RoundedCornerShape(32.dp)) // Rounded ends
-                .clickable { onClick(item) }
+                .clickable { onClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp) // Inner content padding
         ) {
             Icon(
@@ -679,7 +850,7 @@ fun CustomTopAppBar(
 ) {
     val topBarPadding = 12.dp
     val horizontalPadding = 12.dp
-    val appBarHeight = 64.dp // You can reduce this (default is ~64.dp)
+    val appBarHeight = 68.dp
 
     Box(
         modifier = Modifier
@@ -694,6 +865,11 @@ fun CustomTopAppBar(
                 elevation = 40.dp,
                 shape = RoundedCornerShape(48.dp),
                 clip = false
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(48.dp)
             )
             .background(
                 color = MaterialTheme.colorScheme.surface,
@@ -714,8 +890,7 @@ fun CustomTopAppBar(
                     Icon(
                         painter = painterResource(R.drawable.app_icon),
                         contentDescription = PlaceHolders.MENU,
-                        modifier = Modifier
-                            .padding(start = 8.dp), // Add start padding ,
+                        modifier = Modifier.padding(start = 8.dp),
                         tint = Color.Unspecified
                     )
                 }

@@ -42,7 +42,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         // Send token to your server if needed
         try {
             serviceScope.launch {
-                combine(userPreferences.userRole, userPreferences.userIdFlow) { role, id ->
+                combine(userPreferences.userRoleFlow, userPreferences.userIdFlow) { role, id ->
                     role to id
                 }.collect { (role, id) ->
                     Log.d("CombinedFlow", "Role: $role, ID: $id")

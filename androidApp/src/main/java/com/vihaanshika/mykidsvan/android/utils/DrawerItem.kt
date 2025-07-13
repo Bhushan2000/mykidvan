@@ -1,19 +1,11 @@
 package com.vihaanshika.mykidsvan.android.utils
 
-import androidx.annotation.DrawableRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.vihaanshika.mykidsvan.android.R
 
 
 sealed class DrawerItem(val title: String, val route: String, val iconRes: Int) {
     object Home : DrawerItem(Constants.TITLE_HOME, Constants.ROUTE_HOME, R.drawable.ic_home)
+
     object Profile : DrawerItem(Constants.TITLE_PROFILE, Constants.ROUTE_PROFILE, R.drawable.ic_profile)
     object FindVehicle : DrawerItem(Constants.TITLE_FIND_VEHICLE, Constants.ROUTE_FIND_VEHICLE, R.drawable.ic_find_vehicle)
     object VehicleDetails : DrawerItem(Constants.TITLE_VEHICLE_DETAILS, Constants.ROUTE_VEHICLE_DETAILS, R.drawable.vehicle_details)
@@ -25,6 +17,6 @@ sealed class DrawerItem(val title: String, val route: String, val iconRes: Int) 
     object VehiclePhoto : DrawerItem(Constants.TITLE_VEHICLE_PHOTO, Constants.ROUTE_VEHICLE_PHOTO, R.drawable.ic_find_vehicle)
     object ReferApp : DrawerItem(Constants.TITLE_REFER_APP, Constants.ROUTE_REFER_APP, R.drawable.ic_share)
     object AboutDeveloper : DrawerItem(Constants.TITLE_ABOUT_DEVELOPER, Constants.ROUTE_ABOUT_DEVELOPER, R.drawable.about_developer)
-    object WithDrawRequests : DrawerItem(Constants.TITLE_WTIHDRAW_REQUEST, Constants.ROUTE_WTIHDRAW_REQUEST, R.drawable.withdraw_request_list)
+    object Commission : DrawerItem(Constants.TITLE_COMMISSION, Constants.ROUTE_COMMISSION, R.drawable.withdraw_request_list)
 }
 
