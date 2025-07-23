@@ -144,6 +144,13 @@ fun MapScreen(
     val hasTriggeredPaymentDialog = remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val showSheet = remember { mutableStateOf(false) }
+
+    // coupon code
+    var showInitialDialog by remember { mutableStateOf(false) }
+    var showCouponInputDialog by remember { mutableStateOf(false) }
+    var couponCode by remember { mutableStateOf("") }
+    val couponState by authViewModel.couponCodeValidation.collectAsState()
+
     val currentDate = LocalDate.now()
     val paymentDate = currentDate.format(DateTimeFormatter.ISO_DATE)
     val expireDate = currentDate.plusYears(1).format(DateTimeFormatter.ISO_DATE)
@@ -170,6 +177,24 @@ fun MapScreen(
                 razorOrderId = it.orderId
                 razorAmount = it.amountPaise
             }
+        }
+    }
+
+    LaunchedEffect(couponState) {
+        when (val result = couponState) {
+            is Resource.Success -> {
+                razorOrderId = result.data.orderId
+                razorAmount = result.data.payAmount?.toDoubleOrNull()?.times(100)?.toInt() ?: 0
+                showCouponInputDialog = false
+                showSheet.value = true
+            }
+
+            is Resource.Error -> {
+                Toast.makeText(context, result.message ?: "Invalid coupon", Toast.LENGTH_SHORT)
+                    .show()
+            }
+
+            else -> {}
         }
     }
 
@@ -742,10 +767,8 @@ fun MapScreen(
                     PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
                     PlaceHolders.MSG_REQUEST_DRIVER_REJECTED
                 )
-            } else if (!paymentStatus.equals("Paid") && today != null && trial != null && today.after(
-                    trial
-                )
-            ) {// trial period send assigned request to driver
+        } else if (userRole == Constants.USER_PARENT && today != null && trial != null && today.after(trial) && !paymentStatus.equals("Paid")) {
+                // trial period send assigned request to driver
                 LaunchedEffect(Unit) {
                     showPaymentDialog = true
                     hasTriggeredPaymentDialog.value = true
@@ -778,10 +801,8 @@ fun MapScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        authViewModel.getRazorPayOrderId()
                         showPaymentDialog = false
-                        redirectToPayment = true // trigger Razorpay bottom sheet
-                        showSheet.value = true
+                        showInitialDialog = true
                     }
                 ) {
                     Text("Proceed to Payment")
@@ -793,6 +814,67 @@ fun MapScreen(
                 }
             }
         )
+    }
+
+    if (showInitialDialog) {
+        AlertDialog(
+            onDismissRequest = { showInitialDialog = false },
+            title = { Text("Coupon Code") },
+            text = { Text("Do you have a coupon code?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showInitialDialog = false
+                    showCouponInputDialog = true
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showInitialDialog = false
+                    redirectToPayment = true // trigger Razorpay bottom sheet
+                    showSheet.value = true
+                    if (!paymentStatus.equals("Paid")) authViewModel.getRazorPayOrderId()
+                }) {
+                    Text("No")
+                }
+            })
+    }
+
+    if (showCouponInputDialog) {
+        AlertDialog(
+            onDismissRequest = { showCouponInputDialog = false },
+            title = { Text("Enter Coupon Code") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = couponCode,
+                        onValueChange = { couponCode = it },
+                        label = { Text("Coupon Code") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    authViewModel.couponValidation(parentId = userId, couponCode = couponCode)
+                    authViewModel.clearCouponCodeValidation()
+                    redirectToPayment = true // trigger Razorpay bottom sheet
+                    showSheet.value = true
+                }) {
+                    Text("Submit")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCouponInputDialog = false
+                    redirectToPayment = true // trigger Razorpay bottom sheet
+                    showSheet.value = true
+                    if (!paymentStatus.equals("Paid")) authViewModel.getRazorPayOrderId()
+                }) {
+                    Text("Cancel")
+                }
+            })
     }
 
     if (redirectToPayment) {

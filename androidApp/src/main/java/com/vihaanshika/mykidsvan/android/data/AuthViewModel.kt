@@ -1579,13 +1579,15 @@ class AuthViewModel(
                 if (response.status) {
                     _couponCodeValidation.value = Resource.Success(response)
                 } else {
-                    _couponCodeValidation.value = Resource.Error("Unknown error occurred")
+                    _couponCodeValidation.value = Resource.Error(response.message.toString())
                 }
             } catch (e: Exception) {
-                _couponCodeValidation.value =
-                    Resource.Error(e.localizedMessage ?: "Something went wrong")
+                _couponCodeValidation.value = Resource.Error( "Not a valid coupon")
             }
         }
+    }
+    fun clearCouponCodeValidation(){
+        _couponCodeValidation.value = Resource.Idle()
     }
 
     fun formatDate(input: String): String {

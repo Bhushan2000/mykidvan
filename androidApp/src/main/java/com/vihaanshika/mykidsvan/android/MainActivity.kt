@@ -117,7 +117,6 @@ import org.json.JSONObject
 import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.UUID
-import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
@@ -635,7 +634,8 @@ fun MyApp(
                                 },
                                 onPaymentFailure = { code, message ->
                                     onPaymentFailureCallback?.invoke(code, message)
-                                }
+                                },
+                                payAmount = payAmount
                             )
                         }
                     }
@@ -718,7 +718,10 @@ fun MyApp(
                                     userId.toString(),
                                     Constants.INACTIVE_PARENT
                                 )
-                                Log.d("ParentActiveInactive MainActivity On Logout", "Parent Status - Updated to InActive")
+                                Log.d(
+                                    "ParentActiveInactive MainActivity On Logout",
+                                    "Parent Status - Updated to InActive"
+                                )
                             }
                             // Add slight delay to ensure state flows are reset
                             CoroutineScope(Dispatchers.Main).launch {
@@ -781,7 +784,10 @@ fun MyApp(
                             userId.toString(),
                             Constants.INACTIVE_PARENT
                         )
-                        Log.d("ParentActiveInactive MainActivity", "Parent Status - Updated to InActive")
+                        Log.d(
+                            "ParentActiveInactive MainActivity",
+                            "Parent Status - Updated to InActive"
+                        )
                     }
                     showExitDialog = false
                     // Exit the screen (use NavController if you're using Navigation)

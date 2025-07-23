@@ -154,12 +154,12 @@ class LocationTrackingService : Service() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation ?: return
             // 🔍 Avoid bad GPS
-            if (location.accuracy > 25f) { // accuracy > 25f is practical for driving
+            if (location.accuracy > 50f) {
                 Log.d("Service", "Too low accuracy: ${location.accuracy}, skipping broadcast.")
                 return
             }
-            // 🚶 Ignore idle/crawling
-            if (location.hasSpeed() && location.speed < 0.5f) { // speed < 0.5 m/s filters idle
+
+            if (location.speed < 0.5f) {
                 Log.d("Service", "Speed < 0.5 m/s, likely idle or creeping. Skipping.")
                 return
             }

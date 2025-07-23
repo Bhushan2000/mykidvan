@@ -368,6 +368,17 @@ class LatLngViewModel(
 
             // ✅ Skip filters for the very first location
             if (isFirstLocationSent) {
+                // Accuracy Check
+                if (location.accuracy > 15f) {
+                    Log.d("TAG", "Low accuracy: ${location.accuracy}, skipping.")
+                    return
+                }
+
+                // Speed Check
+                if (location.hasSpeed() && location.speed < 0.5f) {
+                    Log.d("TAG", "Speed < 0.5m/s (${location.speed}), skipping.")
+                    return
+                }
                 // Distance Check
                 val lastLatLng = _visiblePolylinePath.value.lastOrNull()
                 if (lastLatLng != null) {
@@ -377,8 +388,8 @@ class LatLngViewModel(
                     }
 
                     val distance = lastLocation.distanceTo(filteredLocation)
-                    if (distance < 5f) {
-                        Log.d("LatLngViewModel", "🌀 Moved < 5m (${distance}m), skipping.")
+                    if (distance < 8f) {
+                        Log.d("TAG", "Moved <$distance m, skipping.")
                         return
                     }
                 }

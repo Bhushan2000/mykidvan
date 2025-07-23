@@ -12,13 +12,13 @@ val secrets = Properties().apply {
 }
 android {
     namespace = "com.vihaanshika.mykidsvan.android"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.vihaanshika.mykidsvan.android"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "1.4"
         //buildConfigField("String", "API_KEY", "\"${API_KEY}\"")
         //buildConfigField("String", "API_KEY", "\"${project.findProperty("API_KEY")}\"")
 

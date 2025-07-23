@@ -472,10 +472,10 @@ fun DriverSignupScreen(
 
             Button(
                 onClick = {
-                    if (ownerName.isBlank() || contactNumber.isBlank() || !termsAccepted) {
+                    if (ownerName.isBlank() || contactNumber.isBlank() || !termsAccepted && isVerified) {
                         Toast.makeText(
                             context,
-                            "Please fill mandatory fields and accept the terms.",
+                            "Please fill mandatory fields and accept the terms & Verify Your Mobile Number.",
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
@@ -818,7 +818,7 @@ fun ReferralRow(
         OutlinedTextField(
             value = enteredReferralCode.value,
             onValueChange = { enteredReferralCode.value = it },
-            label = { Text("Code") },
+            label = { Text("Refer Code") },
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier
                 .weight(1f)

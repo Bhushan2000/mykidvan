@@ -542,10 +542,10 @@ fun ParentSignupScreen(
 
             Button(
                 onClick = {
-                    if (parentName.value.isBlank() || contactNumber.isBlank() || !termsAccepted.value) {
+                    if (parentName.value.isBlank() || contactNumber.isBlank() || !termsAccepted.value && isVerified) {
                         Toast.makeText(
                             context,
-                            "Please fill mandatory fields and accept the terms.",
+                            "Please fill mandatory fields and accept the terms & Verify Your Mobile Number.",
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
