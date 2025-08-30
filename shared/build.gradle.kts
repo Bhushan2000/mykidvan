@@ -30,6 +30,9 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             //put your multiplatform dependencies here
+            // websocket
+            implementation("io.ktor:ktor-client-core:2.3.7")
+            implementation("io.ktor:ktor-client-websockets:2.3.7")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

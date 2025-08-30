@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -90,11 +91,16 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
     val serverInside = vehiclePhotos.getOrNull(2)?.let { ensureFullUrl(it) }
     val serverOutside = vehiclePhotos.getOrNull(3)?.let { ensureFullUrl(it) }
 
-    Scaffold { paddingValues ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(paddingValues)
-                .padding( top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
                 .verticalScroll(rememberScrollState())
         ) {
             Text("Tap to upload each vehicle photo", fontSize = 16.sp, fontWeight = FontWeight.Medium)

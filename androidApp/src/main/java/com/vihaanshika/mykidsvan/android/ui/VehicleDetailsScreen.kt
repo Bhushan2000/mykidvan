@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -31,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,160 +108,55 @@ fun VehicleDetailsScreen(
             }
         }
     }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
-    ) {
-        when {
-            assignVehicleId == null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(), // Fills the whole screen
-                    contentAlignment = Alignment.Center // Centers the inner content
-                ) {
+    Scaffold() { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+        ) {
+            when {
+                assignVehicleId == null -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp) // This adds margin around the whole message
+                            .fillMaxSize(), // Fills the whole screen
+                        contentAlignment = Alignment.Center // Centers the inner content
                     ) {
-                        Column(
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.Center)
-                                .background(
-                                    Color.White.copy(alpha = 0.8f),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                                .fillMaxWidth()
+                                .padding(24.dp) // This adds margin around the whole message
                         ) {
-                            Text(
-                                text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
-                                color = Color.Red,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .background(
+                                        Color.White.copy(alpha = 0.8f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
+                                    color = Color.Red,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
 
-                            Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(8.dp))
 
-                            Text(
-                                text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
-                                color = Color.Red,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Normal,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-
-            }
-
-            isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            profileData == null -> {
-                Text(
-                    text = "Vehicle data not found",
-                    modifier = Modifier.align(Alignment.Center),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-
-                    OutlinedTextField(
-                        value = vehicleNumber.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Vehicle Number") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = ownerName.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Owner Name") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = vehicleType.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Vehicle Type") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = model.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Vehicle Model") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = mobNumber.value,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Mobile Number") },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-
-                    val photoList = vehiclePhotosState.value
-                        .split(",")
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
-                        .take(5)
-
-                    if (photoList.isNotEmpty()) {
-                        Text(
-                            text = "Vehicle Photos:",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(photoList) { photoPath ->
-                                val url = "${APIEndpoints.BASE_URL}$photoPath"
-                                AsyncImage(
-                                    model = url,
-                                    contentDescription = "Vehicle Photo",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .border(1.dp, Color.LightGray, RoundedCornerShape(10.dp))
-                                        .clickable { selectedImageUrl = url },
-                                    contentScale = ContentScale.Crop
+                                Text(
+                                    text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
@@ -267,9 +164,134 @@ fun VehicleDetailsScreen(
 
                 }
 
-                selectedImageUrl?.let { url ->
-                    ZoomableImageViewer(photoUrl = url) {
-                        selectedImageUrl = null
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+
+                profileData == null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = "Vehicle data not found",
+                            modifier = Modifier.align(Alignment.Center),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+
+                        OutlinedTextField(
+                            value = vehicleNumber.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Vehicle Number") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = ownerName.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Owner Name") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = vehicleType.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Vehicle Type") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = model.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Vehicle Model") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = mobNumber.value,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Mobile Number") },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                        )
+
+                        val photoList = vehiclePhotosState.value
+                            .split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotBlank() }
+                            .take(5)
+
+                        if (photoList.isNotEmpty()) {
+                            Text(
+                                text = "Vehicle Photos:",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(photoList) { photoPath ->
+                                    val url = "${APIEndpoints.BASE_URL}$photoPath"
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = "Vehicle Photo",
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .border(
+                                                1.dp,
+                                                Color.LightGray,
+                                                RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable { selectedImageUrl = url },
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+
+                    }
+
+                    selectedImageUrl?.let { url ->
+                        ZoomableImageViewer(photoUrl = url) {
+                            selectedImageUrl = null
+                        }
                     }
                 }
             }
@@ -288,7 +310,7 @@ fun ZoomableImageViewer(photoUrl: String, onDismiss: () -> Unit) {
             ZoomableImage(
                 imageUrl = photoUrl,
                 modifier = Modifier
-                     .wrapContentSize()
+                    .wrapContentSize()
                     .sizeIn(maxWidth = 360.dp, maxHeight = 480.dp) // adjust as needed
             )
         }

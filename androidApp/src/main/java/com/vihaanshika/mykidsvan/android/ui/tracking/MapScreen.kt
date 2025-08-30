@@ -515,12 +515,16 @@ fun MapScreen(
                 )
         }
     ) { paddingValue ->
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()
+                      .statusBarsPadding()   // ✅ adds padding for status bar
+
+        ) {
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 uiSettings = MapUiSettings(zoomControlsEnabled = false),
                 properties = MapProperties(
+//                    mapType = MapType.SATELLITE,   // ✅ Set satellite mode
                     isMyLocationEnabled = locationPermissionState.status.isGranted && shouldShowBlueDot(
                         userRole.toString()
                     ),
@@ -608,7 +612,7 @@ fun MapScreen(
                 if (isDriverInactive.value && parentPollingStatus.equals(Constants.INACTIVE_TRACKING)) {
                     Card(
                         modifier = Modifier
-                            .padding(top = 80.dp, end = 16.dp, bottom = 16.dp, start = 16.dp)
+                            .padding(top = paddingValue.calculateTopPadding() + 48.dp, end = 16.dp, bottom = 16.dp, start = 16.dp)
                             .wrapContentSize(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(

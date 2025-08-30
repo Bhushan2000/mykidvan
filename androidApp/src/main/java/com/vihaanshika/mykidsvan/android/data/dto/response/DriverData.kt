@@ -49,5 +49,6 @@ data class DriverData(
     val device_model: String? = null,
     val last_seen: String? = null,
     val school_image: String? = null,
-    val pay_amount: String? = null
+    val pay_amount: String? = null,
+    val notification_topic:String? = null
 )

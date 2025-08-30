@@ -53,10 +53,10 @@ fun AboutDeveloperScreen() {
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
+                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(top = 80.dp,start = 16.dp,end=16.dp),
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(top = innerPadding.calculateTopPadding() + 48.dp, start = 16.dp,end=16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 

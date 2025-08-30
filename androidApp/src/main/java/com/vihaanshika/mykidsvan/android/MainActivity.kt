@@ -1,5 +1,9 @@
 package com.vihaanshika.mykidsvan.android
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.asPaddingValues
+
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -62,6 +67,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -69,6 +75,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.authapp.presentation.viewmodel.AuthViewModel
 import com.example.maptracking.LatLngViewModel
+import com.google.accompanist.insets.ProvideWindowInsets
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.InstallStateUpdatedListener
@@ -129,16 +136,23 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     private val REQUEST_CODE = 777
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ✅ Handle system windows explicitly for Android 15+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         Checkout.preload(applicationContext)
         checkForUpdate()
         setContent {
             MyApplicationTheme {
-                // Capture intent data
-                val openMessageScreen = intent?.getBooleanExtra("openMessageScreen", false) == true
-                if (openMessageScreen) {
-                    loginViewModel.triggerMessageScreenNavigation()
+
+                ProvideWindowInsets {           // Capture intent data
+                    val openMessageScreen =
+                        intent?.getBooleanExtra("openMessageScreen", false) == true
+                    if (openMessageScreen) {
+                        loginViewModel.triggerMessageScreenNavigation()
+                    }
+                    MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
                 }
-                MyApp(onPaymentSuccessCallback, onPaymentFailureCallback)
             }
         }
     }
@@ -856,14 +870,15 @@ fun CustomTopAppBar(
 ) {
     val topBarPadding = 12.dp
     val horizontalPadding = 12.dp
-    val appBarHeight = 68.dp
+    val appBarHeight = 56.dp
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding() // ✅ Only adds padding at the top for status bar
+            .padding(top = 8.dp)        // ✅ extra padding you control (increase/decrease)
             .height(appBarHeight)
             .padding(
-                top = topBarPadding,
                 start = horizontalPadding,
                 end = horizontalPadding
             )

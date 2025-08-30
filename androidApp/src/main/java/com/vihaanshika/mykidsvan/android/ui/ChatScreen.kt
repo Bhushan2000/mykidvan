@@ -160,11 +160,17 @@ fun ChatScreen(
             viewModel.resetGetAllParent()
         }
     }
-
+    Scaffold() { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
                 .imePadding()
         ) {
 
@@ -213,8 +219,7 @@ fun ChatScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
+                     ) {
                         items(sortedMessages.reversed()) { message ->
                             val isParent = message.senderType == Constants.USER_PARENT
                             val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
@@ -242,7 +247,7 @@ fun ChatScreen(
                                         contentDescription = "Parent Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                             .clip(CircleShape)
+                                            .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape),
 
 
@@ -254,7 +259,7 @@ fun ChatScreen(
                                 Card(
                                     shape = bubbleShape,
                                     colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                     modifier = Modifier.widthIn(max = 280.dp)
+                                    modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
@@ -304,7 +309,7 @@ fun ChatScreen(
                                         contentDescription = "Driver Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                             .clip(CircleShape)
+                                            .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )
                                 }
@@ -370,8 +375,7 @@ fun ChatScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
+                     ) {
                         items(sortedMessages.reversed()) { message ->
                             val isParent = message.senderType == Constants.USER_PARENT
                             val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
@@ -399,7 +403,7 @@ fun ChatScreen(
                                         contentDescription = "Parent Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                             .clip(CircleShape)
+                                            .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape),
 
 
@@ -411,7 +415,7 @@ fun ChatScreen(
                                 Card(
                                     shape = bubbleShape,
                                     colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                     modifier = Modifier.widthIn(max = 280.dp)
+                                    modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
@@ -461,7 +465,7 @@ fun ChatScreen(
                                         contentDescription = "Driver Avatar",
                                         modifier = Modifier
                                             .size(36.dp)
-                                             .clip(CircleShape)
+                                            .clip(CircleShape)
                                             .border(1.dp, Color.Gray, CircleShape)
                                     )
                                 }
@@ -537,5 +541,5 @@ fun ChatScreen(
                 }
             }
         }
-
+    }
 }

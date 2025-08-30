@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
@@ -101,12 +102,17 @@ fun FindVehicleScreen(
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf("By School", "By Mobile No.")
 
-    Scaffold { paddingValues ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
                 .verticalScroll(rememberScrollState())
         ) {
             // Tab Navigation

@@ -125,4 +125,7 @@ dependencies {
     // For Kotlin users also import the Kotlin extensions library for Play In-App Update:
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation("com.google.accompanist:accompanist-navigation-animation:0.36.0")
+    implementation("com.google.accompanist:accompanist-insets:0.30.1")
+    // websocket
+    implementation("io.ktor:ktor-client-okhttp:2.3.7")
 }

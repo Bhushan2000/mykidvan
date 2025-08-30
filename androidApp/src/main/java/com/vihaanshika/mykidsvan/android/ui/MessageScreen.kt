@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -151,324 +153,335 @@ fun MessageScreen(
             listState.firstVisibleItemIndex > 0
         }
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
-            .imePadding()
-    ) {
-
-        // 🚫 Parent – show driver not assigned message
-        if (userRole == Constants.USER_PARENT && (assignVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
-                PlaceHolders.ACCEPTED, ignoreCase = true
-            ))
+    Scaffold() { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+                .imePadding()
         ) {
 
-            Box(
-                modifier = Modifier.fillMaxSize(), // Fills the whole screen
-                contentAlignment = Alignment.Center // Centers the inner content
+            // 🚫 Parent – show driver not assigned message
+            if (userRole == Constants.USER_PARENT && (assignVehicleId.isNullOrBlank() || !vehicleTrackingStatus.equals(
+                    PlaceHolders.ACCEPTED, ignoreCase = true
+                ))
             ) {
+
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp) // This adds margin around the whole message
+                    modifier = Modifier.fillMaxSize(), // Fills the whole screen
+                    contentAlignment = Alignment.Center // Centers the inner content
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .background(
-                                Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp)
-                            )
-                            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
-                            color = Color.Red,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text(
-                            text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
-                            color = Color.Red,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        } else {
-
-            // choose to chat
-            if (Constants.USER_DRIVER.equals(userRole)) {
-                Text(
-                    text = "Choose Parent to Chat",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
-                )
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxHeight() // Important to constrain it properly
-                        .weight(1f),     // This allows LazyColumn to fill remaining space
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // First Option: All Parents
-                    item {
-                        ContactListItem(
-                            name = "All Parents",
-                            imageUrl = null, // You can use a default icon
-                            onClick = {
-                                selectedFilter = "All"
-                                onParentSelected("all", navController, null)
-                            }
-                        )
-                    }
-
-                    // List of individual parents
-                    items(parentList) { parentName ->
-                        val parentId = viewModel.getParentIdFromName(parentName)
-                        val profileUrl = viewModel.getProfileUrlFromName(parentName) // optional
-                        ContactListItem(
-                            name = parentName,
-                            imageUrl = profileUrl,
-                            onClick = {
-                                selectedFilter = "Individual"
-                                specificSelection = parentName
-                                onParentSelected("individual", navController, parentId)
-                            }
-                        )
-                    }
-                }
-
-            } else {
-                // parent
-                Text(
-                    text = "Select group to group chat.",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
-                )
-
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp) // ✅ Use fixed or dynamic height
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // First Option: All Parents
-                    item {
-                        ChatListItem(
-                            name = "Group", onClick = {
-                                onParentSelected("all", navController, null)
-                            })
-                    }
-                }
-
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (userRole.equals(Constants.USER_PARENT)) {
-                // group messages
-                val backgroundColorP = Color(0xFFDFF6FF) // light blue // For parent
-                val backgroundColorD = Color(0xFFFFF3CD) // light yellow // for driver
-                val parentMessages =
-                    (parentMessagesState as? Resource.Success<GetParentMessagesResponse>)?.data?.data?.map {
-                        val firstDriver = it.drivers.firstOrNull()
-                        UnifiedMessage(
-                            it.message,
-                            it.createdAt ?: "",
-                            firstDriver?.driverName.orEmpty(),
-                            APIEndpoints.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
-                            Constants.USER_PARENT
-                        )
-                    } ?: emptyList()
-                val driverMessages =
-                    (driverMessageState as? Resource.Success<GetDriverMessagesResponse>)?.data?.data?.flatMap { driverMessage ->
-                        driverMessage.parents.map { parent ->
-                            UnifiedMessage(
-                                driverMessage.message,
-                                driverMessage.createdAt.orEmpty(),
-                                parent.parentName.orEmpty(),
-                                APIEndpoints.BASE_URL + parent.profilePicture.orEmpty(),
-                                Constants.USER_DRIVER
-                            )
-                        }
-                    } ?: emptyList()
-
-                val allMessages = parentMessages + driverMessages
-                // Sort messages if needed by date
-                val sortedMessages = allMessages.sortedBy { it.createdAt }
-                val listState = rememberLazyListState(
-                    initialFirstVisibleItemIndex = 0 // Already starts at bottom due to reverseLayout
-                )
-
-                if (sortedMessages.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(24.dp) // This adds margin around the whole message
                     ) {
-                        Text(
-                            text = "No messages yet",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
-                        state = listState,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        items(sortedMessages.reversed()) { message ->
-                            val isParent = message.senderType == Constants.USER_PARENT
-                            val bubbleColor = if (isParent) backgroundColorP else backgroundColorD
-                            val bubbleShape = if (isParent) {
-                                RoundedCornerShape(14.dp, 14.dp, 14.dp, 0.dp)
-                            } else {
-                                RoundedCornerShape(14.dp, 14.dp, 0.dp, 14.dp)
-                            }
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(
+                                    Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp)
+                                )
+                                .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = PlaceHolders.MSG_NO_VEHICLE_ASSIGNED,
+                                color = Color.Red,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = if (isParent) Arrangement.Start else Arrangement.End,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                if (isParent) {
+                            Spacer(Modifier.height(8.dp))
 
-
-                                    // Profile Image on Left
-                                    AsyncImage(
-                                        model = message.profileUrl
-                                            ?: "https://i.pravatar.cc/150?img=5", // fallback if null
-                                        contentDescription = "Parent Avatar",
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .border(1.dp, Color.Gray, CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                }
-
-                                // Message Bubble
-                                Card(
-                                    shape = bubbleShape,
-                                    colors = CardDefaults.cardColors(containerColor = bubbleColor),
-                                     modifier = Modifier.widthIn(max = 280.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        Text(
-                                            text = message.name ?: "",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color.Black
-                                        )
-
-                                        Spacer(modifier = Modifier.height(2.dp))
-
-                                        Text(
-                                            text = message.message ?: "",
-                                            fontSize = 14.sp,
-                                            color = Color.Black
-                                        )
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        val (date, time) = formatDateTime(message.createdAt)
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = date,
-                                                fontSize = 10.sp,
-                                                color = Color.DarkGray
-                                            )
-                                            Text(
-                                                text = time,
-                                                fontSize = 10.sp,
-                                                color = Color.DarkGray
-                                            )
-                                        }
-                                    }
-                                }
-
-                                if (!isParent) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    // Profile Image on Right
-                                    AsyncImage(
-                                        model = message.profileUrl
-                                            ?: "https://i.pravatar.cc/150?img=15",
-                                        contentDescription = "Driver Avatar",
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .border(1.dp, Color.Gray, CircleShape)
-                                    )
-                                }
-                            }
+                            Text(
+                                text = PlaceHolders.MSG_REQUEST_DRIVER_ASSIGNMENT,
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                WhatsAppStyleMessageInput(
-                    messageText = messageText,
-                    onMessageChange = { messageText = it },
-                    onSendClick = {
-                        if (messageText.isBlank()) {
-                            Toast.makeText(context, "Message cannot be empty", Toast.LENGTH_SHORT)
-                                .show()
-                            return@WhatsAppStyleMessageInput
+            } else {
+
+                // choose to chat
+                if (Constants.USER_DRIVER.equals(userRole)) {
+                    Text(
+                        text = "Choose Parent to Chat",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxHeight() // Important to constrain it properly
+                            .weight(1f),     // This allows LazyColumn to fill remaining space
+                     ) {
+                        // First Option: All Parents
+                        item {
+                            ContactListItem(
+                                name = "All Parents",
+                                imageUrl = null, // You can use a default icon
+                                onClick = {
+                                    selectedFilter = "All"
+                                    onParentSelected("all", navController, null)
+                                }
+                            )
                         }
-                        if (Constants.USER_DRIVER.equals(userRole)) {
-                            // driver case
-                            when (selectedFilter) {
-                                "All Parents" -> {
-                                    val request = SendMessageRequest(
-                                        searchSpecific = Constants.GROUP_CHAT,
-                                        vehiclesId = userId, // login user
-                                        message = messageText,
-                                        parentId = ""
-                                    )
-                                    viewModel.sendMessageToParent(request)
+
+                        // List of individual parents
+                        items(parentList) { parentName ->
+                            val parentId = viewModel.getParentIdFromName(parentName)
+                            val profileUrl = viewModel.getProfileUrlFromName(parentName) // optional
+                            ContactListItem(
+                                name = parentName,
+                                imageUrl = profileUrl,
+                                onClick = {
+                                    selectedFilter = "Individual"
+                                    specificSelection = parentName
+                                    onParentSelected("individual", navController, parentId)
+                                }
+                            )
+                        }
+                    }
+
+                } else {
+                    // parent
+                    Text(
+                        text = "Select group to group chat.",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+                    )
+
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp) // ✅ Use fixed or dynamic height
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // First Option: All Parents
+                        item {
+                            ChatListItem(
+                                name = "Group", onClick = {
+                                    onParentSelected("all", navController, null)
+                                })
+                        }
+                    }
+
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (userRole.equals(Constants.USER_PARENT)) {
+                    // group messages
+                    val backgroundColorP = Color(0xFFDFF6FF) // light blue // For parent
+                    val backgroundColorD = Color(0xFFFFF3CD) // light yellow // for driver
+                    val parentMessages =
+                        (parentMessagesState as? Resource.Success<GetParentMessagesResponse>)?.data?.data?.map {
+                            val firstDriver = it.drivers.firstOrNull()
+                            UnifiedMessage(
+                                it.message,
+                                it.createdAt ?: "",
+                                firstDriver?.driverName.orEmpty(),
+                                APIEndpoints.BASE_URL + (firstDriver?.profilePicture.orEmpty()),
+                                Constants.USER_PARENT
+                            )
+                        } ?: emptyList()
+                    val driverMessages =
+                        (driverMessageState as? Resource.Success<GetDriverMessagesResponse>)?.data?.data?.flatMap { driverMessage ->
+                            driverMessage.parents.map { parent ->
+                                UnifiedMessage(
+                                    driverMessage.message,
+                                    driverMessage.createdAt.orEmpty(),
+                                    parent.parentName.orEmpty(),
+                                    APIEndpoints.BASE_URL + parent.profilePicture.orEmpty(),
+                                    Constants.USER_DRIVER
+                                )
+                            }
+                        } ?: emptyList()
+
+                    val allMessages = parentMessages + driverMessages
+                    // Sort messages if needed by date
+                    val sortedMessages = allMessages.sortedBy { it.createdAt }
+                    val listState = rememberLazyListState(
+                        initialFirstVisibleItemIndex = 0 // Already starts at bottom due to reverseLayout
+                    )
+
+                    if (sortedMessages.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No messages yet",
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                            state = listState,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                         ) {
+                            items(sortedMessages.reversed()) { message ->
+                                val isParent = message.senderType == Constants.USER_PARENT
+                                val bubbleColor =
+                                    if (isParent) backgroundColorP else backgroundColorD
+                                val bubbleShape = if (isParent) {
+                                    RoundedCornerShape(14.dp, 14.dp, 14.dp, 0.dp)
+                                } else {
+                                    RoundedCornerShape(14.dp, 14.dp, 0.dp, 14.dp)
                                 }
 
-                                "By Name" -> {
-                                    val parentId =
-                                        viewModel.getParentIdFromName(specificSelection) ?: "0"
-                                    val request = SendMessageRequest(
-                                        searchSpecific = Constants.INDIVIDUAL_CHAT,
-                                        vehiclesId = userId,
-                                        parentId = parentId,
-                                        message = messageText
-                                    )
-                                    viewModel.sendMessageToParent(request)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = if (isParent) Arrangement.Start else Arrangement.End,
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    if (isParent) {
+
+
+                                        // Profile Image on Left
+                                        AsyncImage(
+                                            model = message.profileUrl
+                                                ?: "https://i.pravatar.cc/150?img=5", // fallback if null
+                                            contentDescription = "Parent Avatar",
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .border(1.dp, Color.Gray, CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+
+                                    // Message Bubble
+                                    Card(
+                                        shape = bubbleShape,
+                                        colors = CardDefaults.cardColors(containerColor = bubbleColor),
+                                        modifier = Modifier.widthIn(max = 280.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text(
+                                                text = message.name ?: "",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.Black
+                                            )
+
+                                            Spacer(modifier = Modifier.height(2.dp))
+
+                                            Text(
+                                                text = message.message ?: "",
+                                                fontSize = 14.sp,
+                                                color = Color.Black
+                                            )
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            val (date, time) = formatDateTime(message.createdAt)
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = date,
+                                                    fontSize = 10.sp,
+                                                    color = Color.DarkGray
+                                                )
+                                                Text(
+                                                    text = time,
+                                                    fontSize = 10.sp,
+                                                    color = Color.DarkGray
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (!isParent) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        // Profile Image on Right
+                                        AsyncImage(
+                                            model = message.profileUrl
+                                                ?: "https://i.pravatar.cc/150?img=15",
+                                            contentDescription = "Driver Avatar",
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .border(1.dp, Color.Gray, CircleShape)
+                                        )
+                                    }
                                 }
                             }
-                        } else {
-                            // parent case  send message to driver from parent
-                            val request = SendMessageRequest(
-                                vehiclesId = assignVehicleId, // login user
-                                parentId = userId,
-                                message = messageText,
-                                searchSpecific = Constants.INDIVIDUAL_CHAT,
-                            )
-                            viewModel.sendMessageToDriver(request)
                         }
-                    })
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WhatsAppStyleMessageInput(
+                        messageText = messageText,
+                        onMessageChange = { messageText = it },
+                        onSendClick = {
+                            if (messageText.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    "Message cannot be empty",
+                                    Toast.LENGTH_SHORT
+                                )
+                                    .show()
+                                return@WhatsAppStyleMessageInput
+                            }
+                            if (Constants.USER_DRIVER.equals(userRole)) {
+                                // driver case
+                                when (selectedFilter) {
+                                    "All Parents" -> {
+                                        val request = SendMessageRequest(
+                                            searchSpecific = Constants.GROUP_CHAT,
+                                            vehiclesId = userId, // login user
+                                            message = messageText,
+                                            parentId = ""
+                                        )
+                                        viewModel.sendMessageToParent(request)
+                                    }
+
+                                    "By Name" -> {
+                                        val parentId =
+                                            viewModel.getParentIdFromName(specificSelection) ?: "0"
+                                        val request = SendMessageRequest(
+                                            searchSpecific = Constants.INDIVIDUAL_CHAT,
+                                            vehiclesId = userId,
+                                            parentId = parentId,
+                                            message = messageText
+                                        )
+                                        viewModel.sendMessageToParent(request)
+                                    }
+                                }
+                            } else {
+                                // parent case  send message to driver from parent
+                                val request = SendMessageRequest(
+                                    vehiclesId = assignVehicleId, // login user
+                                    parentId = userId,
+                                    message = messageText,
+                                    searchSpecific = Constants.INDIVIDUAL_CHAT,
+                                )
+                                viewModel.sendMessageToDriver(request)
+                            }
+                        })
+                }
             }
         }
     }

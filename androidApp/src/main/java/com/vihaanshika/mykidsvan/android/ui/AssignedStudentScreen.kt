@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,11 +66,18 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
         userId?.let { viewModel.loadDriverRequests(it) }
     }
 
-    Box(modifier = Modifier.fillMaxSize().padding( top = 80.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+    Scaffold() { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+                .verticalScroll(rememberScrollState())
         ) {
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -100,13 +109,15 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    text = request.parentName?.replaceFirstChar { it.uppercase() } ?: "No Name",
+                                    text = request.parentName?.replaceFirstChar { it.uppercase() }
+                                        ?: "No Name",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = request.parentAddress?.replaceFirstChar { it.uppercase() } ?: "No Address",
+                                    text = request.parentAddress?.replaceFirstChar { it.uppercase() }
+                                        ?: "No Address",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray
                                 )
@@ -142,10 +153,17 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                         Button(
                                             onClick = {
                                                 request.parentId?.let {
-                                                    viewModel.updateRequestStatus(it, PlaceHolders.OK)
+                                                    viewModel.updateRequestStatus(
+                                                        it,
+                                                        PlaceHolders.OK
+                                                    )
                                                 }
                                             },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(
+                                                    0xFF4CAF50
+                                                )
+                                            ),
                                             enabled = updatingId != request.id,
                                             modifier = Modifier.weight(1f)
                                         ) {
@@ -163,10 +181,17 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
                                         Button(
                                             onClick = {
                                                 request.parentId?.let {
-                                                    viewModel.updateRequestStatus(it, PlaceHolders.CANCEL)
+                                                    viewModel.updateRequestStatus(
+                                                        it,
+                                                        PlaceHolders.CANCEL
+                                                    )
                                                 }
                                             },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(
+                                                    0xFFE53935
+                                                )
+                                            ),
                                             enabled = updatingId != request.id,
                                             modifier = Modifier.weight(1f)
                                         ) {

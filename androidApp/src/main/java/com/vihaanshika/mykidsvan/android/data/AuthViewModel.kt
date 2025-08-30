@@ -349,7 +349,6 @@ class AuthViewModel(
                             val role = if (response.userRole?.lowercase()
                                     .equals(Constants.USER_PARENT)
                             ) Constants.USER_PARENT else Constants.USER_DRIVER
-
                             when (role) {
                                 Constants.USER_DRIVER -> {
                                     val driverData =
@@ -373,6 +372,20 @@ class AuthViewModel(
                                         schoolProfileUrl = imageUrl,
                                         payAmount = response.pay_amount ?: ""
                                     )
+                                    // subscribe to topic for notifications
+                                    val notification_topic = driverData.notification_topic
+                                    if (notification_topic.isNullOrEmpty()){
+                                        Log.d("notification_topic", "login: topic unable to subscribe because it is null")
+                                    }else{
+                                        Firebase.messaging.subscribeToTopic(notification_topic)
+                                            .addOnCompleteListener { task ->
+                                                if (task.isSuccessful) {
+                                                    Log.d("notification_topic", "driver - ${driverData.driver_name} Subscribed to $notification_topic successfully")
+                                                } else {
+                                                    Log.e("notification_topic", "Subscription failed: ${task.exception}")
+                                                }
+                                            }
+                                    }
                                 }
 
                                 Constants.USER_PARENT -> {
@@ -401,6 +414,20 @@ class AuthViewModel(
                                         status = parentData.status ?: "",
                                         paymentStatus = parentData.paymentStatus ?: ""
                                     )
+                                    // subscribe to topic for notifications
+                                    val notification_topic = parentData.notification_topic
+                                    if (notification_topic.isNullOrEmpty()){
+                                        Log.d("notification_topic", "login: topic unable to subscribe because it is null")
+                                    }else{
+                                        Firebase.messaging.subscribeToTopic(notification_topic)
+                                            .addOnCompleteListener { task ->
+                                                if (task.isSuccessful) {
+                                                    Log.d("notification_topic", "parent - ${parentData.parentName} Subscribed to $notification_topic successfully")
+                                                } else {
+                                                    Log.e("notification_topic", "Subscription failed: ${task.exception}")
+                                                }
+                                            }
+                                    }
                                 }
 
                                 else -> {

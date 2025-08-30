@@ -76,4 +76,5 @@ data class ParentData(
     @SerializedName("device_model") var device_model: String? = null,
     @SerializedName("last_seen") var last_seen: String? = null,
     @SerializedName("pay_amount") var pay_amount: String? = null,
+    @SerializedName("notification_topic") var notification_topic: String? = null
 )

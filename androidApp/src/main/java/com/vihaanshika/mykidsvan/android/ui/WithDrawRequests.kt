@@ -124,9 +124,14 @@ fun WithDrawRequests(viewModel: AuthViewModel, userId: String, role: String) {
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
-                .padding(top = 80.dp, start = 8.dp, end = 8.dp, bottom = 8.dp),
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val withdrawStatus by viewModel.withdrawStatus.collectAsState()
@@ -136,7 +141,7 @@ fun WithDrawRequests(viewModel: AuthViewModel, userId: String, role: String) {
             }
             // Commission Summary Card
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))

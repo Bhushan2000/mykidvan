@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -189,310 +191,328 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
         }
     }
 
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 64.dp)
-    ) {
-        if (viewModel.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            profileData?.let { data ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+    Scaffold() { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()   // ✅ adds padding for status bar
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 48.dp,
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+        ) {
+            if (viewModel.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = fadeIn(tween(700)) + scaleIn(initialScale = 0.8f),
-                            exit = fadeOut()
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(contentAlignment = Alignment.TopEnd) {
-                                    ProfileImage(
-                                        imageUrl = when (data) {
-                                            is DriverMob -> profileImageUri?.toString()
-                                                ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
-
-                                            is Parent -> profileImageUri?.toString()
-                                                ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
-
-                                            else -> profileImageUri?.toString() ?: ""
-                                        }
-                                    )
-
-                                    if (isEditing) {
-                                        IconButton(
-                                            onClick = {
-                                                imagePickerLauncher.launch("image/*")
-                                            },
-                                            modifier = Modifier
-                                                .padding(8.dp)
-                                                .size(32.dp)
-                                                .background(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    shape = CircleShape
-                                                )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = "Edit Image",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = name.capitalize(),
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = "${userType.capitalize()} Profile",
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Button(
-                                    onClick = {
-                                        if (isEditing) {
-                                            val selectedStateName =
-                                                selectedState?.id ?: ""
-                                            val selectedDistrictName =
-                                                selectedDistrict?.id ?: ""
-                                            val selectedTalukaName =
-                                                selectedTaluka?.id ?: ""
-                                            val selectedSchoolName =
-                                                selectedSchool?.id ?: ""
-                                            // Save logic - you can pass all fields and imageUri to ViewModel
-                                            viewModel.updateProfile(
-                                                context = context,
-                                                userId = userId,
-                                                userType = userType,
-                                                name = name,
-                                                contact = contact,
-                                                address = address,
-                                                childName = childName,
-                                                schoolName = selectedSchoolName,
-                                                mobile = mobileNumber,
-                                                vehicle = vehicleNumber,
-                                                state = selectedStateName,
-                                                district = selectedDistrictName,
-                                                taluka = selectedTalukaName,
-                                                city = city,
-                                                imageUri = profileImageUri
-                                            )
-                                        }
-                                        isEditing = !isEditing
-                                    }
-                                ) {
-                                    Text(if (isEditing) "Save" else "Edit", color = Color.White)
-                                }
-
-                                Spacer(modifier = Modifier.height(24.dp))
-                            }
-                        }
-                    }
-
-                    item {
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = fadeIn(tween(1000)),
-                        ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                elevation = CardDefaults.cardElevation(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+            } else {
+                profileData?.let { data ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+//                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                        ,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        item {
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn(tween(700)) + scaleIn(initialScale = 0.8f),
+                                exit = fadeOut()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    when (data) {
-                                        is Parent -> {
-                                            if (isEditing) {
-                                                EditableField(true, "Parent Name", name) {
-                                                    name = it
-                                                }
-                                                EditableField(true, "Contact Number", contact) {
-                                                    contact = it
-                                                }
-                                                EditableField(true, "Address", address) {
-                                                    address = it
-                                                }
-                                                EditableField(true, "Child Name", childName) {
-                                                    childName = it
-                                                }
-                                                /*  EditableField(
-                                                      "School Name",
-                                                      schoolName
-                                                  ) { schoolName = it }*/
+                                    Box(contentAlignment = Alignment.TopEnd) {
+                                        ProfileImage(
+                                            imageUrl = when (data) {
+                                                is DriverMob -> profileImageUri?.toString()
+                                                    ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
 
-                                                DropdownField(
-                                                    label = "Select State",
-                                                    selectedValue = selectedState?.state_name ?: "",
-                                                    options = stateOptions.map { it.state_name },
-                                                    onValueChange = { selectedName ->
-                                                        stateOptions.find { it.state_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onStateSelected(it)
-                                                            }
-                                                    }
-                                                )
+                                                is Parent -> profileImageUri?.toString()
+                                                    ?: "${APIEndpoints.BASE_URL}${data.profilePicture}"
 
-                                                DropdownField(
-                                                    label = "Select District",
-                                                    selectedValue = selectedDistrict?.district_name
-                                                        ?: "",
-                                                    options = districtOptions.map { it.district_name },
-                                                    onValueChange = { selectedName ->
-                                                        districtOptions.find { it.district_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onDistrictSelected(it)
-                                                            }
-                                                    }
-                                                )
+                                                else -> profileImageUri?.toString() ?: ""
+                                            }
+                                        )
 
-                                                DropdownField(
-                                                    label = "Select Taluka",
-                                                    selectedValue = selectedTaluka?.taluka_name
-                                                        ?: "",
-                                                    options = talukaOptions.map { it.taluka_name },
-                                                    onValueChange = { selectedName ->
-                                                        talukaOptions.find { it.taluka_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onTalukaSelected(it)
-                                                            }
-                                                    }
-                                                )
-
-                                                /*          DropdownField(
-                                                              label = "Select School",
-                                                              selectedValue = selectedSchool?.schoolName.orEmpty(),
-                                                              options = schoolOptions.map { it.schoolName },
-                                                              onValueChange = { name ->
-                                                                  schoolOptions.find { it.schoolName == name }
-                                                                      ?.let {
-                                                                          viewModel.onSchoolSelected(it)
-                                                                      }
-                                                              }
-                                                          )*/
-
-                                                EditableField(
-                                                    false,
-                                                    "School Name",
-                                                    schoolName
-                                                ) { schoolName = it }
-
-                                            } else {
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 6.dp),
-                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                ) {
-                                                    Text(
-                                                        text = "Valid till".uppercase(), // Optional: uppercase for better distinction
-                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        ),
-                                                        textAlign = TextAlign.Center,
-                                                        modifier = Modifier.fillMaxWidth()
+                                        if (isEditing) {
+                                            IconButton(
+                                                onClick = {
+                                                    imagePickerLauncher.launch("image/*")
+                                                },
+                                                modifier = Modifier
+                                                    .padding(8.dp)
+                                                    .size(32.dp)
+                                                    .background(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        shape = CircleShape
                                                     )
-                                                    Text(
-                                                        text = "${viewModel.formatDate(validity)} (${viewModel.daysBetweenDates( viewModel.getTodayDate() , validity)})"?: "N/A",
-                                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                        ),
-                                                        textAlign = TextAlign.Center,
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(top = 2.dp)
-                                                    )
-                                                }
-                                                ProfileDetailRow("Parent Name", name)
-                                                ProfileDetailRow("Contact Number", contact)
-                                                ProfileDetailRow("Address", address)
-                                                ProfileDetailRow("Child Name", childName)
-                                                ProfileDetailRow("School Name", schoolName)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "Edit Image",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
                                             }
                                         }
+                                    }
 
-                                        is DriverMob -> {
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Text(
+                                        text = name.capitalize(),
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = "${userType.capitalize()} Profile",
+                                        fontSize = 18.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Button(
+                                        onClick = {
                                             if (isEditing) {
-                                                EditableField(true, "Driver Name", name) {
-                                                    name = it
+                                                val selectedStateName =
+                                                    selectedState?.id ?: ""
+                                                val selectedDistrictName =
+                                                    selectedDistrict?.id ?: ""
+                                                val selectedTalukaName =
+                                                    selectedTaluka?.id ?: ""
+                                                val selectedSchoolName =
+                                                    selectedSchool?.id ?: ""
+                                                // Save logic - you can pass all fields and imageUri to ViewModel
+                                                viewModel.updateProfile(
+                                                    context = context,
+                                                    userId = userId,
+                                                    userType = userType,
+                                                    name = name,
+                                                    contact = contact,
+                                                    address = address,
+                                                    childName = childName,
+                                                    schoolName = selectedSchoolName,
+                                                    mobile = mobileNumber,
+                                                    vehicle = vehicleNumber,
+                                                    state = selectedStateName,
+                                                    district = selectedDistrictName,
+                                                    taluka = selectedTalukaName,
+                                                    city = city,
+                                                    imageUri = profileImageUri
+                                                )
+                                            }
+                                            isEditing = !isEditing
+                                        }
+                                    ) {
+                                        Text(if (isEditing) "Save" else "Edit", color = Color.White)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                }
+                            }
+                        }
+
+                        item {
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn(tween(1000)),
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        when (data) {
+                                            is Parent -> {
+                                                if (isEditing) {
+                                                    EditableField(true, "Parent Name", name) {
+                                                        name = it
+                                                    }
+                                                    EditableField(true, "Contact Number", contact) {
+                                                        contact = it
+                                                    }
+                                                    EditableField(true, "Address", address) {
+                                                        address = it
+                                                    }
+                                                    EditableField(true, "Child Name", childName) {
+                                                        childName = it
+                                                    }
+                                                    /*  EditableField(
+                                                          "School Name",
+                                                          schoolName
+                                                      ) { schoolName = it }*/
+
+                                                    DropdownField(
+                                                        label = "Select State",
+                                                        selectedValue = selectedState?.state_name
+                                                            ?: "",
+                                                        options = stateOptions.map { it.state_name },
+                                                        onValueChange = { selectedName ->
+                                                            stateOptions.find { it.state_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onStateSelected(it)
+                                                                }
+                                                        }
+                                                    )
+
+                                                    DropdownField(
+                                                        label = "Select District",
+                                                        selectedValue = selectedDistrict?.district_name
+                                                            ?: "",
+                                                        options = districtOptions.map { it.district_name },
+                                                        onValueChange = { selectedName ->
+                                                            districtOptions.find { it.district_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onDistrictSelected(it)
+                                                                }
+                                                        }
+                                                    )
+
+                                                    DropdownField(
+                                                        label = "Select Taluka",
+                                                        selectedValue = selectedTaluka?.taluka_name
+                                                            ?: "",
+                                                        options = talukaOptions.map { it.taluka_name },
+                                                        onValueChange = { selectedName ->
+                                                            talukaOptions.find { it.taluka_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onTalukaSelected(it)
+                                                                }
+                                                        }
+                                                    )
+
+                                                    /*          DropdownField(
+                                                                  label = "Select School",
+                                                                  selectedValue = selectedSchool?.schoolName.orEmpty(),
+                                                                  options = schoolOptions.map { it.schoolName },
+                                                                  onValueChange = { name ->
+                                                                      schoolOptions.find { it.schoolName == name }
+                                                                          ?.let {
+                                                                              viewModel.onSchoolSelected(it)
+                                                                          }
+                                                                  }
+                                                              )*/
+
+                                                    EditableField(
+                                                        false,
+                                                        "School Name",
+                                                        schoolName
+                                                    ) { schoolName = it }
+
+                                                } else {
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(vertical = 6.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                    ) {
+                                                        Text(
+                                                            text = "Valid till".uppercase(), // Optional: uppercase for better distinction
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            ),
+                                                            textAlign = TextAlign.Center,
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        )
+                                                        Text(
+                                                            text = "${viewModel.formatDate(validity)} (${
+                                                                viewModel.daysBetweenDates(
+                                                                    viewModel.getTodayDate(),
+                                                                    validity
+                                                                )
+                                                            })" ?: "N/A",
+                                                            style = MaterialTheme.typography.bodyLarge.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                            ),
+                                                            textAlign = TextAlign.Center,
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(top = 2.dp)
+                                                        )
+                                                    }
+                                                    ProfileDetailRow("Parent Name", name)
+                                                    ProfileDetailRow("Contact Number", contact)
+                                                    ProfileDetailRow("Address", address)
+                                                    ProfileDetailRow("Child Name", childName)
+                                                    ProfileDetailRow("School Name", schoolName)
                                                 }
-                                                EditableField(
-                                                    true,
-                                                    "Mobile Number",
-                                                    mobileNumber
-                                                ) { mobileNumber = it }
-                                                EditableField(
-                                                    true,
-                                                    "Vehicle Number",
-                                                    vehicleNumber
-                                                ) { vehicleNumber = it }
-                                                /*EditableField("State", state) { state = it }
-                                                EditableField("District", district) { district = it }
-                                                EditableField("Taluka", taluka) { taluka = it }*/
-                                                DropdownField(
-                                                    label = "Select State",
-                                                    selectedValue = selectedState?.state_name ?: "",
-                                                    options = stateOptions.map { it.state_name },
-                                                    onValueChange = { selectedName ->
-                                                        stateOptions.find { it.state_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onStateSelected(it)
-                                                            }
-                                                    }
-                                                )
+                                            }
 
-                                                DropdownField(
-                                                    label = "Select District",
-                                                    selectedValue = selectedDistrict?.district_name
-                                                        ?: "",
-                                                    options = districtOptions.map { it.district_name },
-                                                    onValueChange = { selectedName ->
-                                                        districtOptions.find { it.district_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onDistrictSelected(it)
-                                                            }
+                                            is DriverMob -> {
+                                                if (isEditing) {
+                                                    EditableField(true, "Driver Name", name) {
+                                                        name = it
                                                     }
-                                                )
+                                                    EditableField(
+                                                        true,
+                                                        "Mobile Number",
+                                                        mobileNumber
+                                                    ) { mobileNumber = it }
+                                                    EditableField(
+                                                        true,
+                                                        "Vehicle Number",
+                                                        vehicleNumber
+                                                    ) { vehicleNumber = it }
+                                                    /*EditableField("State", state) { state = it }
+                                                    EditableField("District", district) { district = it }
+                                                    EditableField("Taluka", taluka) { taluka = it }*/
+                                                    DropdownField(
+                                                        label = "Select State",
+                                                        selectedValue = selectedState?.state_name
+                                                            ?: "",
+                                                        options = stateOptions.map { it.state_name },
+                                                        onValueChange = { selectedName ->
+                                                            stateOptions.find { it.state_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onStateSelected(it)
+                                                                }
+                                                        }
+                                                    )
 
-                                                DropdownField(
-                                                    label = "Select Taluka",
-                                                    selectedValue = selectedTaluka?.taluka_name
-                                                        ?: "",
-                                                    options = talukaOptions.map { it.taluka_name },
-                                                    onValueChange = { selectedName ->
-                                                        talukaOptions.find { it.taluka_name == selectedName }
-                                                            ?.let {
-                                                                viewModel.onTalukaSelected(it)
-                                                            }
-                                                    }
-                                                )
+                                                    DropdownField(
+                                                        label = "Select District",
+                                                        selectedValue = selectedDistrict?.district_name
+                                                            ?: "",
+                                                        options = districtOptions.map { it.district_name },
+                                                        onValueChange = { selectedName ->
+                                                            districtOptions.find { it.district_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onDistrictSelected(it)
+                                                                }
+                                                        }
+                                                    )
+
+                                                    DropdownField(
+                                                        label = "Select Taluka",
+                                                        selectedValue = selectedTaluka?.taluka_name
+                                                            ?: "",
+                                                        options = talukaOptions.map { it.taluka_name },
+                                                        onValueChange = { selectedName ->
+                                                            talukaOptions.find { it.taluka_name == selectedName }
+                                                                ?.let {
+                                                                    viewModel.onTalukaSelected(it)
+                                                                }
+                                                        }
+                                                    )
 
 //                                                DropdownField(
 //                                                    label = "Select School",
@@ -505,21 +525,25 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
 //                                                            }
 //                                                    }
 //                                                )
-                                                EditableField(
-                                                    false,
-                                                    "School Name",
-                                                    schoolName
-                                                ) { schoolName = it }
-                                                EditableField(true, "City", city) { city = it }
-                                            } else {
-                                                ProfileDetailRow("Driver Name", name)
-                                                ProfileDetailRow("Mobile Number", mobileNumber)
-                                                ProfileDetailRow("Vehicle Number", vehicleNumber)
-                                                ProfileDetailRow("State", state)
-                                                ProfileDetailRow("District", district)
-                                                ProfileDetailRow("Taluka", taluka)
-                                                ProfileDetailRow("School", schoolName)
-                                                ProfileDetailRow("City", city)
+                                                    EditableField(
+                                                        false,
+                                                        "School Name",
+                                                        schoolName
+                                                    ) { schoolName = it }
+                                                    EditableField(true, "City", city) { city = it }
+                                                } else {
+                                                    ProfileDetailRow("Driver Name", name)
+                                                    ProfileDetailRow("Mobile Number", mobileNumber)
+                                                    ProfileDetailRow(
+                                                        "Vehicle Number",
+                                                        vehicleNumber
+                                                    )
+                                                    ProfileDetailRow("State", state)
+                                                    ProfileDetailRow("District", district)
+                                                    ProfileDetailRow("Taluka", taluka)
+                                                    ProfileDetailRow("School", schoolName)
+                                                    ProfileDetailRow("City", city)
+                                                }
                                             }
                                         }
                                     }
@@ -527,22 +551,26 @@ fun ProfileScreen(viewModel: AuthViewModel, userId: String, userType: String) {
                             }
                         }
                     }
+                } ?: Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Text(
+                        text = "No Data Available",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            color = MaterialTheme.colorScheme.error
+                        ),
+                        textAlign = TextAlign.Center
+                    )
                 }
-            } ?: Text(
-                text = "No Data Available",
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(16.dp),
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    color = MaterialTheme.colorScheme.error
-                ),
-                textAlign = TextAlign.Center
-            )
-        }
-        // Show toast if update message is available
-        LaunchedEffect(updateMessage) {
-            updateMessage?.let {
-                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
+            // Show toast if update message is available
+            LaunchedEffect(updateMessage) {
+                updateMessage?.let {
+                    Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
