@@ -222,7 +222,7 @@ class LatLngViewModel(
                                         } ?: true
 
                                         if (isNewPoint) {
-                                            // ✅ Update bearing only when new point is added
+                                            // Update bearing only when new point is added
                                             _bearing.value = lastLatLng?.let { old ->
                                                 calculateBearing(
                                                     old,
@@ -230,12 +230,12 @@ class LatLngViewModel(
                                                 ).takeIf { it.isFinite() }
                                             } ?: 0f
 
-                                            // ✅ Add to _visiblePolylinePath if not already last
+                                            // Add to _visiblePolylinePath if not already last
                                             if (lastVisible?.latitude != latLng.latitude || lastVisible.longitude != latLng.longitude) {
                                                 _visiblePolylinePathParent.update { oldList -> oldList + latLng }
                                             }
 
-                                            // ✅ Add to _latLngList
+                                            // Add to _latLngList
                                             _latLngList.update { it + latLng }
                                             Log.d("Fetch----if", "onReceive: ${_latLngList.value}")
                                             // mark parent as active when new lat long added to list
@@ -262,10 +262,10 @@ class LatLngViewModel(
                                         longitude = lng
                                     }
 
-                                    // ✅ Apply pre-checks here to avoid unnecessary processing
+                                    // Apply pre-checks here to avoid unnecessary processing
                                     if (lat == 0.0 || lng == 0.0) return@launch
 
-                                    // ❌ Avoid duplicates: compare with last visible or localLatLng
+                                    // Avoid duplicates: compare with last visible or localLatLng
                                     val lastLatLng = _localLatLngList.value.lastOrNull()
                                     val isDuplicate = lastLatLng?.let {
                                         it.latitude == lat && it.longitude == lng
@@ -279,7 +279,7 @@ class LatLngViewModel(
                                         return@launch
                                     }
 
-                                    // ✅ Finally, send to server
+                                    // Finally, send to server
                                     sendCurrentLocationToServer(location, speed)
                                 }
                             }
@@ -353,7 +353,7 @@ class LatLngViewModel(
         if (!isLocationPermissionGranted(context)) return
 
         try {
-            // ✅ Apply Kalman Filter
+            // Apply Kalman Filter
             val filteredLatLng = kalmanFilter.process(
                 location.latitude,
                 location.longitude,
@@ -366,7 +366,7 @@ class LatLngViewModel(
                 longitude = filteredLatLng.longitude
             }
 
-            // ✅ Skip filters for the very first location
+            // Skip filters for the very first location
             if (isFirstLocationSent) {
                 // Accuracy Check
                 if (location.accuracy > 15f) {
@@ -405,7 +405,7 @@ class LatLngViewModel(
         """.trimIndent()
             )
 
-            // ✅ Send to Server
+            // Send to Server
             val timestamp = getCurrentTimestamp()
             val address = getFullAddress(context, filteredLatLng.latitude, filteredLatLng.longitude)
             val formattedSpeed = String.format("%.2f", speed)
@@ -422,10 +422,10 @@ class LatLngViewModel(
                 repository.sendLatLong(request)
             }
 
-            // ✅ Mark first location sent
+            // Mark first location sent
             isFirstLocationSent = true
 
-            // ✅ Update full path
+            // Update full path
             val updatedPath = _visiblePolylinePath.value.toMutableList()
             if (updatedPath.isEmpty() || updatedPath.last() != filteredLatLng) {
                 updatedPath.add(filteredLatLng)
@@ -434,7 +434,7 @@ class LatLngViewModel(
 
             updateLocationAndBearing(filteredLatLng)
 
-//            // ✅ Update last two points for bearing
+//            // Update last two points for bearing
 //            val recentPoints = _localLatLngList.value.toMutableList()
 //            if (recentPoints.isEmpty() || recentPoints.last() != filteredLatLng) {
 //                if (recentPoints.size >= 2) recentPoints.removeFirst()
@@ -442,7 +442,7 @@ class LatLngViewModel(
 //                _localLatLngList.value = recentPoints
 //            }
 //
-//            // ✅ Bearing calculation
+//            // Bearing calculation
 //            if (recentPoints.size == 2) {
 //                val point1 = recentPoints[0]
 //                val point2 = recentPoints[1]
@@ -465,11 +465,11 @@ class LatLngViewModel(
 //                if (distance > 8f && isValidDirection) {
 //                    _bearing.value = newBearing
 //                    lastValidBearing = newBearing
-//                    Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
+//                    Log.d("TAG", "Updated bearing = $newBearing (Distance = $distance m)")
 //                } else {
 //                    Log.d(
 //                        "TAG",
-//                        "❌ Skipped bearing: $newBearing (Distance = $distance, Last = $lastValidBearing)"
+//                        "Skipped bearing: $newBearing (Distance = $distance, Last = $lastValidBearing)"
 //                    )
 //                }
 //            }
@@ -479,7 +479,7 @@ class LatLngViewModel(
     }
 
     fun updateLocationAndBearing(filteredLatLng: LatLng) {
-        // ✅ Update last two points for bearing
+        // Update last two points for bearing
         val recentPoints = _localLatLngList.value.toMutableList()
 
         // Add new point only if it's not duplicate
@@ -491,7 +491,7 @@ class LatLngViewModel(
             _localLatLngList.value = recentPoints
         }
 
-        // ✅ Bearing calculation
+        // Bearing calculation
         // Only update bearing if we have at least 2 points
         if (recentPoints.size >= 2) {
             val point1 = recentPoints[recentPoints.size - 2]
@@ -525,11 +525,11 @@ class LatLngViewModel(
                 _bearing.value = newBearing
                 lastValidBearing = newBearing
                 lastBearingUpdateTime = now
-                Log.d("TAG", "✅ Updated bearing = $newBearing (Distance = $distance m)")
+                Log.d("TAG", "Updated bearing = $newBearing (Distance = $distance m)")
             } else {
                 Log.d(
                     "TAG",
-                    "❌ Skipped bearing: $newBearing (Distance = $distance m, AngleDiff = $angleDiff°)"
+                    "Skipped bearing: $newBearing (Distance = $distance m, AngleDiff = $angleDiff°)"
                 )
             }
         }

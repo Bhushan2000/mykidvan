@@ -1014,7 +1014,7 @@ class AuthViewModel(
                     && today.before(trial)
                     && paymentStatus.value != "Paid"
                 ) {
-                    // ✅ User is in trial period and has not paid yet
+                    // User is in trial period and has not paid yet
                     // Run your logic here
                     userPreferences.updateVehicleDetails(
                         vehicleId,
@@ -1048,7 +1048,7 @@ class AuthViewModel(
                 updateMessage.value = response.message ?: "Updated successfully"
                 if (response.status == true) {
                     // subscribe the user here for fcm messaging
-                    // ✅ Subscribe the parent to a topic
+                    // Subscribe the parent to a topic
                     val topic = response.topicUpdated.toString();
                     Firebase.messaging.subscribeToTopic(topic)
                         .addOnCompleteListener { task ->

@@ -242,7 +242,7 @@ fun MapScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // GPS is enabled now ✅
+            // GPS is enabled now
             // wait for accurate location using requestLocationUpdates
             val locationRequest = LocationRequest.create().apply {
                 priority = Priority.PRIORITY_HIGH_ACCURACY
@@ -516,7 +516,7 @@ fun MapScreen(
         }
     ) { paddingValue ->
         Box(Modifier.fillMaxSize()
-                      .statusBarsPadding()   // ✅ adds padding for status bar
+                      .statusBarsPadding()   // adds padding for status bar
 
         ) {
             GoogleMap(
@@ -524,7 +524,7 @@ fun MapScreen(
                 cameraPositionState = cameraPositionState,
                 uiSettings = MapUiSettings(zoomControlsEnabled = false),
                 properties = MapProperties(
-//                    mapType = MapType.SATELLITE,   // ✅ Set satellite mode
+//                    mapType = MapType.SATELLITE,   // Set satellite mode
                     isMyLocationEnabled = locationPermissionState.status.isGranted && shouldShowBlueDot(
                         userRole.toString()
                     ),
@@ -540,8 +540,8 @@ fun MapScreen(
                         geodesic = true, // Makes lines follow Earth curvature
                         clickable = false,
                         jointType = JointType.ROUND, // Smooth corners
-                        startCap = RoundCap(),   // ✅ Rounded start
-                        endCap = SquareCap(),    // ✅ Flat end
+                        startCap = RoundCap(),   // Rounded start
+                        endCap = SquareCap(),    // Flat end
                     )
                     Marker(
                         state = MarkerState(position = latLngList.last()),

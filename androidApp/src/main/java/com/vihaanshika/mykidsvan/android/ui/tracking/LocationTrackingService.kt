@@ -111,7 +111,7 @@ class LocationTrackingService : Service() {
             setMaxUpdateDelayMillis(10000L)   // In case of batching
         }.build()
 
-        // ✅ Permission check
+        // Permission check
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -178,7 +178,7 @@ class LocationTrackingService : Service() {
                 putExtra("speed", speedInKmh)
             }
             LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-            // ✅ Update notification with latest speed
+            // Update notification with latest speed
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(NOTIFICATION_ID, createNotification())
@@ -214,7 +214,7 @@ class LocationTrackingService : Service() {
         }
     }
 
-    // ✅ Notification setup
+    // Notification setup
     private fun createNotification(): Notification {
         val channelId = Constants.LOCATION_CHANNEL
         // Intent to open MapActivity
@@ -311,7 +311,7 @@ class LocationTrackingService : Service() {
                 }
 
                 newLatLng?.let { latLng ->
-                    // ✅ Send broadcast
+                    // Send broadcast
                     val intent = Intent(Constants.SERVER_LOCATION_BROADCAST_ACTION).apply {
                         putExtra("latitude", latLng.latitude)
                         putExtra("longitude", latLng.longitude)
@@ -320,7 +320,7 @@ class LocationTrackingService : Service() {
                     }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
                 }
-                // ✅ Update notification with latest speed
+                // Update notification with latest speed
                 val notificationManager =
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.notify(NOTIFICATION_ID, createNotification())
@@ -336,7 +336,7 @@ class LocationTrackingService : Service() {
             return START_NOT_STICKY
         }
 
-        // ✅ Show a fallback notification immediately to avoid crash
+        // Show a fallback notification immediately to avoid crash
         startForeground(NOTIFICATION_ID, createStartupNotification())
 
         // Continue logic here...

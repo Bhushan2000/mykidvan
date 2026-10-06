@@ -298,7 +298,7 @@ fun SchoolOnRegistrationScreen(
 //            }
 //
 //            // subscribe the user here for fcm messaging
-//            // ✅ Subscribe the parent to a topic
+//            // Subscribe the parent to a topic
 //            val topic = parentSuccess.topicUpdated.toString();
 //            Firebase.messaging.subscribeToTopic(topic)
 //                .addOnCompleteListener { task ->
@@ -342,7 +342,7 @@ fun SchoolOnRegistrationScreen(
                     navController.navigate("fileupload/$uid")
                 }
 
-                // ✅ FCM Topic Subscription
+                // FCM Topic Subscription
                 val topic = successResource.data.topic ?: ""
                 if (topic.isNotBlank()) {
                     Firebase.messaging.subscribeToTopic(topic)

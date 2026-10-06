@@ -164,7 +164,7 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,
@@ -214,7 +214,7 @@ fun ChatScreen(
                     }
                 } else {
                     LazyColumn(
-                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                        reverseLayout = true, // makes bottom message show first (like WhatsApp)
                         state = listState,
                         modifier = Modifier
                             .weight(1f)
@@ -370,7 +370,7 @@ fun ChatScreen(
                     }
                 } else {
                     LazyColumn(
-                        reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                        reverseLayout = true, // makes bottom message show first (like WhatsApp)
                         state = listState,
                         modifier = Modifier
                             .weight(1f)

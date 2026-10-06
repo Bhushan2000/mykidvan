@@ -63,7 +63,7 @@ fun UpdatePasswordScreen(
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
-    // ✅ Avoid flicker by triggering bottom sheet in LaunchedEffect
+    // Avoid flicker by triggering bottom sheet in LaunchedEffect
     LaunchedEffect(updatePasswordState.isPasswordUpdated) {
         if (updatePasswordState.isPasswordUpdated) {
             showBottomSheet = true

@@ -94,7 +94,7 @@ fun VehiclePhotoScreen(viewModel: AuthViewModel, userId: String) {
     Scaffold { innerPadding ->
         Column(
             modifier = Modifier
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,

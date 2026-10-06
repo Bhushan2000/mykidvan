@@ -164,7 +164,7 @@ fun FileUploadFieldDoc(
                 val base64 = uriToBase64FileUpload(context, it)
                 onImageUploaded(base64)
 
-                // ✅ Show success toast
+                // Show success toast
                 Toast.makeText(context, "$label uploaded successfully!", Toast.LENGTH_SHORT).show()
             }
         })
