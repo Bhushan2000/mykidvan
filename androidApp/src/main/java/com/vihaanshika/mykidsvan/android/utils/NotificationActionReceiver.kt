@@ -16,7 +16,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             "ACTION_LIKE" -> {
                 Toast.makeText(context, "Message $messageId liked!", Toast.LENGTH_SHORT).show()
                 // Update backend or database here
-                notificationManager.cancel(messageId) // ✅ Dismiss notification
+                notificationManager.cancel(messageId) // Dismiss notification
             }
 
             "ACTION_REPLY" -> {
@@ -24,7 +24,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     ?.getCharSequence("key_text_reply")?.toString()
                 Toast.makeText(context, "Replied: $replyText", Toast.LENGTH_SHORT).show()
                 // Send reply to server here
-                notificationManager.cancel(messageId) // ✅ Dismiss notification
+                notificationManager.cancel(messageId) // Dismiss notification
             }
         }
     }

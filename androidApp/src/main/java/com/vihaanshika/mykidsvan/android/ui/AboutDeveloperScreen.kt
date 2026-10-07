@@ -55,7 +55,7 @@ fun AboutDeveloperScreen() {
             modifier = Modifier
                  .fillMaxSize()
                 .verticalScroll(scrollState)
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(top = innerPadding.calculateTopPadding() + 48.dp, start = 16.dp,end=16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {

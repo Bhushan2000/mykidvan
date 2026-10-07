@@ -106,7 +106,7 @@ fun FindVehicleScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,
@@ -476,7 +476,7 @@ fun DriverCard(
                     Text(text = it, style = MaterialTheme.typography.bodyMedium)
                 }
 
-                // ✅ Vehicle Photo Preview (Max 3)
+                // Vehicle Photo Preview (Max 3)
                 val vehiclePhotos = driver.photo_of_vehicle
                     ?.split(",") // Split by comma
                     ?.filter { it.isNotBlank() } // Remove empty entries

@@ -115,8 +115,8 @@ fun RadarTimerWithProgress(timer: Int, isDriverInactive: Boolean) {
 @Composable
 fun getColorForTimer(timer: Int): Color {
     return when {
-        timer == 0 -> Color(0xFF00C853) // ✅ Green (Reset)
-        timer in 1..10 -> Color(0xFF66BB6A) // ✅ Light Green
+        timer == 0 -> Color(0xFF00C853) // Green (Reset)
+        timer in 1..10 -> Color(0xFF66BB6A) // Light Green
         timer in 11..20 -> Color(0xFFFF8A80) // 🔴 Soft Coral Red (Better than pink)
         timer in 21..30 -> Color(0xFFFF5252) // 🔴 Bright Red
         timer in 31..39 -> Color(0xFFC62828) // 🔴 Deep Red

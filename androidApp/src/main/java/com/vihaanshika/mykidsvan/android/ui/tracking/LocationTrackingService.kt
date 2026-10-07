@@ -49,6 +49,7 @@ import org.koin.android.ext.android.inject
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration.Companion.milliseconds
 
 //
 class LocationTrackingService : Service() {
@@ -91,7 +92,7 @@ class LocationTrackingService : Service() {
                         trackingJob = launch {
                             while (isActive && (pollingStatus == null || pollingStatus == true)) {
                                 fetchLatLngFromServer()
-                                delay(10_000L)
+                                delay(5_000L)
                                 Log.d("TAG", "onCreate: polling status - $pollingStatus")
                             }
                         }
@@ -107,11 +108,11 @@ class LocationTrackingService : Service() {
             5000L // Request update every 5 seconds
         ).apply {
             setMinUpdateIntervalMillis(2000L) // Don't get updates more than every 2 seconds
-            setWaitForAccurateLocation(true)  // Wait for a precise fix
-            setMaxUpdateDelayMillis(10000L)   // In case of batching
+            setWaitForAccurateLocation(false)
+            setMaxUpdateDelayMillis(5000L)   // Max batching delay 5 seconds
         }.build()
 
-        // ✅ Permission check
+        // Permission check
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -137,8 +138,8 @@ class LocationTrackingService : Service() {
             val distance = lastLoc.distanceTo(newLoc)
             val timeDiff = newLoc.time - lastLoc.time
 
-            // If moved less than 5 meters and it's been less than 4 seconds, skip
-            if (distance < 5 && timeDiff < 4000) {
+            // If moved less than 2 meters and it's been less than 2 seconds, skip
+            if (distance < 2 && timeDiff < 2000) {
                 Log.d(
                     "LocationService",
                     "📍 Redundant location (Distance: $distance m, TimeDiff: $timeDiff ms), skipping broadcast."
@@ -178,7 +179,7 @@ class LocationTrackingService : Service() {
                 putExtra("speed", speedInKmh)
             }
             LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-            // ✅ Update notification with latest speed
+            // Update notification with latest speed
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(NOTIFICATION_ID, createNotification())
@@ -214,7 +215,7 @@ class LocationTrackingService : Service() {
         }
     }
 
-    // ✅ Notification setup
+    // Notification setup
     private fun createNotification(): Notification {
         val channelId = Constants.LOCATION_CHANNEL
         // Intent to open MapActivity
@@ -311,7 +312,7 @@ class LocationTrackingService : Service() {
                 }
 
                 newLatLng?.let { latLng ->
-                    // ✅ Send broadcast
+                    // Send broadcast
                     val intent = Intent(Constants.SERVER_LOCATION_BROADCAST_ACTION).apply {
                         putExtra("latitude", latLng.latitude)
                         putExtra("longitude", latLng.longitude)
@@ -320,7 +321,7 @@ class LocationTrackingService : Service() {
                     }
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
                 }
-                // ✅ Update notification with latest speed
+                // Update notification with latest speed
                 val notificationManager =
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.notify(NOTIFICATION_ID, createNotification())
@@ -336,7 +337,7 @@ class LocationTrackingService : Service() {
             return START_NOT_STICKY
         }
 
-        // ✅ Show a fallback notification immediately to avoid crash
+        // Show a fallback notification immediately to avoid crash
         startForeground(NOTIFICATION_ID, createStartupNotification())
 
         // Continue logic here...
@@ -368,7 +369,7 @@ class LocationTrackingService : Service() {
         trackingJob = serviceScope.launch {
             while (isActive && (pollingStatus == null || pollingStatus == true)) {
                 fetchLatLngFromServer()
-                delay(10_000L)
+                delay(5_000L)
                 Log.d("restartPolling", "Polling... still active")
             }
         }

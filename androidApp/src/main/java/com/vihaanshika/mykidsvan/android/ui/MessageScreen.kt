@@ -157,7 +157,7 @@ fun MessageScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,
@@ -263,7 +263,7 @@ fun MessageScreen(
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp) // ✅ Use fixed or dynamic height
+                            .height(60.dp) // Use fixed or dynamic height
                             .clip(RoundedCornerShape(12.dp)),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -330,7 +330,7 @@ fun MessageScreen(
                         }
                     } else {
                         LazyColumn(
-                            reverseLayout = true, // ✅ makes bottom message show first (like WhatsApp)
+                            reverseLayout = true, // makes bottom message show first (like WhatsApp)
                             state = listState,
                             modifier = Modifier
                                 .weight(1f)
@@ -513,10 +513,10 @@ fun WhatsAppStyleMessageInput(
             onValueChange = onMessageChange,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 56.dp, max = 150.dp), // ✅ Sets a max height
+                .heightIn(min = 56.dp, max = 150.dp), // Sets a max height
             placeholder = { Text("Type a message…") },
             shape = RoundedCornerShape(20.dp),
-            maxLines = 5, // ✅ Allows internal scrolling after 5 lines
+            maxLines = 5, // Allows internal scrolling after 5 lines
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 unfocusedBorderColor = Color.LightGray, focusedBorderColor = Color(0xFF1E88E5)
             )

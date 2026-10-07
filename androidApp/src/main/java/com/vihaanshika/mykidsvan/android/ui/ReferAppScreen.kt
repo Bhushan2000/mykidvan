@@ -85,7 +85,7 @@ fun ReferAppScreen(viewModel: AuthViewModel, userRole: String, userId: String) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,
@@ -175,7 +175,7 @@ fun ReferAppScreen(viewModel: AuthViewModel, userRole: String, userId: String) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ WebView below, full height and scrollable
+            // WebView below, full height and scrollable
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -199,7 +199,7 @@ fun ReferAppScreen(viewModel: AuthViewModel, userRole: String, userId: String) {
                                 false
                             }
 
-                            // ✅ Handle loading state
+                            // Handle loading state
                             webViewClient = object : WebViewClient() {
                                 override fun onPageStarted(
                                     view: WebView?,
@@ -220,7 +220,7 @@ fun ReferAppScreen(viewModel: AuthViewModel, userRole: String, userId: String) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // ✅ Loading indicator
+                // Loading indicator
                 if (isLoading.value) {
                     CircularProgressIndicator(
                         modifier = Modifier

@@ -70,7 +70,7 @@ fun AssignedStudentScreen(viewModel: AuthViewModel, userId: String?, userRole: S
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()   // ✅ adds padding for status bar
+                .statusBarsPadding()   // adds padding for status bar
                 .padding(
                     top = innerPadding.calculateTopPadding() + 48.dp,
                     start = 16.dp,

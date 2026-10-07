@@ -262,7 +262,7 @@ fun DriverSignupScreen(
                 timerSeconds = timer,
                 showOtpField = showOtpField,
                 isVerified = isVerified,
-                otpState = otpUiState,  // ✅ Fixed
+                otpState = otpUiState,  // Fixed
                 onSendOtp = { viewModel.sendOtp(it, Constants.REGISTER_OTP) },
                 onVerifyOtp = { number, code -> viewModel.verifyOtp(number, code) },
                 onResendOtp = {

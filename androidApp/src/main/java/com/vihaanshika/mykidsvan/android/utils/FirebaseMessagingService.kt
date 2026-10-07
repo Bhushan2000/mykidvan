@@ -15,7 +15,7 @@ import com.google.firebase.messaging.RemoteMessage
 import com.vihaanshika.mykidsvan.android.MainActivity
 import com.vihaanshika.mykidsvan.android.R
 import kotlin.random.Random
-import androidx.core.app.RemoteInput  // ✅ CORRECT
+import androidx.core.app.RemoteInput  // CORRECT
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -47,7 +47,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 }.collect { (role, id) ->
                     Log.d("CombinedFlow", "Role: $role, ID: $id")
 
-                    // ✅ Skip if role or id is null or empty
+                    // Skip if role or id is null or empty
                     if (role.isNullOrEmpty() || id.isNullOrEmpty()) {
                         Log.w("FCM", "Skipping token update: role or ID is null/empty")
                         return@collect

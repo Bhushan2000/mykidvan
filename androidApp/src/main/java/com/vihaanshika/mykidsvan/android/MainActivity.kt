@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Handle system windows explicitly for Android 15+
+        // Handle system windows explicitly for Android 15+
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         Checkout.preload(applicationContext)
@@ -439,7 +439,7 @@ fun MyApp(
                             onClick = {
                                 selectedDrawerItem = item
                                 selectedMenuTitle = item.title
-                                onDrawerItemClick(item.route) // ✅ delegate navigation
+                                onDrawerItemClick(item.route) // delegate navigation
                             }
                         )
                     }
@@ -875,8 +875,8 @@ fun CustomTopAppBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding() // ✅ Only adds padding at the top for status bar
-            .padding(top = 8.dp)        // ✅ extra padding you control (increase/decrease)
+            .statusBarsPadding() // Only adds padding at the top for status bar
+            .padding(top = 8.dp)        // extra padding you control (increase/decrease)
             .height(appBarHeight)
             .padding(
                 start = horizontalPadding,
