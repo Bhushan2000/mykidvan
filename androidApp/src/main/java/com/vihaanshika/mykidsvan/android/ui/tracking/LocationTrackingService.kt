@@ -49,6 +49,7 @@ import org.koin.android.ext.android.inject
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration.Companion.milliseconds
 
 //
 class LocationTrackingService : Service() {
@@ -91,7 +92,7 @@ class LocationTrackingService : Service() {
                         trackingJob = launch {
                             while (isActive && (pollingStatus == null || pollingStatus == true)) {
                                 fetchLatLngFromServer()
-                                delay(10_000L)
+                                delay(5_000L)
                                 Log.d("TAG", "onCreate: polling status - $pollingStatus")
                             }
                         }
@@ -107,8 +108,8 @@ class LocationTrackingService : Service() {
             5000L // Request update every 5 seconds
         ).apply {
             setMinUpdateIntervalMillis(2000L) // Don't get updates more than every 2 seconds
-            setWaitForAccurateLocation(true)  // Wait for a precise fix
-            setMaxUpdateDelayMillis(10000L)   // In case of batching
+            setWaitForAccurateLocation(false)
+            setMaxUpdateDelayMillis(5000L)   // Max batching delay 5 seconds
         }.build()
 
         // Permission check
@@ -137,8 +138,8 @@ class LocationTrackingService : Service() {
             val distance = lastLoc.distanceTo(newLoc)
             val timeDiff = newLoc.time - lastLoc.time
 
-            // If moved less than 5 meters and it's been less than 4 seconds, skip
-            if (distance < 5 && timeDiff < 4000) {
+            // If moved less than 2 meters and it's been less than 2 seconds, skip
+            if (distance < 2 && timeDiff < 2000) {
                 Log.d(
                     "LocationService",
                     "📍 Redundant location (Distance: $distance m, TimeDiff: $timeDiff ms), skipping broadcast."
@@ -368,7 +369,7 @@ class LocationTrackingService : Service() {
         trackingJob = serviceScope.launch {
             while (isActive && (pollingStatus == null || pollingStatus == true)) {
                 fetchLatLngFromServer()
-                delay(10_000L)
+                delay(5_000L)
                 Log.d("restartPolling", "Polling... still active")
             }
         }

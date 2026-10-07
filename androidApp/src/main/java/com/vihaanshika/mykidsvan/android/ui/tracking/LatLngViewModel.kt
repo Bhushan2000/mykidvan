@@ -179,7 +179,7 @@ class LatLngViewModel(
 //                else if (role == Constants.USER_PARENT) {
 //                    fetchLatLngFromServer()
 //                }
-                delay(10_000)
+                delay(5_000L)
             }
         }
     }
